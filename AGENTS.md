@@ -21,6 +21,8 @@ npm run preview  # vite preview
 npm run deploy   # build + wrangler deploy → fnp.silence-tax.com
 ```
 
+Push to `main` also deploys via `.github/workflows/deploy.yml` (test + `wrangler deploy`). Requires repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
+
 Version lives in `.version` (`YYYY.WW.BUILD.PATCH`), injected as `__APP_VERSION__`.
 
 ## Product contract (do not weaken)
