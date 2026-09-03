@@ -6,7 +6,7 @@ Guidance for coding agents working in this repository.
 
 Public FNP calculator: **Kalkulator Rezyliencji FNP**. Dual-brand with Silence Tax as the named engine. Collaboration between Fundacja Nowe Przestrzenie and Paweł Mamcarz.
 
-This is the public, cautious-mode product. The full academic/optimizer surface stays in [pawelmamcarz/podatekodmilczenia](https://github.com/pawelmamcarz/podatekodmilczenia) (`~/claude/silence-tax` and `~/claude/podatekodmilczenia`). Do not copy doctoral papers, HiGHS UI, or the 13-module ledger into this app.
+This is the public, cautious-mode product. Live at **https://fnp.silence-tax.com** (Cloudflare Worker `kalkulator-rezyliencji-fnp`, custom domain). The full academic/optimizer surface stays at [silence-tax.com](https://silence-tax.com) / [pawelmamcarz/podatekodmilczenia](https://github.com/pawelmamcarz/podatekodmilczenia) (`~/claude/silence-tax` and `~/claude/podatekodmilczenia`). Do not copy doctoral papers, HiGHS UI, or the 13-module ledger into this app.
 
 ## Stack and commands
 
@@ -18,7 +18,7 @@ npm test         # Vitest (engine snapshots + FNP contract)
 npm run lint     # ESLint
 npm run build    # dist/
 npm run preview  # vite preview
-npm run deploy   # build + wrangler deploy (worker name kalkulator-rezyliencji-fnp)
+npm run deploy   # build + wrangler deploy → fnp.silence-tax.com
 ```
 
 Version lives in `.version` (`YYYY.WW.BUILD.PATCH`), injected as `__APP_VERSION__`.

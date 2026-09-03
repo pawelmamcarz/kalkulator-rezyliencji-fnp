@@ -4,7 +4,7 @@
 
 Kalkulator Rezyliencji FNP to bezpłatne narzędzie, które przelicza deficyt bezpieczeństwa psychologicznego na roczny scenariusz kosztów w PLN. Powstaje we współpracy Fundacji Nowe Przestrzenie i Pawła Mamcarza (ekspert Fundacji, współtwórca kalkulatora).
 
-**Wersja robocza (beta):** https://silence-tax.com
+**Wersja robocza (beta):** https://fnp.silence-tax.com
 
 ## Jak to działa
 
