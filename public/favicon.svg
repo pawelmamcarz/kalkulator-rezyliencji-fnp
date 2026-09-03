@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <rect width="48" height="48" fill="#fcfcfa"/>
+  <rect x="3" y="3" width="42" height="42" fill="none" stroke="#0a0a0a" stroke-width="2"/>
+  <text x="24" y="31" text-anchor="middle" font-family="Georgia, serif" font-size="16" font-weight="700" fill="#0a0a0a">FNP</text>
+</svg>
