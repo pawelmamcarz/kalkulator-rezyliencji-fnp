@@ -30,9 +30,9 @@ Version lives in `.version` (`YYYY.WW.BUILD.PATCH`), injected as `__APP_VERSION_
 Output is a **scenario of scale**, not an accounting valuation, forecast, causal estimate, or ROI promise.
 
 - Default: `scopeMode: conservative` + `CALIBRATION_MODES.conservative` + `safetySource: estimate`.
-- Headline money = validated core only (turnover, errors, burnout). Other modules render as „w walidacji”, never in LINE 99.
+- Headline money = validated core only (turnover, errors, burnout). Other areas show „poza sumą”, without adding złoty to the total.
 - One climate slider 0–100 with behavioral anchors. No 7-item Likert, no mini-quiz. Copy must say szacunek własny, nie pomiar.
-- Inputs: revenue, costs, headcount, average pay, turnover, climate. Costs and turnover are context (margin / comparison); the engine uses revenue, FTE, salary, safety.
+- Inputs: revenue, costs, headcount, average pay, turnover, climate. Headline uses FTE, salary, climate and declared turnover (mixed with GUS 14.8%, capped by the typed rate). Costs are for margin only. Revenue is the percent denominator.
 - Five reporting areas, FNP labels, not the academic channel titles:
   1. Rotacja i utrata wiedzy
   2. Błędy i compliance
@@ -40,7 +40,8 @@ Output is a **scenario of scale**, not an accounting valuation, forecast, causal
   4. Innowacje i uczenie się
   5. Koordynacja i hierarchia
 - Do not add an intervention catalog or optimizer to this public app. Interventions follow FNP diagnosis.
-- Always: „do 5% przychodów”, never „dokładnie 5%”.
+- Headline copy must match the printed percent. Do not say „do 5%” next to a larger number. After FNP priors, the default firm (100M, 500 FTE, s=41) stays at or under 5% of revenue.
+- Do not say the model is calibrated on Ipsos. Ipsos × FNP 2026 is Polish context; table audit is pending. Money scalars are author priors.
 - Footer: Fundacja Nowe Przestrzenie × Paweł Mamcarz, „silnik: Silence Tax”.
 
 ## Engine
@@ -51,7 +52,7 @@ Do not re-export `highsOptimizer` from `src/logic.js`. The public bundle must st
 
 ## Methodology
 
-Public research only. Calibration anchor: Ipsos Polska × FNP 2026 (n=1000). Open code is inspectability, not empirical proof. LICENSE disclaimer stays.
+Public research only. Ipsos × FNP 2026 is context, not a completed table audit. Open code is inspectability, not proof. LICENSE disclaimer stays. FNP priors live in `src/fnpModel.js` (problem mix, no burnout→turnover kick, declared turnover). Do not change `DEFAULT_PROBLEM_DIST` used by `logic.test.js`.
 
 ## Conventions
 

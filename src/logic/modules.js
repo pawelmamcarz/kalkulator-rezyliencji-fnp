@@ -38,6 +38,8 @@ function _rawModules(safety, { revenue, employees, avgSalary, leaders, problemDi
   // ±25% perturbation in sensitivity analysis per rozprawa §4.1.5).
   const kMult = O.K_SIGMOID_MULT ?? K_SIGMOID_DEFAULT_MULT;
 
+  const nLeaders = Math.max(0, Number(leaders) || 0);
+  const dist = Array.isArray(problemDist) ? problemDist : [];
   const trauma = Math.max(0, Math.min(1, recentTrauma || 0));
   const autonomyClamped = Math.max(0, Math.min(1, autonomy ?? 0.5));
   const fearBoost = 1 + AVAILABILITY_MAX_BOOST * trauma;
@@ -56,7 +58,7 @@ function _rawModules(safety, { revenue, employees, avgSalary, leaders, problemDi
   const baseFearEff = baseFear * (1 + 0.3 * baseFear);
   let errorConcealmentCost = 0;
   let hiddenErrors = 0;
-  for (const d of problemDist) {
+  for (const d of dist) {
     // Clamp to 1: hideRate is the fraction of errors concealed, so it cannot
     // exceed 1. baseFearEff peaks at 1.3 (baseFear=1), which would otherwise
     // let extreme blame/fear combos conceal more errors than exist.
@@ -71,7 +73,19 @@ function _rawModules(safety, { revenue, employees, avgSalary, leaders, problemDi
   const innovationLoss = revenue * 0.03 * (ideaSilR * 0.6 + riskAvR * 0.4); // AUTHOR'S EXTENSION
 
   const stabilityR = mv("teamStability");
-  const excessChurn = Math.max(0, (1 - stabilityR) * 0.4 - 0.015);
+  const climateChurn = Math.max(0, (1 - stabilityR) * 0.4 - 0.015);
+  let excessChurn = climateChurn;
+  const declaredTurnover = O.TURNOVER_DECLARED;
+  if (Number.isFinite(declaredTurnover) && declaredTurnover >= 0) {
+    const stabilityHigh = getMetricValue("teamStability", 100, kMult);
+    const highChurn = Math.max(0, (1 - stabilityHigh) * 0.4 - 0.015);
+    const climateExcess = Math.max(0, climateChurn - highChurn);
+    const gus = O.PL_AVG_TURNOVER ?? 0.148;
+    const observedExcess = Math.max(0, declaredTurnover - gus);
+    const mixedExcess = 0.5 * climateExcess + 0.5 * observedExcess;
+    const usedExcess = Math.min(declaredTurnover, mixedExcess);
+    excessChurn = Math.min(declaredTurnover, usedExcess + highChurn);
+  }
   let turnoverCost = employees * excessChurn * avgSalary * 0.75; // AUTHOR'S EXTENSION
 
   const voiceBlock = metricSeverity("ideaSilence", safety, kMult) * 0.5 + metricSeverity("destructiveFear", safety, kMult) * 0.5;
@@ -99,7 +113,7 @@ function _rawModules(safety, { revenue, employees, avgSalary, leaders, problemDi
   // → mnożnik 0.6). Zastąpiony default 2.5 (4× za wysoki vs rozprawa).
   const leaderSilenceFreqMult = O.LEADER_SILENCE_FREQ_MULT ?? LEADER_SILENCE_FREQ_MULT;
   const leaderSilenceFreq = destructFear * leaderSilenceFreqMult;
-  const leaderSilenceCost = leaders * leaderSilenceFreq * 150_000; // AUTHOR'S EXTENSION
+  const leaderSilenceCost = nLeaders * leaderSilenceFreq * 150_000; // AUTHOR'S EXTENSION
 
   const complianceRiskCost = revenue * 0.005 * (1 - mv("procedureUse")); // AUTHOR'S EXTENSION
 
@@ -191,7 +205,8 @@ function _computeCostsAggregate(params) {
   // kMult is resolved inside _rawModules (via O.K_SIGMOID_MULT ?? K_SIGMOID_DEFAULT_MULT).
   // The line below is kept only to propagate kMult to metricSeverity calls below;
   // default is K_SIGMOID_DEFAULT_MULT (0.4), not 1 - matching _rawModules behavior.
-  const kMult = params.overrides?.K_SIGMOID_MULT ?? K_SIGMOID_DEFAULT_MULT;
+  const O = params.overrides || {};
+  const kMult = O.K_SIGMOID_MULT ?? K_SIGMOID_DEFAULT_MULT;
 
   const at = _rawModules(safety, params);
   const base = _rawModules(100, params);
@@ -249,7 +264,8 @@ function _computeCostsAggregate(params) {
   const interactionEffects = [];
   const baseValues = new Map(components.map(c => [c.id, c.value]));
   const amplifications = new Map();
-  for (const { fromMetric, toId, w } of MODULE_INTERACTIONS) {
+  const interactions = O.MODULE_INTERACTIONS ?? MODULE_INTERACTIONS;
+  for (const { fromMetric, toId, w } of interactions) {
     const sev = metricSeverity(fromMetric, safety, kMult);
     if (sev <= 0.01) continue;
     const base = baseValues.get(toId);

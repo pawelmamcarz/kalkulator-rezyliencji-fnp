@@ -5,7 +5,7 @@ const STEPS = [
   {
     n: "01",
     title: "Kalkulator",
-    body: "Prolog. Scenariusz: ile prawdopodobnie tracisz. Otwiera rozmowę liczbą.",
+    body: "Prolog. Scenariusz: ile może wyciekać. Otwiera rozmowę liczbą.",
   },
   {
     n: "02",

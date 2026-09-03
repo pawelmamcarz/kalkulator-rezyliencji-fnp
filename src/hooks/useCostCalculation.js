@@ -1,17 +1,7 @@
 import { useMemo } from "react";
-import { CALIBRATION_MODES, computeFullModelAnalysis } from "../logic.js";
+import { computeFullModelAnalysis } from "../logic.js";
+import { fnpAnalysisParams } from "../fnpModel.js";
 
 export function useCostCalculation(params) {
-  return useMemo(() => {
-    const overrides = {
-      ...CALIBRATION_MODES.conservative.overrides,
-      ...(params.overrides || {}),
-    };
-    return computeFullModelAnalysis({
-      ...params,
-      scopeMode: params.scopeMode || "conservative",
-      safetySource: params.safetySource || "estimate",
-      overrides,
-    });
-  }, [params]);
+  return useMemo(() => computeFullModelAnalysis(fnpAnalysisParams(params)), [params]);
 }

@@ -20,7 +20,7 @@ Wynik jest scenariuszem skali zjawiska, nie wyceną księgową ani prognozą. To
 
 ## Metodologia
 
-Model opiera się wyłącznie na publicznie dostępnych badaniach naukowych (m.in. Edmondson 1999, Williamson 1967, Van Dyne 2003, Frazier i in. 2017) i jest kalibrowany na badaniu Ipsos Polska × Fundacja Nowe Przestrzenie 2026 (n=1000). Żadnych licencjonowanych metodyk. Parametry bez bezpośredniej kalibracji empirycznej są jawnie oznaczone w kodzie jako założenia autorskie.
+Model opiera się na publicznie dostępnych badaniach (m.in. Edmondson 1999, Williamson 1967, Van Dyne 2003, Frazier i in. 2017). Przeliczenie na złote jest założeniem autorskim, oznaczonym w kodzie. Raport Ipsos Polska × Fundacja Nowe Przestrzenie 2026 jest polskim kontekstem; tabele źródłowe nie są jeszcze sprawdzone, więc nie mówimy o kalibracji. Żadnych licencjonowanych metodyk.
 
 Kod silnika obliczeniowego jest otwarty: [pawelmamcarz/podatekodmilczenia](https://github.com/pawelmamcarz/podatekodmilczenia) (MIT). Otwartość kodu czyni założenia inspekcjonowalnymi; nie jest dowodem ich empirycznej trafności.
 

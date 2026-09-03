@@ -29,8 +29,7 @@ export default function Invitation({ params, valuation }) {
           const split = splitChannel(channel);
           return (
             <li key={channel.id}>
-              {CHANNEL_COPY[channel.id]?.title}: {money(split.headline)}
-              {split.pending > 0 ? ` (w walidacji +${money(split.pending)})` : ""}
+              {CHANNEL_COPY[channel.id]?.title}: {split.headline > 0 ? money(split.headline) : "poza sumą"}
             </li>
           );
         })}
@@ -40,7 +39,7 @@ export default function Invitation({ params, valuation }) {
         Kontakt: pawel@mamcarz.com
       </p>
       <p className="micro" style={{ marginTop: 28 }}>
-        Silnik: Silence Tax · {__APP_VERSION__} · Ipsos × FNP 2026 (n=1000)
+        Silnik: Silence Tax · {__APP_VERSION__} · badania publiczne, założenia autorskie, kontekst Ipsos × FNP 2026
       </p>
     </div>
   );

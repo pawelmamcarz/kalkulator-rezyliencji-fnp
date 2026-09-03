@@ -78,12 +78,12 @@ export default function Diagnosis({ params, up }) {
         <NumberField label="Rotacja" value={params.turnoverPct} min={0} max={100} step={0.5} display={`${params.turnoverPct}%`} onChange={(v) => up("turnoverPct", v)} />
       </div>
       <p className="micro" style={{ marginTop: 12, lineHeight: 1.5 }}>
-        Koszty i rotacja służą do kontekstu (marża, porównanie z modelem). Silnik liczy scenariusz z przychodów, etatów, płacy i oceny klimatu.
+        Główna liczba wychodzi z etatów, płacy, rotacji i klimatu. Koszty służą tylko do marży. Przychód pokazuje, ile to procent firmy.
       </p>
 
       <LedgerBox label="Klimat organizacji · szacunek własny, nie pomiar" style={{ padding: 22, marginTop: 28 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline" }}>
-          <span className="micro">Ankieta Light: jeden suwak 0–100</span>
+          <span className="micro">Jeden suwak 0–100</span>
           <strong style={{ fontFamily: "var(--mono)", fontSize: 22 }}>{params.safety}/100</strong>
         </div>
         <input
@@ -111,8 +111,8 @@ export default function Diagnosis({ params, up }) {
           ))}
         </div>
         <p className="micro" style={{ marginTop: 14, lineHeight: 1.5 }}>
-          Kotwice behawioralne: „złe wieści nie wychodzą z zespołu” vs „o błędach mówi się szefowi bez strachu”.
-          Wynik jest szacunkiem własnym. Chcesz realny pomiar? Diagnoza FNP.
+          To nie jest ankieta Edmondson. Zapisujemy, jak Ty widzisz klimat.
+          Żeby zmierzyć, jak jest w zespołach, potrzebna jest diagnoza FNP.
         </p>
       </LedgerBox>
     </section>

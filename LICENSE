@@ -24,18 +24,17 @@ SOFTWARE.
 
 ADDITIONAL NOTE — DECISION-SUPPORT TOOL DISCLAIMER
 
-This software (Silence Tax Optimizer, https://silence-tax.com) is a calibrated
-theoretical simulation, not a forecasting instrument. Cost estimates are
-order-of-magnitude scenarios within a 5–40% of revenue credibility band
-conditional on the calibration assumptions documented in `autoreferat.md`
-Aneks A. The model is NOT validated against firm-level cost data and SHOULD
-NOT be used as the sole basis for material business decisions.
+This software (Kalkulator Rezyliencji FNP / Silence Tax, https://fnp.silence-tax.com)
+is a theoretical scenario, not a forecasting instrument. Cost figures are
+order-of-magnitude illustrations. They are not calibrated to an audited Ipsos
+table and are NOT validated against firm-level cost data. They SHOULD NOT be
+used as the sole basis for material business decisions.
 
 By using this software you acknowledge that:
 1. The output is illustrative, not a substitute for an audit or due diligence;
 2. Real-world organizational outcomes may differ substantially from model
    predictions, particularly outside the Polish (Hofstede PD=68, UA=93)
-   cultural context the model was calibrated on;
+   cultural context the scenario was built for;
 3. The author makes no warranty about the suitability of the model for any
    specific organization, sector, or decision;
 4. Material investment decisions (>500K PLN per the model's own guidance)
