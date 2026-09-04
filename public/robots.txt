@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://fnp.silence-tax.com/sitemap.xml

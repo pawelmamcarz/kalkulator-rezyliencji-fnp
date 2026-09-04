@@ -1,38 +1,52 @@
 # Kalkulator Rezyliencji FNP
 
-**Ile Twoja organizacja traci na milczeniu?**
+Bezpłatny kalkulator Fundacji Nowe Przestrzenie i Pawła Mamcarza, z silnikiem Silence Tax. Publiczna strona: https://fnp.silence-tax.com.
 
-Kalkulator Rezyliencji FNP to bezpłatne narzędzie, które przelicza deficyt bezpieczeństwa psychologicznego na roczny scenariusz kosztów w PLN. Powstaje we współpracy Fundacji Nowe Przestrzenie i Pawła Mamcarza (ekspert Fundacji, współtwórca kalkulatora).
+Wynik jest rocznym scenariuszem skali, nie wyceną księgową, prognozą, oszacowaniem przyczynowym ani obietnicą oszczędności. Rezyliencja oznacza zdolność organizacji do reagowania na trudności i uczenia się. Kalkulator opisuje warunki zabierania głosu, nie mierzy całej rezyliencji.
 
-**Wersja robocza (beta):** https://fnp.silence-tax.com
+## Ścieżka użytkownika
 
-## Jak to działa
+Dane organizacji → wynik → pięć obszarów → metodologia i priory → kontakt w sprawie diagnozy lub wydruk/PDF.
 
-Wpisujesz pięć danych, które każda firma zna z głowy: przychody, koszty, zatrudnienie, przeciętne wynagrodzenie i rotację, oraz ocenę klimatu organizacji. Kalkulator zwraca scenariusz rocznych strat w pięciu obszarach:
+Dane: przychody i koszty roczne, średnioroczne FTE, roczna płaca brutto na etat, rotacja oraz własny szacunek klimatu 0–100. Nazwa jest opcjonalna, używana na wydruku. Pola początkowe to przykład. Dane nie są zapisywane ani wysyłane na serwer. Po odświeżeniu wraca przykład. Puste lub błędne dane wstrzymują wynik i możliwość wydruku z przycisku.
 
-1. **Rotacja i utrata wiedzy** - ludzie odchodzą, wiedza odchodzi z nimi
-2. **Błędy i compliance** - problemy zgłaszane za późno albo wcale
-3. **Wypalenie i pasywność** - ludzie są, ale ich nie ma
-4. **Innowacje i uczenie się** - pomysły, które nigdy nie padły
-5. **Koordynacja i hierarchia** - informacja gubi się po drodze do góry
+Kwota zależy od FTE, płacy, klimatu i deklarowanej rotacji. Przychód służy jako mianownik procentu, koszty do porównania z różnicą przychodów i kosztów. Kwoty nie należy ponownie odejmować od zysku.
 
-Wynik jest scenariuszem skali zjawiska, nie wyceną księgową ani prognozą. To punkt wyjścia do rozmowy i do realnego pomiaru (diagnoza FNP).
+## Zakres modelu
 
-## Metodologia
+1. Rotacja i utrata wiedzy: w sumie tylko rotacja.
+2. Błędy i compliance: w sumie tylko błędy.
+3. Wypalenie i pasywność: w sumie tylko wypalenie.
+4. Innowacje i uczenie się: poza sumą.
+5. Koordynacja i hierarchia: poza sumą.
 
-Model opiera się na publicznie dostępnych badaniach (m.in. Edmondson 1999, Williamson 1967, Van Dyne 2003, Frazier i in. 2017). Przeliczenie na złote jest założeniem autorskim, oznaczonym w kodzie. Raport Ipsos Polska × Fundacja Nowe Przestrzenie 2026 jest polskim kontekstem; tabele źródłowe nie są jeszcze sprawdzone, więc nie mówimy o kalibracji. Żadnych licencjonowanych metodyk.
+Każdy koszt jest nadwyżką względem modelowego klimatu 100. Przy 100 nadwyżka wynosi 0 z definicji, co nie oznacza organizacji bez kosztów. Zakres P10–P90 obejmuje środkowe 80% symulowanych kosztów; nie wszystkie źródła niepewności ani przedział ufności z badania. Stałe ziarno losowania umożliwia porównanie scenariuszy bez zmiany losowania po zmianie przychodu.
 
-Kod silnika obliczeniowego jest otwarty: [pawelmamcarz/podatekodmilczenia](https://github.com/pawelmamcarz/podatekodmilczenia) (MIT). Otwartość kodu czyni założenia inspekcjonowalnymi; nie jest dowodem ich empirycznej trafności.
+## Badania i priory
 
-## Status
+[Instrukcja priory dla analityka](docs/PRIORY.md) opisuje wartości, uzasadnienie, źródła danych do aktualizacji i przykład obliczeń. Efekt mrożenia opisujemy na podstawie Kiewitz i in. (2016), Adamskiej (2016), z rozróżnieniem kontekstu badań Penneya (2016). Nie jest osobną pozycją pieniężną ani dodatkowym mnożnikiem rzekomo oszacowanym w tych badaniach.
 
-Praca w toku. Publiczna wersja działa w trybie ostrożnym: moduły bez wystarczającej walidacji są ukryte albo oznaczone jako beta. Premiera pełnej wersji wraz z raportem: jesień 2026.
+Przeliczniki pieniężne są autorskie. Końce krzywych przypisane w silniku do Ipsos × FNP mają status oczekujący na audyt źródła. Raport 2026 jest kontekstem, nie potwierdzoną kalibracją. Punkt odniesienia rotacji 14,8% zachowano dla ciągłości modelu, ale przypisanie do konkretnej tabeli GUS wymaga potwierdzenia.
 
-## Kontakt
+Kod jest otwarty, aby umożliwić kontrolę. Nie stanowi to dowodu empirycznej trafności wyniku. Kontakt: pawel@mamcarz.com. Licencja MIT wraz z zastrzeżeniami w [LICENSE](LICENSE).
 
-- Fundacja Nowe Przestrzenie
-- Paweł Mamcarz - pawel@mamcarz.com
+## Rozwój i weryfikacja
 
-## Licencja
+```bash
+npm ci
+npm run dev
+npm test
+npm run lint
+npm run build
+npm run preview
+```
 
-MIT
+`npm run build` generuje aplikację oraz renderuje tę samą stronę React do HTML. Metodologia i przykład są dostępne bez wykonywania JavaScript; własne obliczenia wymagają JavaScript. Klient nawiązuje działanie na wygenerowanym HTML przez hydration. `public/robots.txt` i `public/sitemap.xml` wskazują kanoniczną stronę. Nieistniejące ścieżki w Cloudflare zwracają 404 z linkiem powrotu.
+
+Weryfikacja routingu odpowiadającego produkcji:
+
+```bash
+npx --no-install wrangler dev --local --port 8794
+```
+
+Wydanie: `npm run deploy`; push do `main` także uruchamia wdrożenie po testach. Wersja pochodzi z `.version`. Publiczny bundle nie zawiera HiGHS/WASM. Formuły współdzielone są z [Silence Tax](https://github.com/pawelmamcarz/podatekodmilczenia); priory publicznej wersji są w `src/fnpModel.js`.

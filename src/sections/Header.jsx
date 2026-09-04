@@ -29,6 +29,12 @@ export default function Header() {
           <div>silnik: Silence Tax · {__APP_VERSION__}</div>
         </div>
       </div>
+      <nav aria-label="Nawigacja po kalkulatorze" style={{ display: "flex", flexWrap: "wrap", gap: "8px 24px", marginTop: 20 }}>
+        <a href="#dane">Dane</a>
+        <a href="#wynik">Wynik</a>
+        <a href="#metodologia">Metodologia i priory</a>
+        <a href="#dalej">Kontakt i wydruk</a>
+      </nav>
     </header>
   );
 }

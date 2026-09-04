@@ -5,21 +5,21 @@ const STEPS = [
   {
     n: "01",
     title: "Kalkulator",
-    body: "Prolog. Scenariusz: ile może wyciekać. Otwiera rozmowę liczbą.",
+    body: "Porównanie scenariuszy przy jawnych założeniach. Pomaga określić pytania do dalszego badania.",
   },
   {
     n: "02",
     title: "Diagnoza FNP",
-    body: "Badanie. Realny pomiar Twojej organizacji zamiast średniej krajowej. Diagnoza zawsze poprzedza działania.",
+    body: "Badanie doświadczeń pracowników i warunków zabierania głosu. Sprawdzenie różnic między zespołami oraz danych organizacji.",
   },
   {
     n: "03",
     title: "Interwencje",
-    body: "Terapia. Warsztaty komunikacyjne, informacyjne i behawioralne, dobrane do wyniku diagnozy.",
+    body: "Działania dobrane po diagnozie, z ustalonym sposobem oceny zmiany. Sam wynik kalkulatora nie określa ich rodzaju ani skuteczności.",
   },
 ];
 
-export default function Triangle() {
+export default function Triangle({ ready }) {
   const isMobile = useMediaQuery(MOBILE_QUERY);
   return (
     <section id="dalej" style={{ padding: "48px 0" }}>
@@ -38,15 +38,14 @@ export default function Triangle() {
         ))}
       </div>
       <p style={{ fontFamily: "var(--serif)", marginTop: 20, maxWidth: 760, lineHeight: 1.55 }}>
-        Ankieta Light (suwak) kwalifikuje do rozmowy, nie zastępuje pełnego badania.
-        Firmom będącym już na etapie interwencji nie sprzedajemy kalkulatora.
+        Napisz, jeśli chcesz omówić założenia lub zakres diagnozy FNP. Link otwiera Twój program pocztowy, bez automatycznego dołączania danych z kalkulatora.
       </p>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 22 }}>
         <a className="fnp-btn" href="mailto:pawel@mamcarz.com?subject=Diagnoza%20FNP">
-          Umów diagnozę FNP
+          Napisz w sprawie diagnozy FNP
         </a>
-        <button type="button" className="fnp-btn ghost" onClick={() => window.print()}>
-          Drukuj zaproszenie
+        <button type="button" className="fnp-btn ghost" disabled={!ready} onClick={() => window.print()}>
+          Drukuj wynik / zapisz PDF
         </button>
       </div>
     </section>

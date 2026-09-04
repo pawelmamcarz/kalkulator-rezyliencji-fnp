@@ -26,8 +26,8 @@ export default function Footer() {
         <div>
           <div className="micro">Silnik</div>
           <div style={{ marginTop: 8, fontFamily: "var(--mono)", fontSize: 13 }}>
-            <a href="https://github.com/pawelmamcarz/podatekodmilczenia" style={{ color: "var(--l-ink)" }}>
-              github.com/pawelmamcarz/podatekodmilczenia
+            <a href="https://github.com/pawelmamcarz/kalkulator-rezyliencji-fnp" style={{ color: "var(--l-ink)" }}>
+              Kod kalkulatora FNP i priory
             </a>
           </div>
           <div style={{ marginTop: 6, fontFamily: "var(--mono)", fontSize: 11, color: "var(--l-mute)" }}>
@@ -49,7 +49,7 @@ export default function Footer() {
         gap: 12,
         flexWrap: "wrap",
       }}>
-        <span>Beta · praca w toku · premiera jesień 2026</span>
+        <span>Fundacja Nowe Przestrzenie × Paweł Mamcarz · silnik: Silence Tax</span>
         <span>{__APP_VERSION__}</span>
       </div>
     </footer>

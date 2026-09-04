@@ -161,3 +161,39 @@ button:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
 }
+
+/* Shared reading, form and navigation tokens. */
+a { color: var(--l-stamp); text-underline-offset: 3px; overflow-wrap: anywhere; }
+section[id] { scroll-margin-top: 20px; }
+nav a { display: inline-flex; align-items: center; min-height: 44px; }
+:focus-visible { outline: 2px solid var(--l-stamp); outline-offset: 4px; }
+.num-input { min-width: 0; min-height: 44px; text-align: left; border-bottom: 1px solid var(--l-grid); }
+.num-input:focus-visible { outline: 2px solid var(--l-stamp); outline-offset: 3px; }
+.field-hint { font-size: 14px; line-height: 1.55; color: var(--l-ink-2); }
+.field-error { font-size: 14px; color: var(--l-accent); margin-top: 8px; }
+[aria-invalid="true"] { border-color: var(--l-accent); }
+.fnp-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.skip-link { position: absolute; left: 16px; top: -100px; padding: 12px; background: white; z-index: 10; }
+.skip-link:focus { top: 8px; }
+.climate-anchors { list-style: none; font-size: 14px; display: grid; gap: 6px; margin-top: 16px; }
+input[type="range"] { height: 44px; background: linear-gradient(var(--l-ink), var(--l-ink)) center / 100% 2px no-repeat; }
+input[type="range"]::-webkit-slider-thumb { width: 24px; height: 24px; }
+input[type="range"]::-moz-range-thumb { width: 24px; height: 24px; }
+.methodology p + p { margin-top: 14px; }
+.methodology h3 { font-size: 22px; line-height: 1.3; margin: 28px 0 14px; }
+.methodology ol { padding-left: 24px; }
+.methodology li + li { margin-top: 12px; }
+.methodology details { border-top: 1px solid var(--l-rule); padding: 16px 0; margin-top: 16px; }
+.methodology summary { cursor: pointer; font-size: 18px; font-weight: 600; min-height: 44px; }
+.prior-list dt { font-weight: 700; margin: 20px 0 6px; }
+.prior-list dd { margin: 0; }
+.table-scroll { overflow-x: auto; margin: 20px 0; }
+table { width: 100%; border-collapse: collapse; background: #fff; font-size: 14px; }
+caption { text-align: left; padding-bottom: 10px; }
+th, td { padding: 10px; text-align: left; border-bottom: 1px solid var(--l-grid); }
+.l-board { overflow-x: visible; }
+@media print {
+  .l-board > :not(.invitation-print-only) { display: none !important; }
+  .invitation-print-only { position: static; font-size: 11pt; }
+  .l-board { background: white; min-height: 0; padding: 0 !important; }
+}

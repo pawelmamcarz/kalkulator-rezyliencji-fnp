@@ -11,20 +11,20 @@ export default function Channels({ valuation, params }) {
   return (
     <section id="obszary" style={{ padding: "48px 0" }}>
       <LedgerSectionHeading
-        num="KROK 2"
-        title="Pięć obszarów strat"
-        kicker="Główna liczba = rotacja, błędy, wypalenie"
+        num="OBSZARY"
+        title="Co składa się na wynik"
+        kicker="Pięć obszarów, trzy w sumie"
       />
       <p style={{ fontFamily: "var(--serif)", fontSize: 17, lineHeight: 1.6, maxWidth: 820, marginTop: 22 }}>
-        Do sumy wchodzą trzy pozycje, które da się obronić liczbami: rotacja, błędy i wypalenie.
-        Innowacje i hierarchia są opisane, ale bez złotówek w głównej liczbie.
+        Sumujemy scenariusze rotacji, błędów i wypalenia. Badania uzasadniają rozważanie tych mechanizmów,
+        ale ich przeliczniki pieniężne nadal są założeniami autora. Innowacje i koordynacja pozostają poza sumą.
       </p>
 
       <div style={{ marginTop: 24, borderTop: "2px solid var(--l-rule)" }}>
         {channels.map((channel, index) => {
           const copy = CHANNEL_COPY[channel.id];
           const split = splitChannel(channel);
-          const inSum = split.headline > 0;
+          const inSum = split.inSum;
           return (
             <article
               key={channel.id}
@@ -46,7 +46,7 @@ export default function Channels({ valuation, params }) {
                 <p style={{ fontFamily: "var(--serif)", lineHeight: 1.5, color: "var(--l-ink-2)" }}>{copy?.body}</p>
                 {channel.id === "continuity" && (
                   <p className="micro" style={{ marginTop: 8 }}>
-                    Wpisałeś rotację {params.turnoverPct}%. Scenariusz miesza to z klimatem i ze średnią GUS (14,8%). Nie doliczy więcej odejść, niż wynika z Twojej stawki.
+                    Zadeklarowana rotacja: {params.turnoverPct}%. Model łączy założenie związane z klimatem i nadwyżkę ponad punkt odniesienia 14,8%, z wagami 50/50. Liczbę odejść ogranicza deklaracja. Pochodzenie punktu odniesienia opisujemy w metodologii.
                   </p>
                 )}
               </div>
@@ -65,7 +65,7 @@ export default function Channels({ valuation, params }) {
         })}
       </div>
       <p className="micro" style={{ marginTop: 16, lineHeight: 1.55 }}>
-        Pasmo w nagłówku to Monte Carlo na rotacji, błędach i wypaleniu. Rozrzut założeń, nie przedział ufności z badania.
+        {valuation ? "Kwoty w obszarach dotyczą wariantu bazowego. Są zaokrąglane do prezentacji, więc ich widoczna suma może nieznacznie różnić się od zaokrąglonego wyniku." : "Uzupełnij poprawne dane, aby zobaczyć kwoty w pięciu obszarach."}
       </p>
     </section>
   );

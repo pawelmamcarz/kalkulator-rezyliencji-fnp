@@ -6,7 +6,7 @@ export default function LedgerSectionHeading({ num, title, kicker }) {
   return (
     <div style={{
       display: "grid",
-      gridTemplateColumns: isMobile ? "1fr" : "auto 1fr auto",
+      gridTemplateColumns: isMobile ? "1fr" : "auto minmax(0, 1fr)",
       gap: isMobile ? 4 : 24,
       alignItems: isMobile ? "start" : "baseline",
       borderTop: "2px solid var(--l-rule)",
@@ -40,7 +40,7 @@ export default function LedgerSectionHeading({ num, title, kicker }) {
           letterSpacing: "0.2em",
           color: "var(--l-mute)",
           textTransform: "uppercase",
-          whiteSpace: isMobile ? "normal" : "nowrap",
+          gridColumn: isMobile ? "auto" : "2",
         }}>
           {kicker}
         </div>

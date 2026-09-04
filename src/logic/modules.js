@@ -62,7 +62,7 @@ function _rawModules(safety, { revenue, employees, avgSalary, leaders, problemDi
     // Clamp to 1: hideRate is the fraction of errors concealed, so it cannot
     // exceed 1. baseFearEff peaks at 1.3 (baseFear=1), which would otherwise
     // let extreme blame/fear combos conceal more errors than exist.
-    const hideRate = Math.min(1, baseFearEff * (d.concealability || 0.3));
+    const hideRate = Math.min(1, baseFearEff * (d.concealability ?? 0.3));
     const hiddenInCat = employees * d.count * hideRate;
     hiddenErrors += hiddenInCat;
     errorConcealmentCost += hiddenInCat * (d.cost || 0) * ((d.lateMultiplier || 1) - 1);

@@ -9,22 +9,29 @@ import Triangle from "./sections/Triangle.jsx";
 import Limitations from "./sections/Limitations.jsx";
 import Footer from "./sections/Footer.jsx";
 import Invitation from "./sections/Invitation.jsx";
+import Result from "./sections/Result.jsx";
+import Methodology from "./sections/Methodology.jsx";
 
 export default function App() {
-  const { params, up } = useParamsState();
+  const { params, up, reset, errors } = useParamsState();
   const analysis = useCostCalculation(params);
   const isMobile = useMediaQuery(MOBILE_QUERY);
 
   return (
     <div className="l-board l-gutters" style={{ maxWidth: 1100, margin: "0 auto", padding: isMobile ? "0 16px" : "0 48px" }}>
+      <a className="skip-link" href="#dane">Przejdź do danych organizacji</a>
       <Header />
-      <Hero valuation={analysis.valuation} params={params} />
-      <Diagnosis params={params} up={up} />
-      <Channels valuation={analysis.valuation} params={params} />
-      <Triangle />
-      <Limitations />
+      <main>
+        <Hero />
+        <Diagnosis params={params} up={up} errors={errors} reset={reset} />
+        <Result valuation={analysis?.valuation} params={params} />
+        <Channels valuation={analysis?.valuation} params={params} />
+        <Methodology />
+        <Limitations />
+        <Triangle ready={!!analysis} />
+      </main>
       <Footer />
-      <Invitation params={params} valuation={analysis.valuation} />
+      <Invitation params={params} valuation={analysis?.valuation} />
     </div>
   );
 }

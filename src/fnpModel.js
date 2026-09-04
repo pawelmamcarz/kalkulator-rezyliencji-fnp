@@ -1,8 +1,9 @@
 import { CALIBRATION_MODES, MODULE_INTERACTIONS, PL_TURNOVER_RATE_GUS } from "./logic/constants.js";
+import { computeFullModelAnalysis } from "./logic/analysis.js";
 
 // Per-employee yearly rates for the public FNP scenario. Trivial and medium
-// stay as operational noise. Major and critical are scaled to a firm of a
-// few hundred people, not to every headcount. AUTHOR'S EXTENSION.
+// stay as operational noise. Major and critical ALSO scale per FTE: at 500
+// FTE they imply 25 and 3 events/year before concealment. AUTHOR'S EXTENSION.
 export const FNP_PROBLEM_DIST = [
   { id: "trivial", count: 8, cost: 500, lateMultiplier: 1.5, concealability: 0.6 },
   { id: "medium", count: 3, cost: 5_000, lateMultiplier: 2.5, concealability: 0.3 },
@@ -32,4 +33,10 @@ export function fnpAnalysisParams(params) {
       ...(Number.isFinite(declared) ? { TURNOVER_DECLARED: Math.max(0, declared) / 100 } : {}),
     },
   };
+}
+
+// Common random draws make scenario comparisons reproducible. Revenue is
+// only a denominator in FNP; changing it must not change the monetary band.
+export function computeFnpAnalysis(params, options = {}) {
+  return computeFullModelAnalysis(fnpAnalysisParams(params), { seed: 202636, ...options });
 }

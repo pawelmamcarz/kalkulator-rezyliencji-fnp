@@ -1,11 +1,11 @@
 {
   "name": "kalkulator-rezyliencji-fnp",
   "private": true,
-  "version": "2026.36.1.0",
+  "version": "2026.36.1.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/prerender.mjs",
     "preview": "vite preview",
     "lint": "eslint .",
     "test": "vitest run",
