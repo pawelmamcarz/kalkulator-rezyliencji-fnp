@@ -52,7 +52,7 @@ Do not re-export `highsOptimizer` from `src/logic.js`. The public bundle must st
 
 ## Methodology
 
-Public research only. Ipsos × FNP 2026 is context, not a completed table audit. Open code is inspectability, not proof. LICENSE disclaimer stays. FNP priors live in `src/fnpModel.js` (problem mix, no burnout→turnover kick, declared turnover). Do not change `DEFAULT_PROBLEM_DIST` used by `logic.test.js`.
+Public research only. Ipsos × FNP 2026 is context, not a completed table audit. Open code is inspectability, not proof. LICENSE disclaimer stays. FNP priors live in `src/fnpModel.js` (problem mix, no burnout→turnover kick, declared turnover). Do not change `DEFAULT_PROBLEM_DIST` used by `logic.test.js`. Optional Node-only claim audit: `npm run jev:audit` (Jev / TypeSafe; key from `TYPESAFE_API_KEY` only; see `docs/JEV-AUDYT.md`). Do not import it into the public bundle.
 
 ## Conventions
 

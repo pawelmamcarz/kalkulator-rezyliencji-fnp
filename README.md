@@ -43,6 +43,13 @@ npm run preview
 
 `npm run build` generuje aplikację oraz renderuje tę samą stronę React do HTML. Metodologia i przykład są dostępne bez wykonywania JavaScript; własne obliczenia wymagają JavaScript. Klient nawiązuje działanie na wygenerowanym HTML przez hydration. `public/robots.txt` i `public/sitemap.xml` wskazują kanoniczną stronę. Nieistniejące ścieżki w Cloudflare zwracają 404 z linkiem powrotu.
 
+Opcjonalny audyt spójności metodologii (Jev / TypeSafe, poza bundlem publicznym) jest opisany w [docs/JEV-AUDYT.md](docs/JEV-AUDYT.md). `npm test` używa atrap API. Żywe wywołanie wymaga `TYPESAFE_API_KEY` i nie trafia do klienta:
+
+```bash
+npm run jev:audit -- --dry-run
+TYPESAFE_API_KEY=... npm run jev:audit
+```
+
 Weryfikacja routingu odpowiadającego produkcji:
 
 ```bash
