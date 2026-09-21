@@ -363,7 +363,7 @@ function evaluateGate(id, question, answer) {
   }
   if (question.type === "noul") {
     const value = Number(answer.noul);
-    if (!Number.isFinite(value)) {
+    if (!inUnitInterval(value)) {
       return fail(id, "noul", "invalid_noul", `Niepoprawna wartość noul: ${answer.noul}`);
     }
     if (gate.min != null && value < gate.min) {
@@ -379,13 +379,15 @@ function evaluateGate(id, question, answer) {
     if (!expected.includes(answer.choice)) {
       return fail(id, "choice", "unexpected_choice", `choice=${answer.choice}, oczekiwano: ${expected.join("|")}`);
     }
-    if (gate.minConfidence != null && Number(answer.confidence) < gate.minConfidence) {
-      return fail(id, "choice", "low_confidence", `choice=${answer.choice}, confidence=${answer.confidence} < ${gate.minConfidence}`);
+    const confidence = readConfidence(answer, gate);
+    if (confidence.error) {
+      return fail(id, "choice", confidence.error, `choice=${answer.choice}, ${confidence.detail}`);
     }
-    return pass(id, "choice", `choice=${answer.choice}, confidence=${answer.confidence ?? "n/a"}`);
+    return pass(id, "choice", `choice=${answer.choice}, confidence=${confidence.value ?? "n/a"}`);
   }
   const value = Number(answer.score);
-  if (!Number.isFinite(value)) {
+  const lastLevel = Array.isArray(question.criteria) ? question.criteria.length - 1 : Infinity;
+  if (!Number.isFinite(value) || value < 0 || value > lastLevel) {
     return fail(id, "score", "invalid_score", `Niepoprawna wartość score: ${answer.score}`);
   }
   if (gate.min != null && value < gate.min) {
@@ -394,10 +396,34 @@ function evaluateGate(id, question, answer) {
   if (gate.max != null && value > gate.max) {
     return fail(id, "score", "above_max", `score=${value} > max=${gate.max}`);
   }
-  if (gate.minConfidence != null && Number(answer.confidence) < gate.minConfidence) {
-    return fail(id, "score", "low_confidence", `score=${value}, confidence=${answer.confidence} < ${gate.minConfidence}`);
+  const confidence = readConfidence(answer, gate);
+  if (confidence.error) return fail(id, "score", confidence.error, `score=${value}, ${confidence.detail}`);
+  return pass(id, "score", `score=${value}, confidence=${confidence.value ?? "n/a"}`);
+}
+
+function inUnitInterval(value) {
+  return Number.isFinite(value) && value >= 0 && value <= 1;
+}
+
+function readConfidence(answer, gate) {
+  if (gate.minConfidence == null) {
+    const value = answer.confidence == null ? null : Number(answer.confidence);
+    return { value: Number.isFinite(value) ? value : null };
   }
-  return pass(id, "score", `score=${value}, confidence=${answer.confidence ?? "n/a"}`);
+  const value = Number(answer.confidence);
+  if (!inUnitInterval(value)) {
+    return {
+      error: "invalid_confidence",
+      detail: `Niepoprawna wartość confidence: ${answer.confidence}`,
+    };
+  }
+  if (value < gate.minConfidence) {
+    return {
+      error: "low_confidence",
+      detail: `confidence=${value} < ${gate.minConfidence}`,
+    };
+  }
+  return { value };
 }
 
 function pass(id, kind, detail) {

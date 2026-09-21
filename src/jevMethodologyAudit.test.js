@@ -107,6 +107,28 @@ describe("Jev primitives and gates", () => {
     expect(evaluateAnswers({}, { q: noul("Yes?", { min: 0.5 }) }).findings[0].reason).toBe("missing_answer");
     expect(evaluateAnswers({ q: { noul: "x" } }, { q: noul("Yes?", { min: 0.5 }) }).findings[0].reason).toBe("invalid_noul");
   });
+
+  it("rejects noul and score values outside the primitive domain before one-sided gates", () => {
+    const result = evaluateAnswers({
+      ...passingAnswers,
+      headline_scope: { type: "noul", noul: 999 },
+      claims_accounting_or_roi: { type: "noul", noul: -999 },
+      epistemic_fidelity: { type: "score", score: 9, confidence: 0.99 },
+    }, config.questions);
+    expect(result.findings.find((row) => row.id === "headline_scope").reason).toBe("invalid_noul");
+    expect(result.findings.find((row) => row.id === "claims_accounting_or_roi").reason).toBe("invalid_noul");
+    expect(result.findings.find((row) => row.id === "epistemic_fidelity").reason).toBe("invalid_score");
+  });
+
+  it("rejects missing or nonnumeric confidence when a minimum is configured", () => {
+    const missing = evaluateAnswers({
+      ...passingAnswers,
+      claim_vs_priory: { type: "choice", choice: "supports" },
+      epistemic_fidelity: { type: "score", score: 1.9, confidence: "high" },
+    }, config.questions);
+    expect(missing.findings.find((row) => row.id === "claim_vs_priory").reason).toBe("invalid_confidence");
+    expect(missing.findings.find((row) => row.id === "epistemic_fidelity").reason).toBe("invalid_confidence");
+  });
 });
 
 describe("TypeSafe HTTP client", () => {
