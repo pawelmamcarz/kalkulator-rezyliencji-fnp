@@ -1,7 +1,7 @@
 {
   "name": "kalkulator-rezyliencji-fnp",
   "private": true,
-  "version": "2026.36.1.1",
+  "version": "2026.39.1.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
