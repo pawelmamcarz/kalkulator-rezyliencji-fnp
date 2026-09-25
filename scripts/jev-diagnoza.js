@@ -3,13 +3,14 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { DEFAULT_MODEL, callSystemOne, resolveApiKey } from "./jev-methodology-audit.lib.js";
-import { aggregate, buildRequest, formatMarkdown, mapLimit, validateResponses } from "./jev-diagnoza.lib.js";
+import { aggregate, buildRequest, formatDetails, formatMarkdown, mapLimit, validateResponses } from "./jev-diagnoza.lib.js";
 
-const HELP = `Użycie: npm run jev:diagnoza -- <plik.json> [--dry-run] [--json]
+const HELP = `Użycie: npm run jev:diagnoza -- <plik.json> [--dry-run] [--json] [--szczegoly]
 
 Plik: tablica [{ "team": "...", "text": "..." }] z anonimowymi odpowiedziami.
 --dry-run  pokaż zapytanie dla pierwszej odpowiedzi, bez wywołania API
 --json     wypisz zagregowane wyniki jako JSON
+--szczegoly  dopisz ocenę Jev dla każdej odpowiedzi (zawiera treść, tylko dla analityka)
 Klucz: TYPESAFE_API_KEY (tylko zmienna środowiskowa).`;
 
 export async function main({
@@ -47,6 +48,7 @@ export async function main({
   });
   const teams = aggregate(rows, answers);
   stdout.write(argv.includes("--json") ? `${JSON.stringify(teams, null, 2)}\n` : `${formatMarkdown(teams)}\n`);
+  if (argv.includes("--szczegoly")) stdout.write(`\n${formatDetails(rows, answers)}\n`);
   return 0;
 }
 

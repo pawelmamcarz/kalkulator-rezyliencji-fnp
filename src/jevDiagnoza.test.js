@@ -72,6 +72,8 @@ describe("Jev diagnosis prototype", () => {
     const it = teams.find((t) => t.team === "IT");
     expect(warehouse.silenceShare).toBeGreaterThan(it.silenceShare);
     expect(warehouse.severity).toBeGreaterThan(it.severity);
+    expect(warehouse.causes.lek).toBeLessThanOrEqual(warehouse.silent);
+    expect(it.causes.lojalnosc).toBe(1);
     expect(Object.values(warehouse.areas).reduce((a, b) => a + b, 0)).toBe(Math.round(warehouse.silenceShare * warehouse.n));
   });
 
@@ -87,6 +89,11 @@ describe("Jev diagnosis prototype", () => {
     const code = await main({ argv: ["docs/diagnoza-przyklad.json"], env: { TYPESAFE_API_KEY: "test" }, cwd: root, stdout: out, stderr: capture(), fetchImpl: fakeFetch });
     expect(code).toBe(0);
     expect(out.text()).toContain("| Magazyn | 6 |");
+    expect(out.text()).not.toContain("tylko dla analityka");
+    const detailed = capture();
+    await main({ argv: ["docs/diagnoza-przyklad.json", "--szczegoly"], env: { TYPESAFE_API_KEY: "test" }, cwd: root, stdout: detailed, stderr: capture(), fetchImpl: fakeFetch });
+    expect(detailed.text()).toContain("tylko dla analityka");
+    expect(detailed.text().match(/^\| (Magazyn|Sprzedaż|IT|Zarząd) \| [^|]+ \| \d,\d\d/gm)).toHaveLength(sample.length);
     const err = capture();
     expect(await main({ argv: ["docs/diagnoza-przyklad.json"], env: {}, cwd: root, stdout: capture(), stderr: err })).toBe(1);
     expect(err.text()).toContain("TYPESAFE_API_KEY");

@@ -55,7 +55,7 @@ export function validateResponses(rows) {
 const mean = (values) => values.reduce((a, b) => a + b, 0) / values.length;
 
 // Code owns aggregation and policy; Jev supplies per-answer judgments only.
-export function aggregate(rows, answers, { minTeamSize = MIN_TEAM_SIZE, silenceThreshold = 0.5 } = {}) {
+export function aggregate(rows, answers, { minTeamSize = MIN_TEAM_SIZE, silenceThreshold = 0.5, causeThreshold = 0.5 } = {}) {
   const byTeam = new Map();
   rows.forEach((row, i) => {
     if (!byTeam.has(row.team)) byTeam.set(row.team, []);
@@ -67,12 +67,13 @@ export function aggregate(rows, answers, { minTeamSize = MIN_TEAM_SIZE, silenceT
     const areas = Object.fromEntries(Object.keys(AREAS).map((id) => [id, 0]));
     silent.forEach((a) => { areas[a.obszar.choice] = (areas[a.obszar.choice] || 0) + 1; });
     const causes = Object.fromEntries(Object.keys(CAUSES).map((id) => [
-      id, silent.length ? mean(silent.map((a) => a[`przyczyna_${id}`].noul)) : 0,
+      id, silent.filter((a) => a[`przyczyna_${id}`].noul >= causeThreshold).length,
     ]));
     return {
       team,
       n: list.length,
       suppressed: false,
+      silent: silent.length,
       silenceShare: silent.length / list.length,
       severity: mean(list.map((a) => a.nasilenie.score)),
       areas,
@@ -101,9 +102,9 @@ export function formatMarkdown(teams, { minTeamSize = MIN_TEAM_SIZE } = {}) {
     }
     const top = Object.entries(t.areas).filter(([id]) => id !== "brak").sort((a, b) => b[1] - a[1])[0];
     const area = top && top[1] > 0 ? `${top[0]} (${top[1]})` : "brak";
-    lines.push(`| ${t.team} | ${t.n} | ${pct(t.silenceShare)} | ${t.severity.toFixed(1)} | ${area} | ${causeIds.map((id) => pct(t.causes[id])).join(" | ")} |`);
+    lines.push(`| ${t.team} | ${t.n} | ${pct(t.silenceShare)} | ${t.severity.toFixed(1)} | ${area} | ${causeIds.map((id) => `${t.causes[id]}/${t.silent}`).join(" | ")} |`);
   }
-  lines.push("", "Przyczyny: średnie prawdopodobieństwo wśród odpowiedzi opisujących milczenie. Zespoły poniżej progu liczebności są ukryte dla anonimowości.");
+  lines.push("", "Przyczyny: liczba odpowiedzi opisujących milczenie, w których Jev wskazał daną przyczynę (prawdopodobieństwo ≥ 0,5). Jedna odpowiedź może mieć kilka przyczyn. Zespoły poniżej progu liczebności są ukryte dla anonimowości.");
   return lines.join("\n");
 }
 
@@ -118,4 +119,25 @@ export async function mapLimit(items, limit, fn) {
   };
   await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
   return out;
+}
+
+const num = (x) => x.toFixed(2).replace(".", ",");
+
+// Per-answer view for the analyst checking Jev against human reading.
+// Contains raw answer text, so it must not leave the diagnosis team.
+export function formatDetails(rows, answers) {
+  const causeIds = Object.keys(CAUSES);
+  const lines = [
+    "## Odpowiedzi pojedynczo (tylko dla analityka, zawiera treść odpowiedzi)",
+    "",
+    `| Zespół | Odpowiedź | Milczy | Obszar (pewność) | ${causeIds.join(" | ")} | Nasilenie |`,
+    `|---|---|---|---|${causeIds.map(() => "---").join("|")}|---|`,
+  ];
+  rows.forEach((row, i) => {
+    const a = answers[i];
+    const text = row.text.length > 70 ? `${row.text.slice(0, 69)}…` : row.text;
+    const conf = a.obszar.confidence == null ? "" : ` (${num(a.obszar.confidence)})`;
+    lines.push(`| ${row.team} | ${text.replaceAll("|", "/")} | ${num(a.milczenie.noul)} | ${a.obszar.choice}${conf} | ${causeIds.map((id) => num(a[`przyczyna_${id}`].noul)).join(" | ")} | ${num(a.nasilenie.score)} |`);
+  });
+  return lines.join("\n");
 }
