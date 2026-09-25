@@ -12,7 +12,9 @@
     "test:watch": "vitest",
     "jev:audit": "node --env-file-if-exists=.env scripts/jev-methodology-audit.js",
     "jev:diagnoza": "node --env-file-if-exists=.env scripts/jev-diagnoza.js",
-    "deploy": "npm run build && wrangler deploy"
+    "deploy": "npm run build && wrangler deploy",
+    "demo:dev": "wrangler dev -c demo/wrangler.jsonc",
+    "demo:deploy": "wrangler deploy -c demo/wrangler.jsonc"
   },
   "dependencies": {
     "react": "^19.2.4",

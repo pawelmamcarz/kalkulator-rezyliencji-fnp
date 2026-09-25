@@ -1,4 +1,4 @@
-import { choice, noul, score, toApiQuestions } from "./jev-methodology-audit.lib.js";
+import { choice, noul, score, toApiQuestions } from "./jev-client.js";
 
 // Prototype: Jev reads anonymous open answers from an FNP diagnosis survey.
 // Output is a map of reported silence per team, not a measurement of

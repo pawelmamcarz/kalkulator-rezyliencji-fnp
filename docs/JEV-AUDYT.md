@@ -54,3 +54,14 @@ Pierwsze pytanie Choice naśladuje książkę kucharską TypeSafe o cytatach: `s
 `npm run jev:diagnoza -- docs/diagnoza-przyklad.json` czyta anonimowe odpowiedzi `[{ team, text }]` i dla każdej zadaje Jev pytania: czy opisuje milczenie (Noul), którego obszaru FNP dotyczy (Choice), jakie przyczyny wskazuje: lęk, bezsens, brak kanału, lojalność (Noul dla każdej), jakie jest nasilenie (Score 0–3). Kod agreguje wyniki po zespołach: przyczyny jako liczba odpowiedzi z prawdopodobieństwem ≥ 0,5, zespoły poniżej 5 odpowiedzi są ukryte. Flaga `--szczegoly` dopisuje ocenę każdej odpowiedzi; zawiera treść, więc jest tylko dla analityka.
 
 Plik przykładowy zawiera odpowiedzi wymyślone. Wynik to sygnał do rozmowy w diagnozie FNP, nie pomiar bezpieczeństwa psychologicznego i nie kwota. Progi (0,5 dla milczenia, n ≥ 5) są polityką prototypu do sprawdzenia na prawdziwych danych. Narzędzie nie trafia do publicznego bundla.
+
+## Demo na konferencję: fnp.silence-tax.com/rotunda
+
+Osobny Worker `fnp-mapa-milczenia` (`demo/`) na trasie `fnp.silence-tax.com/rotunda*`, uruchamiany przed Workerem kalkulatora. Strona pokazuje mapę milczenia z wklejonych odpowiedzi i jest oznaczona jako prototyp niezwalidowany. Klucz TypeSafe i kod dostępu są sekretami Workera; API odrzuca zapytania bez poprawnego kodu, zanim wywoła Jev. Tekst odpowiedzi nie jest zapisywany ani logowany przez Worker.
+
+```bash
+npm run demo:dev      # lokalnie, sekrety z demo/.dev.vars
+npm run demo:deploy   # ręcznie; CI wdraża tylko kalkulator
+npx wrangler secret put TYPESAFE_API_KEY -c demo/wrangler.jsonc
+npx wrangler secret put DEMO_CODE -c demo/wrangler.jsonc
+```
