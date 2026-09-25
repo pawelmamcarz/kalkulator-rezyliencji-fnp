@@ -17,7 +17,10 @@ export default function Footer() {
         <div>
           <div className="micro">Kontakt</div>
           <div style={{ marginTop: 8, fontFamily: "var(--mono)", fontSize: 13 }}>
-            <a href="mailto:pawel@mamcarz.com" style={{ color: "var(--l-ink)" }}>pawel@mamcarz.com</a>
+            <a href="mailto:zapraszamy@noweprzestrzenie.pl" style={{ color: "var(--l-ink)" }}>zapraszamy@noweprzestrzenie.pl</a>
+          </div>
+          <div style={{ marginTop: 6, fontFamily: "var(--mono)", fontSize: 11, color: "var(--l-mute)" }}>
+            Metodologia: <a href="mailto:pawel@mamcarz.com" style={{ color: "var(--l-mute)" }}>pawel@mamcarz.com</a>
           </div>
           <div style={{ marginTop: 6, fontFamily: "var(--mono)", fontSize: 11, color: "var(--l-mute)" }}>
             ORCID 0009-0002-3274-4226
