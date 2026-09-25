@@ -1,0 +1,14 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "fnp-mapa-milczenia",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-09-03",
+  "compatibility_flags": ["nodejs_compat"],
+  // Request metadata only; the worker never logs answer text.
+  "observability": { "enabled": true },
+  "assets": { "directory": "./public", "binding": "ASSETS" },
+  // Route runs before the calculator's custom domain on the same host.
+  "routes": [{ "pattern": "fnp.silence-tax.com/rotunda*", "zone_name": "silence-tax.com" }],
+  "workers_dev": false
+  // Secrets: TYPESAFE_API_KEY, DEMO_CODE (wrangler secret put).
+}
