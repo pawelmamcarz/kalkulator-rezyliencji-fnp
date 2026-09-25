@@ -41,7 +41,7 @@ export default function Triangle({ ready }) {
         Napisz, jeśli chcesz omówić założenia lub zakres diagnozy FNP. Link otwiera Twój program pocztowy, bez automatycznego dołączania danych z kalkulatora.
       </p>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 22 }}>
-        <a className="fnp-btn" href="mailto:pawel@mamcarz.com?subject=Diagnoza%20FNP">
+        <a className="fnp-btn" href="mailto:zapraszamy@noweprzestrzenie.pl?subject=Diagnoza%20FNP">
           Napisz w sprawie diagnozy FNP
         </a>
         <button type="button" className="fnp-btn ghost" disabled={!ready} onClick={() => window.print()}>
