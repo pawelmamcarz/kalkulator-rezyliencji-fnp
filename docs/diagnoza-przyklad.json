@@ -1,0 +1,21 @@
+[
+  { "team": "Magazyn", "text": "Jak coś się sypie na zmianie, to lepiej nie mówić kierownikowi, bo potem jest szukanie winnego." },
+  { "team": "Magazyn", "text": "Zgłaszaliśmy problem ze skanerami trzy razy, nic się nie zmieniło, więc już nikt nie zgłasza." },
+  { "team": "Magazyn", "text": "Nowi odchodzą po dwóch miesiącach i nikt nie pyta dlaczego." },
+  { "team": "Magazyn", "text": "Nie ma kiedy powiedzieć, bo odprawa trwa pięć minut i jest tylko o normach." },
+  { "team": "Magazyn", "text": "Kryjemy się nawzajem z błędami na etykietach, żeby nie było kary dla zmiany." },
+  { "team": "Magazyn", "text": "Brygadzista słucha, jak mu się coś powie, i często to poprawia." },
+  { "team": "Sprzedaż", "text": "Miałem pomysł na nowy pakiet dla klientów, ale szef powiedział, że to głupie, więc odpuściłem." },
+  { "team": "Sprzedaż", "text": "Nie mówimy o tym, że CRM ma złe dane, bo raporty idą do zarządu i byłaby afera." },
+  { "team": "Sprzedaż", "text": "Na spotkaniach mówi tylko dyrektor, reszta kiwa głową." },
+  { "team": "Sprzedaż", "text": "Jestem zmęczona, robię swoje i nie wychylam się." },
+  { "team": "Sprzedaż", "text": "U nas można powiedzieć wprost, że cel jest nierealny, i czasem go zmieniają." },
+  { "team": "Sprzedaż", "text": "Nie wiem, komu zgłosić, że marketing obiecuje klientom rzeczy, których nie mamy." },
+  { "team": "IT", "text": "Na retro mówimy otwarcie o błędach i nikt nie jest za to karany." },
+  { "team": "IT", "text": "Testujemy nowe rzeczy w piaskownicy, porażki omawiamy bez szukania winnych." },
+  { "team": "IT", "text": "Czasem nie zgłaszam drobiazgów, bo szkoda czasu na ticket." },
+  { "team": "IT", "text": "Informacja z biznesu przychodzi do nas za późno, ale mówimy o tym na spotkaniach z kierownictwem." },
+  { "team": "IT", "text": "Nie zgłosiłem luki w uprawnieniach, bo zrobił ją kolega, a nie chcę mu robić problemów." },
+  { "team": "Zarząd", "text": "Zespół mówi nam tylko dobre wiadomości." },
+  { "team": "Zarząd", "text": "Nie mamy czasu na długie dyskusje." }
+]

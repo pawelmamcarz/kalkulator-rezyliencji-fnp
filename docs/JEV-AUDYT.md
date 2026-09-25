@@ -48,3 +48,9 @@ Pin modelu: `jev-1.13.0`. Progi `minConfidence` i Noul są polityką tego repozy
 2. Teksty UI: metodologia, zastrzeżenia, wynik, obszary, hero, wydruk, suwak klimatu.
 
 Pierwsze pytanie Choice naśladuje książkę kucharską TypeSafe o cytatach: `supports` / `contradicts` / `says_nothing` względem twierdzenia z priory. Pozostałe pytania pilnują Ipsos, zakresu sumy, 5%, efektu mrożenia, szacunku własnego klimatu i pasma P10–P90.
+
+## Prototyp: mapa milczenia z odpowiedzi otwartych
+
+`npm run jev:diagnoza -- docs/diagnoza-przyklad.json` czyta anonimowe odpowiedzi `[{ team, text }]` i dla każdej zadaje Jev pytania: czy opisuje milczenie (Noul), którego obszaru FNP dotyczy (Choice), jakie przyczyny wskazuje: lęk, bezsens, brak kanału, lojalność (Noul dla każdej), jakie jest nasilenie (Score 0–3). Kod agreguje wyniki po zespołach i ukrywa zespoły poniżej 5 odpowiedzi.
+
+Plik przykładowy zawiera odpowiedzi wymyślone. Wynik to sygnał do rozmowy w diagnozie FNP, nie pomiar bezpieczeństwa psychologicznego i nie kwota. Progi (0,5 dla milczenia, n ≥ 5) są polityką prototypu do sprawdzenia na prawdziwych danych. Narzędzie nie trafia do publicznego bundla.
