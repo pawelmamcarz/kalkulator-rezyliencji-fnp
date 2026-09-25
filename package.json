@@ -10,8 +10,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "jev:audit": "node scripts/jev-methodology-audit.js",
-    "jev:diagnoza": "node scripts/jev-diagnoza.js",
+    "jev:audit": "node --env-file-if-exists=.env scripts/jev-methodology-audit.js",
+    "jev:diagnoza": "node --env-file-if-exists=.env scripts/jev-diagnoza.js",
     "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
