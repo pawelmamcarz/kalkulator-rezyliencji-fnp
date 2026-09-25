@@ -11,21 +11,21 @@ export const AREAS = {
   bledy: "Błędy i compliance: niezgłaszane błędy, ryzyka, naruszenia procedur.",
   wypalenie: "Wypalenie i pasywność: zmęczenie, rezygnacja, robienie minimum.",
   innowacje: "Innowacje i uczenie się: niezgłaszane pomysły, brak eksperymentów.",
-  koordynacja: "Koordynacja i hierarchia: informacja nie płynie między działami lub w górę.",
+  koordynacja: "Koordynacja i hierarchia: informacja nie płynie między działami lub w górę do przełożonych; brak okazji, by zgłosić sprawę; do kierownictwa docierają tylko dobre wiadomości.",
   brak: "Wypowiedź nie opisuje żadnego z tych obszarów.",
 };
 
 export const CAUSES = {
   lek: "Autor nie zabiera głosu z obawy przed konsekwencjami: oceną, karą, ośmieszeniem, utratą pracy.",
-  bezsens: "Autor nie zabiera głosu, bo uważa, że to nic nie zmieni lub nikt nie słucha.",
-  brak_kanalu: "Autor nie ma gdzie, kiedy ani komu zgłosić sprawy (brak kanału, czasu, spotkania).",
-  lojalnosc: "Autor milczy, żeby chronić kolegów, przełożonego lub atmosferę w zespole.",
+  bezsens: "Autor nie zabiera głosu, bo uważa, że to nic nie zmieni, nikt nie słucha albo nie warto się wychylać; także rezygnacja i robienie tylko swojego.",
+  brak_kanalu: "Autor nie ma gdzie, kiedy ani komu zgłosić sprawy albo zgłaszanie jest zbyt pracochłonne (brak kanału, czasu, spotkania, uciążliwa procedura).",
+  lojalnosc: "Autor milczy, żeby uchronić przed konsekwencjami konkretne inne osoby: kolegę, zespół, zmianę, przełożonego; także wzajemne krycie się w zespole. Nie chodzi o ochronę wyłącznie samego siebie.",
 };
 
 const COMMENT = "`odpowiedz` to anonimowa odpowiedź pracownika na pytanie otwarte w ankiecie diagnozy klimatu pracy.";
 
 export const questions = {
-  milczenie: noul(`${COMMENT} Czy autor opisuje, że on sam lub jego zespół powstrzymuje się od zgłaszania problemów, błędów, pomysłów lub zastrzeżeń?`),
+  milczenie: noul(`${COMMENT} Czy wypowiedź opisuje, że ważne problemy, błędy, pomysły lub zastrzeżenia nie są zgłaszane: autor lub zespół się wstrzymuje, nie ma okazji ich zgłosić albo do przełożonych docierają tylko wybrane informacje? Nie licz sytuacji, w której problem jest otwarcie zgłaszany, nawet jeśli nie zostaje rozwiązany.`),
   obszar: choice(`${COMMENT} Którego obszaru organizacji dotyczy głównie ta wypowiedź?`, AREAS),
   ...Object.fromEntries(Object.entries(CAUSES).map(([id, text]) => [
     `przyczyna_${id}`,
