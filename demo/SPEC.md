@@ -15,14 +15,14 @@ Booth game for the FNP conference, 19 listopada 2026. Worker `fnp-mapa-milczenia
 Roles: `zarzad` „Zarząd”, `menedzer` „Menedżer / menedżerka”, `specjalista` „Specjalista / specjalistka”.
 
 Starters (id: text):
-- `szef`: „Nie powiedziałem/am szefowi, że…”
+- `szef`: „Szef nie wie, że…”
 - `blad`: „Wiem o błędzie, ale…”
-- `pomysl`: „Miałem/am pomysł, ale…”
+- `pomysl`: „Mój pomysł przepadł, bo…”
 - `spotkanie`: „Na spotkaniu wszyscy kiwali głową, a ja…”
 - `klient`: „Klient nie wie, że…”
 - `zarzad`: „Do zarządu nie dociera, że…”
-- `odejscie`: „Gdybym odchodził/a, powiedział/abym, że…”
-- `wolne`: „Przemilczałem/am, bo…”
+- `odejscie`: „Odchodząc z firmy, powiem, że…”
+- `wolne`: „Nie mówię o tym głośno, bo…”
 
 Causes (ids from `scripts/jev-diagnoza.lib.js`): `lek` „Lęk przed konsekwencjami”, `bezsens` „Nic się nie zmieni”, `brak_kanalu` „Brak kanału lub czasu”, `lojalnosc` „Ochrona innych”.
 Areas: the five FNP areas from `AREAS` plus `brak`.
@@ -30,7 +30,7 @@ Areas: the five FNP areas from `AREAS` plus `brak`.
 ## API (all JSON, all under `/rotunda/api/`, all require `code` == secret `DEMO_CODE`)
 
 `POST /rotunda/api/wpis`
-Body: `{ code, rola, starter, text, consent }` where `text` is the completion only (1–200 chars), `consent` boolean.
+Body: `{ code, rola, starter, text, consent, client }`, `client` optional: a random per-browser id (8–64 chars `[A-Za-z0-9-]`) where `text` is the completion only (1–200 chars), `consent` boolean.
 Jev state: `{ odpowiedz: "<starter text> <completion>" }`, questions = diagnosis questions plus, only when `consent`, two Noul checks: `dane_osobowe` (names, companies, identifiable people or places) and `obrazliwe` (insults, vulgarity).
 Stored in D1: judgments only. Text stored only when `consent` and both checks < 0.5; then `quote_status = "pending"`. Otherwise text is not stored.
 Response 200:
@@ -39,7 +39,7 @@ Response 200:
   "hall": { "total": 57, "topCauseShare": 0.38 }, "quote": "pending" | "not_stored" }
 ```
 `topCause` = highest cause noul when silent, else null. `topCauseShare` = share of silent entries in the room whose topCause equals this one (after insert). `quote` tells the phone whether the text went to moderation.
-Errors: 400 invalid input, 403 bad code, 429 when the same IP sent more than 5 entries in 10 minutes, 502 Jev failure. Error body `{ "error": "<Polish message>" }`.
+Errors: 400 invalid input, 403 bad code, 429 when the same browser (`client`) sent more than 5 entries in 10 minutes, or the same IP more than 60 (without `client`: 5 per IP), 502 Jev failure. Error body `{ "error": "<Polish message>" }`.
 
 `GET /rotunda/api/stan?code=...`
 ```json

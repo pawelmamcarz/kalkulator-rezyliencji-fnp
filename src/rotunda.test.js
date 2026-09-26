@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
@@ -9,7 +9,9 @@ import {
 } from "../demo/src/rotunda.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const migration = readFileSync(path.join(root, "demo/migrations/0001_wpisy.sql"), "utf8");
+const migrationsDir = path.join(root, "demo/migrations");
+const migration = readdirSync(migrationsDir).filter((f) => f.endsWith(".sql")).sort()
+  .map((f) => readFileSync(path.join(migrationsDir, f), "utf8")).join("\n");
 
 // Minimal D1 stand-in over node:sqlite, running the real migration.
 function fakeD1() {
@@ -174,6 +176,26 @@ describe("POST /rotunda/api/wpis", () => {
     expect((await at()).status).toBe(200);
   });
 
+  it("limits per browser, so many browsers can share one conference IP", async () => {
+    let t = Date.parse("2026-11-19T12:00:00Z");
+    const now = () => new Date(t);
+    const from = (client) => handleWpis(wpis({ client }, "9.9.9.9"), env, fakeFetch, now);
+    for (let i = 0; i < 5; i++) expect((await from("browser-aaaa-0001")).status).toBe(200);
+    expect((await from("browser-aaaa-0001")).status).toBe(429);
+    // Same IP, other browsers: still allowed.
+    for (let i = 0; i < 7; i++) expect((await from(`browser-bbbb-${1000 + i}`)).status).toBe(200);
+    const row = rows().find((r) => r.client_hash);
+    expect(row.client_hash).toMatch(/^[0-9a-f]{64}$/);
+    expect(row.client_hash).not.toContain("browser");
+  });
+
+  it("caps one IP at 60 entries even across browsers", async () => {
+    let t = Date.parse("2026-11-19T13:00:00Z");
+    const now = () => new Date(t);
+    for (let i = 0; i < 60; i++) expect((await handleWpis(wpis({ client: `c-${String(i).padStart(8, "0")}` }, "8.8.8.8"), env, fakeFetch, now)).status).toBe(200);
+    expect((await handleWpis(wpis({ client: "c-new-browser" }, "8.8.8.8"), env, fakeFetch, now)).status).toBe(429);
+  });
+
   it("maps Jev failures to 502 and stores nothing", async () => {
     const failing = async () => ({ ok: false, status: 500, text: async () => "boom" });
     const res = await handleWpis(wpis({}), env, failing);
@@ -228,13 +250,13 @@ describe("/rotunda/api/moderacja", () => {
     const { pending } = await (await modGet()).json();
     expect(pending.map((p) => p.id)).toEqual([first.id, second.id]);
     expect(pending[1]).toEqual({
-      id: second.id, text: "Nie powiedziałem/am szefowi, że… boję się drugi", rola: "zarzad",
+      id: second.id, text: "Szef nie wie, że… boję się drugi", rola: "zarzad",
       createdAt: expect.any(String), dane_osobowe: 0.05, obrazliwe: 0.02,
     });
 
     expect(await (await modPost({ id: second.id, decision: "approve" })).json()).toEqual({ ok: true });
     const data = await stan();
-    expect(data.quotes).toEqual([{ id: second.id, text: "Nie powiedziałem/am szefowi, że… boję się drugi", rola: "zarzad", topCause: "lek" }]);
+    expect(data.quotes).toEqual([{ id: second.id, text: "Szef nie wie, że… boję się drugi", rola: "zarzad", topCause: "lek" }]);
     expect((await (await modGet()).json()).pending.map((p) => p.id)).toEqual([first.id]);
   });
 
