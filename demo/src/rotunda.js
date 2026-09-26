@@ -14,14 +14,14 @@ export const ROLES = {
 };
 
 export const STARTERS = {
-  szef: "Nie powiedziałem/am szefowi, że…",
+  szef: "Szef nie wie, że…",
   blad: "Wiem o błędzie, ale…",
-  pomysl: "Miałem/am pomysł, ale…",
+  pomysl: "Mój pomysł przepadł, bo…",
   spotkanie: "Na spotkaniu wszyscy kiwali głową, a ja…",
   klient: "Klient nie wie, że…",
   zarzad: "Do zarządu nie dociera, że…",
-  odejscie: "Gdybym odchodził/a, powiedział/abym, że…",
-  wolne: "Przemilczałem/am, bo…",
+  odejscie: "Odchodząc z firmy, powiem, że…",
+  wolne: "Nie mówię o tym głośno, bo…",
 };
 
 export const CAUSE_LABELS = {
@@ -38,7 +38,9 @@ export const ROTUNDA = {
   maxText: 200,
   minRoleSize: 3,
   maxQuotes: 12,
+  // Per browser (client id), and a looser cap per IP for shared conference Wi-Fi.
   rateLimit: 5,
+  ipRateLimit: 60,
   rateWindowMs: 10 * 60 * 1000,
   threshold: 0.5,
 };
@@ -81,6 +83,8 @@ export function validateWpis(body) {
   if (text.length < 1 || text.length > ROTUNDA.maxText) return `Dokończ zdanie: od 1 do ${ROTUNDA.maxText} znaków.`;
   return null;
 }
+
+const isClientId = (v) => typeof v === "string" && /^[A-Za-z0-9-]{8,64}$/.test(v);
 
 export async function hashIp(ip, secret) {
   const data = new TextEncoder().encode(`${ip}|${secret}`);
@@ -125,10 +129,15 @@ export async function handleWpis(request, env, fetchImpl, now = () => new Date()
 
   const entry = { rola: body.rola, starter: body.starter, text: body.text.trim(), consent: body.consent };
   const ipHash = await hashIp(request.headers.get("CF-Connecting-IP") ?? "unknown", env.DEMO_CODE);
+  const clientHash = isClientId(body.client) ? await hashIp(`client:${body.client}`, env.DEMO_CODE) : null;
   const since = new Date(now().getTime() - ROTUNDA.rateWindowMs).toISOString();
-  const recent = await env.DB.prepare("SELECT COUNT(*) AS n FROM wpisy WHERE ip_hash = ? AND created_at >= ?")
-    .bind(ipHash, since).first();
-  if ((recent?.n ?? 0) >= ROTUNDA.rateLimit) {
+  const count = async (column, value) => (await env.DB.prepare(`SELECT COUNT(*) AS n FROM wpisy WHERE ${column} = ? AND created_at >= ?`)
+    .bind(value, since).first())?.n ?? 0;
+  // Without a client id fall back to the strict per-IP limit.
+  const limited = clientHash
+    ? (await count("client_hash", clientHash)) >= ROTUNDA.rateLimit || (await count("ip_hash", ipHash)) >= ROTUNDA.ipRateLimit
+    : (await count("ip_hash", ipHash)) >= ROTUNDA.rateLimit;
+  if (limited) {
     return json({ error: "Za dużo wpisów z tego urządzenia. Spróbuj ponownie za kilka minut." }, 429);
   }
 
@@ -144,8 +153,8 @@ export async function handleWpis(request, env, fetchImpl, now = () => new Date()
   const storeText = Boolean(checks && checks.dane_osobowe < ROTUNDA.threshold && checks.obrazliwe < ROTUNDA.threshold);
   const id = crypto.randomUUID();
   await env.DB.prepare(
-    `INSERT INTO wpisy (id, created_at, rola, starter, silence, area, top_cause, causes, severity, text, quote_status, ip_hash, dane_osobowe, obrazliwe)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO wpisy (id, created_at, rola, starter, silence, area, top_cause, causes, severity, text, quote_status, ip_hash, dane_osobowe, obrazliwe, client_hash)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).bind(
     id, now().toISOString(), entry.rola, entry.starter, judgment.silence, judgment.area, judgment.topCause,
     JSON.stringify(judgment.causes), judgment.severity,
@@ -154,6 +163,7 @@ export async function handleWpis(request, env, fetchImpl, now = () => new Date()
     ipHash,
     storeText ? checks.dane_osobowe : null,
     storeText ? checks.obrazliwe : null,
+    clientHash,
   ).run();
 
   const hall = await env.DB.prepare(

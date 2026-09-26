@@ -69,6 +69,9 @@ textarea {
 textarea::placeholder { color: var(--mute); font-style: italic; }
 .counter { font-family: var(--mono); font-size: 12px; color: var(--mute); text-align: right; margin-top: 6px; }
 .counter.full { color: var(--accent); }
+.preview { margin-top: 10px; padding: 10px 12px; border-left: 3px solid var(--stamp); background: var(--card, #fff); font-size: 16px; line-height: 1.45; }
+.preview .lbl { display: block; font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--mute); margin-bottom: 2px; }
+.preview .st { color: var(--mute); }
 .roles { display: grid; gap: 8px; }
 .roles button { background: var(--card); color: var(--ink); justify-content: flex-start; padding-left: 16px; text-transform: none; letter-spacing: 0; font-size: 15px; }
 .roles button::before { content: ""; width: 14px; height: 14px; border: 1px solid var(--rule); margin-right: 12px; flex: none; background: var(--card); }
@@ -126,6 +129,7 @@ footer a { color: var(--ink); }
 
     <div class="step"><label for="text">2 · Dokończ zdanie</label><span class="count" id="counter">0 / 200</span></div>
     <textarea id="text" maxlength="200" rows="3" placeholder="…dokończ zdanie własnymi słowami" autocomplete="off" autocapitalize="sentences" enterkeyhint="done"></textarea>
+    <p class="preview" id="preview" aria-live="polite"><span class="lbl">Tak przeczyta to sala</span><span class="st" id="preview-start"></span> <span id="preview-text">…</span></p>
 
     <div class="step"><span>3 · Kim jesteś w firmie</span></div>
     <div class="roles" id="roles" role="group" aria-label="Rola w firmie">
@@ -166,14 +170,14 @@ footer a { color: var(--ink); }
 </main>
 <script>
 const STARTERS = [
-  { id: "szef", text: "Nie powiedziałem/am szefowi, że" },
+  { id: "szef", text: "Szef nie wie, że" },
   { id: "blad", text: "Wiem o błędzie, ale" },
-  { id: "pomysl", text: "Miałem/am pomysł, ale" },
+  { id: "pomysl", text: "Mój pomysł przepadł, bo" },
   { id: "spotkanie", text: "Na spotkaniu wszyscy kiwali głową, a ja" },
   { id: "klient", text: "Klient nie wie, że" },
   { id: "zarzad", text: "Do zarządu nie dociera, że" },
-  { id: "odejscie", text: "Gdybym odchodził/a, powiedział/abym, że" },
-  { id: "wolne", text: "Przemilczałem/am, bo" },
+  { id: "odejscie", text: "Odchodząc z firmy, powiem, że" },
+  { id: "wolne", text: "Nie mówię o tym głośno, bo" },
 ];
 const CAUSES = { lek: "Lęk przed konsekwencjami", bezsens: "Nic się nie zmieni", brak_kanalu: "Brak kanału lub czasu", lojalnosc: "Ochrona innych" };
 const ERRORS = {
@@ -194,6 +198,17 @@ const code = kodFromUrl || store.get("fnp-demo-code") || "";
 let current = -1;
 let rola = null;
 
+// Random per-browser id for the entry limit; the server stores only its hash.
+let fallbackClient = null;
+function clientId() {
+  try {
+    let id = localStorage.getItem("fnp-rotunda-client");
+    if (!id) { id = crypto.randomUUID(); localStorage.setItem("fnp-rotunda-client", id); }
+    return id;
+  } catch {
+    return (fallbackClient ??= crypto.randomUUID());
+  }
+}
 function pick() {
   let i;
   do { i = Math.floor(Math.random() * STARTERS.length); } while (i === current && STARTERS.length > 1);
@@ -202,6 +217,11 @@ function pick() {
 function showCard() {
   $("starter").textContent = STARTERS[current].text;
   $("card-no").textContent = String(current + 1);
+  updatePreview();
+}
+function updatePreview() {
+  $("preview-start").textContent = STARTERS[current].text + "…";
+  $("preview-text").textContent = $("text").value.trim() || "…";
 }
 function drawCard(animate) {
   pick();
@@ -219,6 +239,7 @@ $("text").addEventListener("input", () => {
   const n = $("text").value.length;
   $("counter").textContent = `${n} / 200`;
   $("counter").classList.toggle("full", n >= 200);
+  updatePreview();
 });
 
 $("roles").addEventListener("click", (e) => {
@@ -249,7 +270,7 @@ $("send").onclick = async () => {
     const res = await fetch("api/wpis", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code, rola, starter: STARTERS[current].id, text, consent }),
+      body: JSON.stringify({ code, rola, starter: STARTERS[current].id, text, consent, client: clientId() }),
     });
     let data = {};
     try { data = await res.json(); } catch { data = {}; }
@@ -301,6 +322,7 @@ $("again").onclick = () => {
   $("text").value = "";
   $("counter").textContent = "0 / 200";
   $("counter").classList.remove("full");
+  updatePreview();
   $("consent").checked = false;
   rola = null;
   for (const x of $("roles").querySelectorAll("button")) x.setAttribute("aria-pressed", "false");

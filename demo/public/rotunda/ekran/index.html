@@ -52,14 +52,14 @@ h2 { font-family: var(--mono); text-transform: uppercase; font-size: 22px; lette
 h2 .note { font-family: var(--mono); font-size: 14px; letter-spacing: .12em; color: var(--mute); text-transform: uppercase; font-weight: 400; }
 
 .roles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
-.role { border: 1px solid var(--rule); background: var(--card); padding: 14px 18px 14px; display: flex; flex-direction: column; min-height: 300px; }
+.role { min-width: 0; border: 1px solid var(--rule); background: var(--card); padding: 14px 18px 14px; display: flex; flex-direction: column; min-height: 300px; }
 .role.all { border-width: 2px; }
 .role .head { border-bottom: 1px solid var(--grid); padding-bottom: 8px; margin-bottom: 12px; }
 .role .name { font-family: var(--mono); font-weight: 700; font-size: 20px; text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; display: block; }
 .role .n { font-family: var(--mono); font-size: 14px; color: var(--mute); white-space: nowrap; letter-spacing: .06em; display: block; margin-top: 2px; min-height: 18px; }
 .bars { display: grid; gap: 11px; flex: 1; align-content: start; }
 .bar { display: grid; grid-template-columns: 1fr 62px; grid-template-rows: auto 18px; row-gap: 4px; column-gap: 10px; align-items: center; }
-.bar .lab { grid-column: 1 / -1; font-size: 18px; line-height: 1.2; white-space: nowrap; }
+.bar .lab { grid-column: 1 / -1; font-size: 18px; line-height: 1.2; overflow-wrap: anywhere; min-width: 0; }
 .bar .val { font-family: var(--mono); font-weight: 600; font-size: 22px; text-align: right; line-height: 1; font-variant-numeric: tabular-nums; }
 .bar .track { grid-column: 1; height: 18px; background: var(--track); position: relative; }
 .bar .fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--ink); border-radius: 0 4px 4px 0; transition: width var(--ease), background-color 300ms; }
@@ -181,12 +181,12 @@ footer b { color: var(--ink); font-weight: 600; }
   </footer>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script src="qrcode.js"></script><!-- qrcode-generator 1.4.4, MIT, vendored: works without the CDN -->
 <script>
 const ROLES = { zarzad: "Zarząd", menedzer: "Menedżer", specjalista: "Specjalista" };
 const CAUSES = { lek: "Lęk przed konsekwencjami", bezsens: "Nic się nie zmieni", brak_kanalu: "Brak kanału lub czasu", lojalnosc: "Ochrona innych" };
 const AREAS = { rotacja: "Rotacja i utrata wiedzy", bledy: "Błędy i compliance", wypalenie: "Wypalenie i pasywność", innowacje: "Innowacje i uczenie się", koordynacja: "Koordynacja i hierarchia", brak: "Poza obszarami" };
-const STARTERS = ["Nie powiedziałem/am szefowi, że…", "Wiem o błędzie, ale…", "Miałem/am pomysł, ale…", "Na spotkaniu wszyscy kiwali głową, a ja…", "Klient nie wie, że…", "Do zarządu nie dociera, że…", "Gdybym odchodził/a, powiedział/abym, że…", "Przemilczałem/am, bo…"];
+const STARTERS = ["Szef nie wie, że…", "Wiem o błędzie, ale…", "Mój pomysł przepadł, bo…", "Na spotkaniu wszyscy kiwali głową, a ja…", "Klient nie wie, że…", "Do zarządu nie dociera, że…", "Odchodząc z firmy, powiem, że…", "Nie mówię o tym głośno, bo…"];
 const POLL_MS = 5000, QUOTE_MS = 8000, MIN_N = 3;
 
 const $ = (id) => document.getElementById(id);
