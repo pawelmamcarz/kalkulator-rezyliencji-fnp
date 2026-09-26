@@ -17,5 +17,20 @@
   { "team": "IT", "text": "Informacja z biznesu przychodzi do nas za późno, ale mówimy o tym na spotkaniach z kierownictwem." },
   { "team": "IT", "text": "Nie zgłosiłem luki w uprawnieniach, bo zrobił ją kolega, a nie chcę mu robić problemów." },
   { "team": "Zarząd", "text": "Zespół mówi nam tylko dobre wiadomości." },
-  { "team": "Zarząd", "text": "Nie mamy czasu na długie dyskusje." }
+  { "team": "Zarząd", "text": "Nie mamy czasu na długie dyskusje." },
+  { "team": "Dział produkcji", "text": "Maszyna na linii 3 od tygodnia robi braki, ale mistrz mówi, żeby nie zatrzymywać, bo plan jest ważniejszy." },
+  { "team": "Dział produkcji", "text": "Jak ktoś zatrzyma linię, to potem tłumaczy się na odprawie przed całą zmianą, więc nikt nie zatrzymuje." },
+  { "team": "Dział produkcji", "text": "Mamy pomysł, jak skrócić przezbrojenie, ale technolog i tak robi po swojemu." },
+  { "team": "Dział produkcji", "text": "Nowi operatorzy nie pytają, jak czegoś nie wiedzą, bo starsi się z nich śmieją." },
+  { "team": "Dział produkcji", "text": "O wypadku przy wózku wiedziała cała zmiana, a w raporcie nic nie ma, żeby kolega nie stracił premii." },
+  { "team": "Dział zakupów", "text": "Wiemy, że dostawca zawyża ceny, ale to znajomy dyrektora, więc nikt tego nie ruszy." },
+  { "team": "Dział zakupów", "text": "Procedura przetargowa bywa obchodzona na koniec kwartału i wszyscy udają, że tego nie widzą." },
+  { "team": "Dział zakupów", "text": "Proponowałam wspólne zamówienia z produkcją, ale nie ma nawet spotkania, na którym można to omówić." },
+  { "team": "Dział zakupów", "text": "Nie mówię, że termin dostawy jest nierealny, bo potem to ja jestem winna opóźnienia." },
+  { "team": "Dział zakupów", "text": "Na przeglądzie kategorii szef pyta o zdanie i naprawdę zmienia decyzję, jak mamy argumenty." },
+  { "team": "Dział HR", "text": "Z rozmów wyjściowych wiemy, że ludzie odchodzą przez jednego kierownika, ale raport do zarządu jest wygładzony." },
+  { "team": "Dział HR", "text": "Pracownicy zgłaszają nam mobbing nieformalnie i proszą, żeby nic z tym nie robić." },
+  { "team": "Dział HR", "text": "Ankieta zaangażowania wychodzi co roku słabo i nic się z nią nie dzieje, więc przestaliśmy o nią walczyć." },
+  { "team": "Dział HR", "text": "Jestem zmęczona gaszeniem pożarów i nie mam siły proponować nowego programu onboardingu." },
+  { "team": "Dział HR", "text": "Nie mamy kanału, żeby anonimowo zgłosić problem z przełożonym, poza nami, a do nas ludzie się boją przyjść." }
 ]
