@@ -24,6 +24,6 @@ Use `p.viewport` for true phone widths (plain `--window-size` has a minimum widt
 ## Gotchas
 
 - Phone page toggles the result with `#result.on` (class), not `hidden`.
-- Rate limit: 5 entries per IP per 10 min, and all local requests share one IP. Clear `wpisy` between runs, or send a different `CF-Connecting-IP` with `p.headers({...})`. Don't keep that header on for the screen page: it also goes to the QR library on jsdelivr and the QR stays blank.
+- Rate limit: 5 entries per browser (`localStorage["fnp-rotunda-client"]`) and 60 per IP per 10 min. For a "new browser" remove that key; clear `wpisy` between runs. Remote D1 needs each new migration applied with `--remote` before `demo:deploy`.
 - `demo/src/worker.js` may export only `default`; workerd refuses to start on other named exports (they live in `app.js`).
 - Production deploys (`npm run demo:deploy`, `wrangler secret put`, remote D1) are blocked in auto mode; the user runs them.
