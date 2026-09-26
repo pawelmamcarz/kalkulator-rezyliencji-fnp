@@ -33,5 +33,10 @@
     "vite": "^8.0.1",
     "vitest": "^4.1.8",
     "wrangler": "^4.141.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true,
+    "workerd@1.20260925.1": true,
+    "fsevents@2.3.3": true
   }
 }
