@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Rotunda FNP: moderacja</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Source+Serif+4:wght@400;600&display=swap">
+<style>
+:root {
+  --paper: #fcfcfa; --ink: #0a0a0a; --mute: #6a6a66; --rule: #0a0a0a;
+  --stamp: #0a3a82; --accent: #b81a1a; --grid: #d6d3c8; --card: #fff;
+  --serif: "Source Serif 4", Georgia, serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+* { box-sizing: border-box; margin: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: var(--serif); font-size: 17px; line-height: 1.5; color: var(--ink);
+  background-color: var(--paper);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+main { max-width: 640px; margin: 0 auto; padding: 20px 16px 80px; }
+@media (min-width: 720px) { main { padding: 32px 24px 96px; } }
+.micro { font-family: var(--mono); font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--mute); }
+h1 { font-family: var(--mono); text-transform: uppercase; font-size: clamp(24px, 6vw, 36px); line-height: 1.12; margin: 8px 0 14px; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+h1 .count { font-size: .8em; color: var(--stamp); min-width: 1.6em; }
+h1 .count[data-zero="true"] { color: var(--mute); }
+.rule { border: 1px solid var(--rule); background: var(--card); padding: 12px 14px; font-size: 15px; margin-bottom: 18px; }
+.rule strong { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 4px; }
+.bar { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-family: var(--mono); font-size: 12px; color: var(--mute); margin-bottom: 14px; min-height: 18px; }
+.bar .err { color: var(--accent); }
+.bar .keys { display: none; }
+@media (min-width: 720px) and (hover: hover) { .bar .keys { display: inline; } }
+kbd { font-family: var(--mono); border: 1px solid var(--rule); padding: 0 5px; border-radius: 2px; font-size: 11px; color: var(--ink); background: var(--card); }
+
+.list { display: grid; gap: 14px; }
+.card { border: 1px solid var(--rule); background: var(--card); padding: 16px; position: relative; }
+.card.first { box-shadow: 4px 4px 0 var(--ink); }
+.card .meta { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
+.card .role { color: var(--stamp); font-weight: 600; }
+.card .ago { color: var(--mute); }
+.card .text { font-size: 19px; line-height: 1.45; margin: 10px 0 12px; overflow-wrap: anywhere; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.chips:empty { display: none; }
+.chip { font: 600 12px var(--mono); border: 1px solid var(--accent); color: var(--accent); padding: 3px 8px; letter-spacing: .04em; }
+.chip .val { font-weight: 400; }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+button { font: 600 13px var(--mono); letter-spacing: .08em; text-transform: uppercase; border: 1px solid var(--rule); cursor: pointer; padding: 16px 10px; min-height: 56px; touch-action: manipulation; }
+button.ok { background: var(--ink); color: #fff; }
+button.no { background: var(--card); color: var(--accent); border-color: var(--accent); }
+button.primary { background: var(--ink); color: #fff; padding: 12px 18px; min-height: 0; }
+button:disabled { opacity: .5; cursor: progress; }
+:focus-visible { outline: 2px solid var(--stamp); outline-offset: 2px; }
+.card.busy { opacity: .55; pointer-events: none; }
+.empty { border: 1px dashed var(--rule); background: var(--card); padding: 28px 16px; text-align: center; color: var(--mute); font-size: 16px; }
+.empty b { font-family: var(--mono); text-transform: uppercase; letter-spacing: .1em; font-size: 12px; color: var(--ink); display: block; margin-bottom: 6px; }
+
+form.login { border: 1px solid var(--rule); background: var(--card); padding: 16px; display: grid; gap: 12px; }
+form.login label { font-weight: 600; font-size: 15px; display: grid; gap: 6px; }
+form.login input { width: 100%; font: 16px/1.4 var(--mono); border: 1px solid var(--rule); background: var(--paper); padding: 12px; color: var(--ink); }
+form.login .hint { font-size: 14px; color: var(--mute); font-weight: 400; }
+
+.toast { position: fixed; left: 16px; right: 16px; bottom: 16px; max-width: 600px; margin: 0 auto; background: var(--accent); color: #fff; font: 600 13px/1.4 var(--mono); padding: 14px 16px; border: 1px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); opacity: 0; transform: translateY(8px); transition: opacity .2s, transform .2s; pointer-events: none; z-index: 10; }
+.toast.show { opacity: 1; transform: none; }
+footer { margin-top: 40px; font-size: 13px; color: var(--mute); }
+footer a { color: var(--ink); }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <div class="micro">Fundacja Nowe Przestrzenie × Paweł Mamcarz · Rotunda</div>
+  <h1>Moderacja <span class="count" id="count" data-zero="true" aria-label="liczba wpisów do moderacji">0</span></h1>
+
+  <div class="rule">
+    <strong>Zasada</strong>
+    Odrzuć, jeśli da się rozpoznać osobę, firmę lub miejsce, albo jeśli tekst obraża.
+  </div>
+
+  <form class="login" id="login" hidden autocomplete="off">
+    <label>Kod stoiska (kod)<input id="in-kod" inputmode="text" autocapitalize="off" spellcheck="false"></label>
+    <label>Kod moderatora (mod)<input id="in-mod" type="password" autocapitalize="off" spellcheck="false"><span class="hint">Oba kody są w linku dla moderatora. Zapamiętamy je na tym telefonie.</span></label>
+    <button class="primary" type="submit">Zacznij moderować</button>
+  </form>
+
+  <div class="bar" id="bar" hidden>
+    <span id="status" role="status" aria-live="polite"></span>
+    <span class="keys"><kbd>A</kbd> pokaż · <kbd>R</kbd> odrzuć (pierwsza karta)</span>
+  </div>
+
+  <div class="list" id="list" hidden></div>
+
+  <footer>
+    Ekran: <a href="../ekran/">/rotunda/ekran/</a> · Telefon: <a href="../">/rotunda/</a>
+  </footer>
+</main>
+<div class="toast" id="toast" role="alert"></div>
+
+<script>
+const ROLES = { zarzad: "Zarząd", menedzer: "Menedżer / menedżerka", specjalista: "Specjalista / specjalistka" };
+const FLAG_LIMIT = 0.3;
+const POLL_MS = 5000;
+const API = "../api/moderacja";
+const KEY_KOD = "fnp-demo-code";
+const KEY_MOD = "fnp-demo-mod";
+
+const $ = (id) => document.getElementById(id);
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch { /* ignore */ } },
+  del(k) { try { localStorage.removeItem(k); } catch { /* ignore */ } },
+};
+
+const params = new URLSearchParams(location.search);
+let kod = (params.get("kod") || store.get(KEY_KOD) || "").trim();
+let mod = (params.get("mod") || store.get(KEY_MOD) || "").trim();
+
+let pending = [];
+let hidden = new Set();       // ids removed optimistically, waiting for the server
+let timer = null;
+let polling = false;
+let toastTimer = null;
+
+// Helpers: all user text goes through textContent, never innerHTML.
+function el(tag, cls, text) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined) n.textContent = text;
+  return n;
+}
+function fmtProb(x) { return Number(x).toFixed(2).replace(".", ","); }
+function plural(n, one, few, many) {
+  const m10 = n % 10, m100 = n % 100;
+  if (n === 1) return one;
+  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
+  return many;
+}
+function ago(iso) {
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return "";
+  const s = Math.max(0, Math.round((Date.now() - t) / 1000));
+  if (s < 45) return "przed chwilą";
+  const m = Math.round(s / 60);
+  if (m < 60) return `${m} ${plural(m, "minutę", "minuty", "minut")} temu`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h} ${plural(h, "godzinę", "godziny", "godzin")} temu`;
+  const d = Math.round(h / 24);
+  return `${d} ${plural(d, "dzień", "dni", "dni")} temu`;
+}
+function clock() { return new Date().toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit", second: "2-digit" }); }
+
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 4000);
+}
+function status(msg, err = false) {
+  const s = $("status");
+  s.textContent = msg;
+  s.className = err ? "err" : "";
+}
+
+function visible() { return pending.filter((q) => !hidden.has(q.id)); }
+
+function render() {
+  const items = visible();
+  const count = $("count");
+  count.textContent = String(items.length);
+  count.dataset.zero = items.length === 0 ? "true" : "false";
+  document.title = `${items.length ? `(${items.length}) ` : ""}Rotunda FNP: moderacja`;
+
+  const list = $("list");
+  list.replaceChildren();
+  if (!items.length) {
+    const e = el("div", "empty");
+    e.append(el("b", null, "Pusto"), document.createTextNode("Nowe cytaty pojawią się tu same, sprawdzamy co 5 sekund."));
+    list.append(e);
+    return;
+  }
+  items.forEach((q, i) => list.append(card(q, i === 0)));
+}
+
+function card(q, first) {
+  const c = el("article", "card" + (first ? " first" : ""));
+  c.dataset.id = q.id;
+
+  const meta = el("div", "meta");
+  meta.append(el("span", "role", ROLES[q.rola] || q.rola || "Rola nieznana"), el("span", "ago", ago(q.createdAt)));
+  c.append(meta);
+
+  c.append(el("p", "text", q.text || ""));
+
+  const chips = el("div", "chips");
+  const flags = [["dane_osobowe", "Dane osobowe"], ["obrazliwe", "Obraźliwe"]];
+  for (const [key, label] of flags) {
+    const p = Number(q[key]);
+    if (Number.isFinite(p) && p >= FLAG_LIMIT) {
+      const chip = el("span", "chip", `${label} `);
+      chip.append(el("span", "val", fmtProb(p)));
+      chip.title = `Jev: prawdopodobieństwo ${fmtProb(p)}`;
+      chips.append(chip);
+    }
+  }
+  c.append(chips);
+
+  const actions = el("div", "actions");
+  const ok = el("button", "ok", "Pokaż na ekranie");
+  ok.type = "button";
+  ok.onclick = () => decide(q.id, "approve");
+  const no = el("button", "no", "Odrzuć");
+  no.type = "button";
+  no.onclick = () => decide(q.id, "reject");
+  actions.append(ok, no);
+  c.append(actions);
+  return c;
+}
+
+async function decide(id, decision) {
+  if (hidden.has(id)) return;
+  hidden.add(id);
+  render();
+  try {
+    const res = await fetch(API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: kod, mod, id, decision }),
+    });
+    let data = {};
+    try { data = await res.json(); } catch { /* body optional */ }
+    if (!res.ok) throw new Error(data.error || `Błąd ${res.status}`);
+    pending = pending.filter((q) => q.id !== id);
+    hidden.delete(id);
+    render();
+    if (res.status === 200) status(decision === "approve" ? "Wysłano na ekran." : "Odrzucono, tekst usunięty.");
+  } catch (error) {
+    hidden.delete(id);
+    render();
+    toast(`Nie udało się zapisać decyzji: ${error.message}. Spróbuj ponownie.`);
+  }
+}
+
+async function poll() {
+  if (polling || !kod || !mod) return;
+  polling = true;
+  try {
+    const url = `${API}?code=${encodeURIComponent(kod)}&mod=${encodeURIComponent(mod)}`;
+    const res = await fetch(url, { cache: "no-store" });
+    let data = {};
+    try { data = await res.json(); } catch { /* handled below */ }
+    if (res.status === 403) {
+      stop();
+      store.del(KEY_MOD);
+      showLogin("Kod odrzucony. Sprawdź kod stoiska i kod moderatora.");
+      return;
+    }
+    if (!res.ok) throw new Error(data.error || `Błąd ${res.status}`);
+    const list = Array.isArray(data.pending) ? data.pending : [];
+    list.sort((a, b) => Date.parse(a.createdAt || 0) - Date.parse(b.createdAt || 0));
+    pending = list;
+    // Drop optimistic markers for ids the server no longer returns.
+    for (const id of [...hidden]) if (!pending.some((q) => q.id === id)) hidden.delete(id);
+    render();
+    status(`Sprawdzono ${clock()}`);
+  } catch (error) {
+    status(`Brak połączenia (${error.message}). Ponawiamy co 5 s.`, true);
+  } finally {
+    polling = false;
+  }
+}
+
+function start() {
+  store.set(KEY_KOD, kod);
+  store.set(KEY_MOD, mod);
+  $("login").hidden = true;
+  $("bar").hidden = false;
+  $("list").hidden = false;
+  status("Łączenie…");
+  poll();
+  clearInterval(timer);
+  timer = setInterval(poll, POLL_MS);
+}
+function stop() { clearInterval(timer); timer = null; }
+
+function showLogin(msg) {
+  $("bar").hidden = true;
+  $("list").hidden = true;
+  const f = $("login");
+  f.hidden = false;
+  $("in-kod").value = kod;
+  $("in-mod").value = "";
+  if (msg) toast(msg);
+  ($("in-kod").value ? $("in-mod") : $("in-kod")).focus();
+}
+
+$("login").onsubmit = (e) => {
+  e.preventDefault();
+  kod = $("in-kod").value.trim();
+  mod = $("in-mod").value.trim();
+  if (!kod || !mod) { toast("Wpisz oba kody."); return; }
+  start();
+};
+
+// Keyboard: A approve, R reject, for the first visible card. Ignored while typing.
+document.addEventListener("keydown", (e) => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const tag = (e.target && e.target.tagName) || "";
+  if (tag === "INPUT" || tag === "TEXTAREA") return;
+  const key = e.key.toLowerCase();
+  if (key !== "a" && key !== "r") return;
+  const first = visible()[0];
+  if (!first) return;
+  e.preventDefault();
+  decide(first.id, key === "a" ? "approve" : "reject");
+});
+
+// Refresh "time ago" labels between polls and pause polling in background tabs.
+setInterval(() => {
+  document.querySelectorAll(".card").forEach((c) => {
+    const q = pending.find((x) => x.id === c.dataset.id);
+    const a = c.querySelector(".ago");
+    if (q && a) a.textContent = ago(q.createdAt);
+  });
+}, 30000);
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) stop();
+  else if (kod && mod) start();
+});
+
+// Keep codes out of the address bar once remembered.
+if (params.has("mod") && kod && mod) {
+  store.set(KEY_KOD, kod);
+  store.set(KEY_MOD, mod);
+  try { history.replaceState(null, "", location.pathname); } catch { /* ignore */ }
+}
+
+if (kod && mod) start(); else showLogin();
+</script>
+</body>
+</html>

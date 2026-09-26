@@ -9,6 +9,16 @@
   "assets": { "directory": "./public", "binding": "ASSETS" },
   // Route runs before the calculator's custom domain on the same host.
   "routes": [{ "pattern": "fnp.silence-tax.com/rotunda*", "zone_name": "silence-tax.com" }],
-  "workers_dev": false
-  // Secrets: TYPESAFE_API_KEY, DEMO_CODE (wrangler secret put).
+  "workers_dev": false,
+  // Rotunda entries: judgments, and quote text only with consent until moderated.
+  // Replace database_id with the id printed by `wrangler d1 create fnp-rotunda`.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "fnp-rotunda",
+      "database_id": "TODO-after-d1-create",
+      "migrations_dir": "migrations"
+    }
+  ]
+  // Secrets: TYPESAFE_API_KEY, DEMO_CODE, MOD_CODE (wrangler secret put).
 }

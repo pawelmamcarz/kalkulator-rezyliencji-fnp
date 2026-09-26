@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Rotunda FNP: ekran</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+:root {
+  --paper: #fcfcfa; --ink: #0a0a0a; --mute: #6a6a66; --rule: #0a0a0a;
+  --stamp: #0a3a82; --accent: #b81a1a; --grid: #d6d3c8; --card: #fff; --track: #ebe9e1;
+  --serif: "Source Serif 4", Georgia, serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+  --ease: 700ms cubic-bezier(.2, .7, .2, 1);
+}
+* { box-sizing: border-box; margin: 0; }
+html, body { height: 100%; }
+body {
+  font-family: var(--serif); font-size: 22px; line-height: 1.4; color: var(--ink);
+  background-color: var(--paper);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 40px 40px;
+  overflow: hidden;
+}
+.screen {
+  width: 1920px; height: 1080px; margin: 0 auto;
+  display: grid; grid-template-rows: 176px 1fr 64px; gap: 24px;
+  padding: 32px 48px 24px;
+}
+.micro { font-family: var(--mono); font-size: 15px; letter-spacing: .22em; text-transform: uppercase; color: var(--mute); }
+
+/* Header */
+header { display: grid; grid-template-columns: 1fr auto auto; gap: 40px; align-items: stretch; border-bottom: 3px solid var(--rule); padding-bottom: 20px; }
+h1 { font-family: var(--mono); text-transform: uppercase; font-size: 60px; line-height: 1.05; margin-top: 10px; letter-spacing: -.01em; }
+.sub { font-size: 24px; color: var(--mute); margin-top: 8px; max-width: 760px; }
+.stats { display: flex; gap: 48px; align-items: flex-end; padding-right: 8px; padding-bottom: 6px; }
+.stat .num { font-family: var(--mono); font-weight: 700; font-size: 92px; line-height: 1; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.stat .num small { font-size: 46px; font-weight: 600; margin-left: 2px; }
+.stat .lbl { font-family: var(--mono); font-size: 15px; letter-spacing: .18em; text-transform: uppercase; color: var(--mute); margin-top: 6px; }
+.stat.silent .num { color: var(--accent); }
+.qr { display: grid; grid-template-columns: 148px auto; gap: 18px; align-items: center; border: 2px solid var(--rule); background: var(--card); padding: 12px 20px 12px 12px; }
+.qr canvas, .qr svg { width: 148px; height: 148px; display: block; }
+.qr .cta { font-family: var(--mono); font-weight: 700; font-size: 20px; line-height: 1.2; text-transform: uppercase; letter-spacing: .04em; max-width: 220px; }
+.qr .url { font-family: var(--mono); font-size: 16px; color: var(--stamp); margin-top: 8px; letter-spacing: .02em; }
+
+/* Main */
+main { display: grid; grid-template-columns: 1fr 600px; gap: 32px; min-height: 0; }
+.left { display: grid; grid-template-rows: auto auto; align-content: start; gap: 20px; min-height: 0; }
+h2 { font-family: var(--mono); text-transform: uppercase; font-size: 22px; letter-spacing: .06em; border-top: 2px solid var(--rule); padding-top: 10px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
+h2 .note { font-family: var(--mono); font-size: 14px; letter-spacing: .12em; color: var(--mute); text-transform: uppercase; font-weight: 400; }
+
+.roles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.role { border: 1px solid var(--rule); background: var(--card); padding: 14px 18px 14px; display: flex; flex-direction: column; min-height: 300px; }
+.role.all { border-width: 2px; }
+.role .head { border-bottom: 1px solid var(--grid); padding-bottom: 8px; margin-bottom: 12px; }
+.role .name { font-family: var(--mono); font-weight: 700; font-size: 20px; text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; display: block; }
+.role .n { font-family: var(--mono); font-size: 14px; color: var(--mute); white-space: nowrap; letter-spacing: .06em; display: block; margin-top: 2px; min-height: 18px; }
+.bars { display: grid; gap: 11px; flex: 1; align-content: start; }
+.bar { display: grid; grid-template-columns: 1fr 62px; grid-template-rows: auto 18px; row-gap: 4px; column-gap: 10px; align-items: center; }
+.bar .lab { grid-column: 1 / -1; font-size: 18px; line-height: 1.2; white-space: nowrap; }
+.bar .val { font-family: var(--mono); font-weight: 600; font-size: 22px; text-align: right; line-height: 1; font-variant-numeric: tabular-nums; }
+.bar .track { grid-column: 1; height: 18px; background: var(--track); position: relative; }
+.bar .fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--ink); border-radius: 0 4px 4px 0; transition: width var(--ease), background-color 300ms; }
+.bar.lead .fill { background: var(--accent); }
+.bar.lead .lab { font-weight: 600; }
+.bar.lead .lab::before { content: "▲ "; color: var(--accent); font-family: var(--mono); font-size: 13px; vertical-align: 2px; }
+.role .empty { flex: 1; display: grid; place-items: center; text-align: center; color: var(--mute); font-style: italic; font-size: 22px; padding: 12px; }
+.role .empty .micro { display: block; margin-top: 10px; font-style: normal; }
+
+.areas .list { display: grid; gap: 8px; }
+.arow { display: grid; grid-template-columns: 290px 1fr 120px; gap: 14px; align-items: center; }
+.arow .lab { font-size: 20px; }
+.arow .track { height: 20px; background: var(--track); position: relative; }
+.arow .fill { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--stamp); border-radius: 0 4px 4px 0; transition: width var(--ease); }
+.arow .val { font-family: var(--mono); font-size: 20px; text-align: right; font-variant-numeric: tabular-nums; }
+.arow .val small { color: var(--mute); font-size: 16px; }
+
+/* Quote */
+.right { display: flex; flex-direction: column; min-height: 0; }
+.quote { flex: 1; border: 2px solid var(--rule); background: var(--card); padding: 36px 40px; display: flex; flex-direction: column; position: relative; min-height: 0; overflow: hidden; }
+.quote .stamp { font-family: var(--mono); font-size: 14px; letter-spacing: .2em; text-transform: uppercase; color: var(--stamp); border: 1.5px solid var(--stamp); padding: 4px 10px; align-self: flex-start; transform: rotate(-2deg); }
+.quote blockquote { flex: 1; display: flex; align-items: center; font-size: 42px; line-height: 1.3; font-weight: 400; margin: 20px 0; }
+.quote blockquote.long { font-size: 34px; }
+.quote blockquote.starter { font-style: italic; color: var(--ink); }
+.quote blockquote.starter em { color: var(--accent); font-style: italic; }
+.quote .meta { border-top: 1px solid var(--grid); padding-top: 14px; display: flex; flex-wrap: wrap; gap: 10px 22px; font-family: var(--mono); font-size: 16px; letter-spacing: .04em; }
+.quote .meta .cause { color: var(--accent); }
+.quote .fade { transition: opacity 500ms; }
+.quote .fade.out { opacity: 0; }
+.quote .dots { position: absolute; right: 20px; top: 20px; display: flex; gap: 6px; }
+.quote .dots i { width: 8px; height: 8px; background: var(--grid); }
+.quote .dots i.on { background: var(--ink); }
+
+/* Empty state */
+.welcome { grid-column: 1 / -1; border: 2px solid var(--rule); background: var(--card); display: grid; grid-template-columns: 1fr 460px; gap: 48px; align-items: center; padding: 56px 72px; }
+.welcome .big { font-size: 64px; line-height: 1.15; }
+.welcome .big em { color: var(--accent); font-style: italic; }
+.welcome p { font-size: 26px; color: var(--mute); margin-top: 24px; max-width: 900px; }
+.welcome .qrbig { justify-self: center; text-align: center; }
+.welcome .qrbig canvas, .welcome .qrbig svg { width: 360px; height: 360px; display: block; margin: 0 auto 16px; }
+.welcome .qrbig .cta { font-family: var(--mono); font-weight: 700; font-size: 24px; text-transform: uppercase; }
+.welcome .qrbig .url { font-family: var(--mono); font-size: 20px; color: var(--stamp); margin-top: 6px; }
+
+/* Footer */
+footer { border-top: 2px solid var(--rule); padding-top: 14px; display: flex; justify-content: space-between; align-items: center; gap: 24px; font-size: 19px; color: var(--mute); }
+footer b { color: var(--ink); font-weight: 600; }
+.conn { font-family: var(--mono); font-size: 14px; letter-spacing: .12em; text-transform: uppercase; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.conn::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: #2c7a3d; }
+.conn.off { color: var(--accent); }
+.conn.off::before { background: var(--accent); animation: blink 1.4s infinite; }
+@keyframes blink { 50% { opacity: .2; } }
+
+[hidden] { display: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bar .fill, .arow .fill, .quote .fade { transition: none; }
+  .conn.off::before { animation: none; }
+}
+</style>
+</head>
+<body>
+<div class="screen">
+  <header>
+    <div>
+      <div class="micro">Fundacja Nowe Przestrzenie · Rotunda · 19 listopada 2026</div>
+      <h1>Mapa milczenia Rotundy</h1>
+      <div class="sub">Czego nie powiedziałeś w tym miesiącu? Anonimowe wpisy uczestników, ocenione przez Jev, złożone na żywo.</div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="num" id="total">0</div><div class="lbl">wpisów sali</div></div>
+      <div class="stat silent"><div class="num"><span id="silent">0</span><small>%</small></div><div class="lbl">to milczenie</div></div>
+    </div>
+    <div class="qr" id="qr-box">
+      <div id="qr"></div>
+      <div>
+        <div class="cta">Zeskanuj i dokończ zdanie</div>
+        <div class="url">fnp.silence-tax.com/rotunda</div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="welcome" id="welcome" hidden>
+      <div>
+        <div class="big">Sala jeszcze <em>milczy</em>.<br>Dokończ pierwsze zdanie.</div>
+        <p>Wylosuj kartę na telefonie, dopisz jedno zdanie o tym, czego nie powiedziałeś w tym miesiącu, wybierz rolę. Za chwilę zobaczysz tutaj, z jakich powodów milczy ta sala.</p>
+      </div>
+      <div class="qrbig">
+        <div id="qr-big"></div>
+        <div class="cta">Zeskanuj i dokończ zdanie</div>
+        <div class="url">fnp.silence-tax.com/rotunda</div>
+      </div>
+    </section>
+
+    <div class="left" id="left">
+      <section>
+        <h2><span>Dlaczego milczymy: według roli</span><span class="note">udział wśród wpisów o milczeniu</span></h2>
+        <div class="roles" id="roles"></div>
+      </section>
+      <section class="areas">
+        <h2><span>Obszary FNP: cała sala</span><span class="note">liczba wpisów</span></h2>
+        <div class="list" id="areas"></div>
+      </section>
+    </div>
+
+    <div class="right" id="right">
+      <div class="quote">
+        <div class="dots" id="dots"></div>
+        <div class="stamp" id="q-stamp">Głos z sali</div>
+        <blockquote id="q-text" class="fade"></blockquote>
+        <div class="meta fade" id="q-meta"></div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div>Prototyp Fundacji Nowe Przestrzenie, silnik Jev (TypeSafe). Anonimowa mapa sali, nie pomiar w żadnej firmie.</div>
+    <div><span class="conn" id="conn">łączenie</span> &nbsp;·&nbsp; Kalkulator: <b>fnp.silence-tax.com</b></div>
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script>
+const ROLES = { zarzad: "Zarząd", menedzer: "Menedżer", specjalista: "Specjalista" };
+const CAUSES = { lek: "Lęk przed konsekwencjami", bezsens: "Nic się nie zmieni", brak_kanalu: "Brak kanału lub czasu", lojalnosc: "Ochrona innych" };
+const AREAS = { rotacja: "Rotacja i utrata wiedzy", bledy: "Błędy i compliance", wypalenie: "Wypalenie i pasywność", innowacje: "Innowacje i uczenie się", koordynacja: "Koordynacja i hierarchia", brak: "Poza obszarami" };
+const STARTERS = ["Nie powiedziałem/am szefowi, że…", "Wiem o błędzie, ale…", "Miałem/am pomysł, ale…", "Na spotkaniu wszyscy kiwali głową, a ja…", "Klient nie wie, że…", "Do zarządu nie dociera, że…", "Gdybym odchodził/a, powiedział/abym, że…", "Przemilczałem/am, bo…"];
+const POLL_MS = 5000, QUOTE_MS = 8000, MIN_N = 3;
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch { /* ignore */ } } };
+const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const kod = new URLSearchParams(location.search).get("kod") || store.get("fnp-demo-code") || "";
+if (kod) store.set("fnp-demo-code", kod);
+
+function drawQr(el, size) {
+  try {
+    const url = `https://fnp.silence-tax.com/rotunda/${kod ? `?kod=${encodeURIComponent(kod)}` : ""}`;
+    const q = qrcode(0, "M");
+    q.addData(url);
+    q.make();
+    el.innerHTML = q.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
+    const svg = el.querySelector("svg");
+    if (svg) { svg.setAttribute("width", size); svg.setAttribute("height", size); }
+  } catch {
+    el.innerHTML = `<div style="width:${size}px;height:${size}px;border:1px dashed var(--grid)"></div>`;
+  }
+}
+drawQr($("qr"), 148);
+drawQr($("qr-big"), 360);
+
+/* counters */
+const shown = { total: 0, silent: 0 };
+function tween(key, el, target) {
+  const from = shown[key];
+  shown[key] = target;
+  if (reduced || from === target) { el.textContent = target; return; }
+  const t0 = performance.now(), dur = 700;
+  const step = (t) => {
+    const p = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+    el.textContent = Math.round(from + (target - from) * e);
+    if (p < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+/* roles matrix */
+function ensureRoles() {
+  if ($("roles").children.length) return;
+  const cols = [["all", "Cała sala"], ...Object.entries(ROLES)];
+  $("roles").innerHTML = cols.map(([id, name]) => `
+    <div class="role ${id === "all" ? "all" : ""}" id="role-${id}">
+      <div class="head"><span class="name">${name}</span><span class="n" id="n-${id}"></span></div>
+      <div class="bars" id="bars-${id}">${Object.entries(CAUSES).map(([cid, lab]) => `
+        <div class="bar" id="bar-${id}-${cid}"><span class="lab">${lab}</span><span class="track"><span class="fill"></span></span><span class="val">–</span></div>`).join("")}
+      </div>
+      <div class="empty" id="empty-${id}" hidden></div>
+    </div>`).join("");
+}
+
+function renderGroup(id, g) {
+  const bars = $(`bars-${id}`), empty = $(`empty-${id}`), n = $(`n-${id}`);
+  if (!g || g.suppressed || !g.n) {
+    bars.hidden = true; empty.hidden = false;
+    n.textContent = g && g.n ? `n = ${g.n}` : "n = 0";
+    empty.innerHTML = g && g.n ? `za mało wpisów<span class="micro">pokażemy od ${MIN_N} wpisów</span>` : `jeszcze bez wpisów`;
+    return;
+  }
+  bars.hidden = false; empty.hidden = true;
+  n.textContent = `n = ${g.n} · milczy ${g.silent}`;
+  const causes = g.causes || {};
+  const max = Math.max(0, ...Object.keys(CAUSES).map((c) => causes[c] || 0));
+  if (!g.silent) {
+    bars.hidden = true; empty.hidden = false;
+    empty.innerHTML = `same głosy, bez milczenia<span class="micro">${g.n} wpisów</span>`;
+    return;
+  }
+  for (const cid of Object.keys(CAUSES)) {
+    const v = causes[cid] || 0, share = v / g.silent;
+    const bar = $(`bar-${id}-${cid}`);
+    bar.classList.toggle("lead", v > 0 && v === max);
+    bar.querySelector(".val").textContent = `${Math.round(100 * share)}%`;
+    bar.querySelector(".fill").style.width = `${Math.round(100 * share)}%`;
+  }
+}
+
+function renderAreas(overall) {
+  const areas = (overall && overall.areas) || {};
+  const total = (overall && overall.n) || 0;
+  const rows = Object.entries(AREAS).map(([id, lab]) => [id, lab, areas[id] || 0]).filter(([id, , v]) => id !== "brak" || v > 0);
+  const max = Math.max(1, ...rows.map((r) => r[2]));
+  const el = $("areas");
+  if (el.children.length !== rows.length) {
+    el.innerHTML = rows.map(([id, lab]) => `<div class="arow" id="area-${id}"><span class="lab">${lab}</span><span class="track"><span class="fill"></span></span><span class="val"></span></div>`).join("");
+  }
+  for (const [id, , v] of rows) {
+    const row = $(`area-${id}`);
+    row.querySelector(".fill").style.width = `${Math.round(100 * v / max)}%`;
+    row.querySelector(".val").innerHTML = `${v} <small>${total ? Math.round(100 * v / total) : 0}%</small>`;
+  }
+}
+
+/* quotes */
+let quotes = [], qIndex = -1, qTimer = null, starterIndex = 0;
+function setQuote(html, meta, cls) {
+  const t = $("q-text"), m = $("q-meta");
+  const swap = () => { t.innerHTML = html; t.className = `fade ${cls}`; m.innerHTML = meta; t.classList.remove("out"); m.classList.remove("out"); };
+  if (reduced) return swap();
+  t.classList.add("out"); m.classList.add("out");
+  setTimeout(swap, 500);
+}
+function showNextQuote() {
+  const dots = $("dots");
+  if (!quotes.length) {
+    const s = STARTERS[starterIndex++ % STARTERS.length];
+    $("q-stamp").textContent = "Karta do dokończenia";
+    setQuote(`${esc(s.replace(/…$/, ""))}<em>…</em>`, `<span>Dokończ na telefonie, anonimowo, do 200 znaków</span>`, "starter");
+    dots.innerHTML = "";
+    return;
+  }
+  qIndex = (qIndex + 1) % quotes.length;
+  const q = quotes[qIndex];
+  $("q-stamp").textContent = "Głos z sali";
+  const meta = `<span>${esc(ROLES[q.rola] || q.rola || "")}</span>${q.topCause && CAUSES[q.topCause] ? `<span class="cause">${CAUSES[q.topCause]}</span>` : ""}`;
+  setQuote(`„${esc(q.text)}”`, meta, q.text.length > 120 ? "long" : "");
+  dots.innerHTML = quotes.map((_, i) => `<i class="${i === qIndex ? "on" : ""}"></i>`).join("");
+}
+function setQuotes(list) {
+  const next = Array.isArray(list) ? list : [];
+  const same = next.length === quotes.length && next.every((q, i) => q.id === quotes[i].id);
+  if (same && qTimer) return;
+  quotes = next; qIndex = -1;
+  clearInterval(qTimer);
+  showNextQuote();
+  qTimer = setInterval(showNextQuote, QUOTE_MS);
+}
+
+/* state */
+function render(d) {
+  const total = d.total || 0;
+  const empty = total === 0;
+  $("welcome").hidden = !empty;
+  $("left").hidden = empty;
+  $("right").hidden = empty;
+  $("qr-box").hidden = empty;
+  tween("total", $("total"), total);
+  tween("silent", $("silent"), Math.round(100 * (d.silentShare || 0)));
+  if (empty) return;
+  ensureRoles();
+  renderGroup("all", d.overall);
+  for (const r of Object.keys(ROLES)) renderGroup(r, d.byRole && d.byRole[r]);
+  renderAreas(d.overall);
+  setQuotes(d.quotes);
+}
+
+function setConn(ok, when) {
+  const c = $("conn");
+  c.className = ok ? "conn" : "conn off";
+  c.textContent = ok ? `na żywo ${when || ""}`.trim() : "brak połączenia";
+}
+
+let last = null;
+async function poll() {
+  if (!kod) { setConn(false); $("conn").textContent = "brak kodu w adresie"; return; }
+  try {
+    const res = await fetch(`../api/stan?code=${encodeURIComponent(kod)}`, { cache: "no-store" });
+    if (!res.ok) throw new Error(String(res.status));
+    const d = await res.json();
+    last = d;
+    render(d);
+    const t = d.updatedAt ? new Date(d.updatedAt) : new Date();
+    setConn(true, isNaN(t) ? "" : t.toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" }));
+  } catch {
+    setConn(false);
+    if (!last) render({ total: 0 });
+  }
+}
+poll();
+setInterval(poll, POLL_MS);
+</script>
+</body>
+</html>

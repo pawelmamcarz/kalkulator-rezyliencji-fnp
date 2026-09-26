@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import worker, { LIMITS, handleMapa, validateDemoInput } from "../demo/src/worker.js";
+import worker from "../demo/src/worker.js";
+import { LIMITS, handleMapa, validateDemoInput } from "../demo/src/app.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const env = { DEMO_CODE: "stoisko", TYPESAFE_API_KEY: "test" };
@@ -79,12 +80,19 @@ describe("conference demo worker", () => {
     expect((await worker.fetch(new Request("https://fnp.test/rotunda/api/mapa"), e, null, pass)).status).toBe(405);
   });
 
-  it("page warns it is an unvalidated prototype and sends text to TypeSafe", () => {
-    const html = readFileSync(path.join(root, "demo/public/rotunda/index.html"), "utf8");
+  it("analiza page warns it is an unvalidated prototype and sends text to TypeSafe", () => {
+    const html = readFileSync(path.join(root, "demo/public/rotunda/analiza/index.html"), "utf8");
     expect(html).toContain("Prototyp, niezwalidowany");
     expect(html).toContain("nie pomiar");
     expect(html).toContain("TypeSafe");
     expect(html).toContain('name="robots" content="noindex"');
     expect(html).not.toMatch(/—|\bROI\b/);
+  });
+});
+
+describe("demo worker entry", () => {
+  it("exports only the default handler (workerd rejects other named exports)", async () => {
+    const mod = await import("../demo/src/worker.js");
+    expect(Object.keys(mod)).toEqual(["default"]);
   });
 });
