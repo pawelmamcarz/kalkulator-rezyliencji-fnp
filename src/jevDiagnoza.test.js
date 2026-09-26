@@ -93,7 +93,7 @@ describe("Jev diagnosis prototype", () => {
     const detailed = capture();
     await main({ argv: ["docs/diagnoza-przyklad.json", "--szczegoly"], env: { TYPESAFE_API_KEY: "test" }, cwd: root, stdout: detailed, stderr: capture(), fetchImpl: fakeFetch });
     expect(detailed.text()).toContain("tylko dla analityka");
-    expect(detailed.text().match(/^\| (Magazyn|Sprzedaż|IT|Zarząd) \| [^|]+ \| \d,\d\d/gm)).toHaveLength(sample.length);
+    expect(detailed.text().match(/^\| (Magazyn|Sprzedaż|IT|Zarząd|Dział produkcji|Dział zakupów|Dział HR) \| [^|]+ \| \d,\d\d/gm)).toHaveLength(sample.length);
     const err = capture();
     expect(await main({ argv: ["docs/diagnoza-przyklad.json"], env: {}, cwd: root, stdout: capture(), stderr: err })).toBe(1);
     expect(err.text()).toContain("TYPESAFE_API_KEY");
