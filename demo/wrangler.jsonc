@@ -16,7 +16,7 @@
     {
       "binding": "DB",
       "database_name": "fnp-rotunda",
-      "database_id": "TODO-after-d1-create",
+      "database_id": "0ebfd6d4-d62a-4423-9fa0-4b6eec8ab186",
       "migrations_dir": "migrations"
     }
   ]
