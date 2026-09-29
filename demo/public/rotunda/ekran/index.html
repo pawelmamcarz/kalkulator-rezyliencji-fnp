@@ -25,7 +25,7 @@ body {
   overflow: hidden;
 }
 .screen {
-  width: 1920px; height: 1080px; margin: 0 auto;
+  width: 1920px; height: 1080px; position: absolute; transform-origin: top left;
   display: grid; grid-template-rows: 176px 1fr 64px; gap: 24px;
   padding: 32px 48px 24px;
 }
@@ -191,15 +191,21 @@ const POLL_MS = 5000, QUOTE_MS = 8000, MIN_N = 3;
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch { /* ignore */ } } };
 const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-const kod = new URLSearchParams(location.search).get("kod") || store.get("fnp-demo-code") || "";
-if (kod) store.set("fnp-demo-code", kod);
+function fitScreen() {
+  const scale = Math.min(innerWidth / 1920, innerHeight / 1080);
+  const screen = document.querySelector(".screen");
+  screen.style.left = `${(innerWidth - 1920 * scale) / 2}px`;
+  screen.style.top = `${(innerHeight - 1080 * scale) / 2}px`;
+  screen.style.transform = `scale(${scale})`;
+}
+fitScreen();
+addEventListener("resize", fitScreen);
 
 function drawQr(el, size) {
   try {
-    const url = `https://fnp.silence-tax.com/rotunda/${kod ? `?kod=${encodeURIComponent(kod)}` : ""}`;
+    const url = "https://fnp.silence-tax.com/rotunda/";
     const q = qrcode(0, "M");
     q.addData(url);
     q.make();
@@ -345,9 +351,8 @@ function setConn(ok, when) {
 
 let last = null;
 async function poll() {
-  if (!kod) { setConn(false); $("conn").textContent = "brak kodu w adresie"; return; }
   try {
-    const res = await fetch(`../api/stan?code=${encodeURIComponent(kod)}`, { cache: "no-store" });
+    const res = await fetch("../api/stan", { cache: "no-store" });
     if (!res.ok) throw new Error(String(res.status));
     const d = await res.json();
     last = d;

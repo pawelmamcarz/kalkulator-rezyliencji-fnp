@@ -71,11 +71,8 @@ footer a { color: var(--ink); }
   </div>
 
   <label for="answers">Odpowiedzi: jedna w wierszu, <code>Zespół | treść</code></label>
-  <div class="hint">Do 40 odpowiedzi, każda do 500 znaków. Na start wpisaliśmy wymyślone przykłady.</div>
+  <div class="hint">Do 20 odpowiedzi, każda do 500 znaków. Na start wpisaliśmy wymyślone przykłady.</div>
   <textarea id="answers" spellcheck="false"></textarea>
-
-  <label for="code">Kod dostępu ze stoiska FNP</label>
-  <input id="code" autocomplete="off">
 
   <div class="row">
     <button id="run" type="button">Pokaż mapę</button>
@@ -92,7 +89,7 @@ footer a { color: var(--ink); }
   </section>
 
   <footer>
-    Gra na telefon: <a href="../">Czego nie powiedziałeś w tym miesiącu?</a> · Kalkulator skali kosztów: <a href="https://fnp.silence-tax.com/?konferencja">fnp.silence-tax.com</a> · Diagnoza FNP: <a href="mailto:zapraszamy@noweprzestrzenie.pl">zapraszamy@noweprzestrzenie.pl</a>
+    Gra na telefon: <a href="../">Czego nie powiedziałeś w tym miesiącu?</a> · <a href="../ekran/">Mapa sali na żywo</a> · Kalkulator skali kosztów: <a href="https://fnp.silence-tax.com/?konferencja">fnp.silence-tax.com</a> · Diagnoza FNP: <a href="mailto:zapraszamy@noweprzestrzenie.pl">zapraszamy@noweprzestrzenie.pl</a>
   </footer>
 </main>
 <script>
@@ -121,13 +118,11 @@ const AREAS = { rotacja: "Rotacja i utrata wiedzy", bledy: "Błędy i compliance
 const CAUSES = { lek: "Lęk przed konsekwencjami", bezsens: "Nic się nie zmieni", brak_kanalu: "Brak kanału lub czasu", lojalnosc: "Ochrona innych" };
 
 const $ = (id) => document.getElementById(id);
-const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch { /* ignore */ } } };
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const pct = (x) => `${Math.round(100 * x)}%`;
 const heat = (x) => `background: rgba(var(--heat), ${(0.08 + 0.5 * x).toFixed(2)})`;
 
 $("answers").value = SAMPLE;
-$("code").value = store.get("fnp-demo-code") || new URLSearchParams(location.search).get("kod") || "";
 $("reset").onclick = () => { $("answers").value = SAMPLE; };
 
 function parse(text) {
@@ -178,16 +173,13 @@ function renderCards(rows, answers) {
 $("run").onclick = async () => {
   const rows = parse($("answers").value);
   if (!rows.length) return status("Wklej co najmniej jedną odpowiedź.", true);
-  if (rows.length > 40) return status("Maksymalnie 40 odpowiedzi naraz.", true);
-  const code = $("code").value.trim();
-  if (!code) return status("Wpisz kod dostępu ze stoiska.", true);
+  if (rows.length > 20) return status("Maksymalnie 20 odpowiedzi naraz.", true);
   $("run").disabled = true;
   status(`Jev ocenia ${rows.length} odpowiedzi…`);
   try {
-    const res = await fetch("../api/mapa", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, answers: rows }) });
+    const res = await fetch("../api/mapa", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ answers: rows }) });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || `Błąd ${res.status}`);
-    store.set("fnp-demo-code", code);
     renderTeams(data.teams, data.minTeamSize);
     renderCards(rows, data.answers);
     $("out").hidden = false;
