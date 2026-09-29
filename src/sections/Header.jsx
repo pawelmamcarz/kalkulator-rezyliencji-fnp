@@ -34,6 +34,7 @@ export default function Header() {
         <a href="#wynik">Wynik</a>
         <a href="#metodologia">Metodologia i priory</a>
         <a href="#dalej">Kontakt i wydruk</a>
+        <a href="#safe-space">Program Safe Space</a>
       </nav>
     </header>
   );

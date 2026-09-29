@@ -14,6 +14,7 @@ import Methodology from "./sections/Methodology.jsx";
 import Context from "./sections/Context.jsx";
 import ConferenceBanner from "./sections/ConferenceBanner.jsx";
 import MethodologyShort from "./sections/MethodologyShort.jsx";
+import SafeSpaceMatrix from "./sections/SafeSpaceMatrix.jsx";
 import useConferenceMode from "./hooks/useConferenceMode.js";
 
 export default function App() {
@@ -37,6 +38,7 @@ export default function App() {
         {conference ? <MethodologyShort /> : <Methodology />}
         <Limitations />
         <Triangle ready={!!analysis} />
+        <SafeSpaceMatrix />
       </main>
       <Footer />
       <Invitation params={params} valuation={analysis?.valuation} />
