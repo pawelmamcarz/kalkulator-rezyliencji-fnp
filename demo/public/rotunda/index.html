@@ -87,6 +87,10 @@ textarea::placeholder { color: var(--mute); font-style: italic; }
 #status { font-family: var(--mono); font-size: 13px; margin-top: 12px; min-height: 1.3em; }
 #status.err { color: var(--accent); }
 .privacy { font-size: 13px; color: var(--mute); margin-top: 20px; border-top: 1px solid var(--grid); padding-top: 12px; }
+.desktop-access { border: 1px solid var(--rule); background: var(--card); padding: 16px; margin: 0 0 22px; text-align: center; }
+.desktop-access a { color: var(--stamp); font: 600 13px var(--mono); }
+.desktop-access img { display: block; width: 180px; height: 180px; margin: 12px auto; }
+@media (max-width: 720px) { .desktop-access { display: none; } }
 
 /* result */
 #result { display: none; }
@@ -114,6 +118,13 @@ footer a { color: var(--ink); }
 <main>
   <div class="micro"><b>Prototyp FNP</b> · anonimowo</div>
   <h1>Czego nie powiedziałeś w tym miesiącu?</h1>
+  <aside class="desktop-access">
+    <div class="micro">Otwórz na telefonie</div>
+    <img src="qr.png" width="180" height="180" alt="Kod QR do formularza Rotundy">
+    <p><a href="/rotunda/ekran/">Mapa sali na żywo</a></p>
+    <p><a href="/rotunda/analiza/">Heatmapa odpowiedzi zespołów</a></p>
+    <p><a href="qr.png" download="rotunda-qr.png">Pobierz kod QR (PNG)</a></p>
+  </aside>
 
   <section id="form" aria-labelledby="hook">
     <p class="hook" id="hook">Wylosuj kartę, dokończ zdanie jednym kciukiem. 20 sekund. Bez nazwisk, bez logowania.</p>
@@ -182,18 +193,13 @@ const STARTERS = [
 const CAUSES = { lek: "Lęk przed konsekwencjami", bezsens: "Nic się nie zmieni", brak_kanalu: "Brak kanału lub czasu", lojalnosc: "Ochrona innych" };
 const ERRORS = {
   400: "Sprawdź wpis: dokończ zdanie (do 200 znaków) i wybierz rolę.",
-  403: "Nieprawidłowy kod dostępu. Zeskanuj kod QR na stoisku FNP.",
   429: "Za dużo wpisów z tego telefonu. Spróbuj za kilka minut.",
   502: "Jev nie odpowiada. Spróbuj jeszcze raz za chwilę.",
 };
 
 const $ = (id) => document.getElementById(id);
-const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch { /* ignore */ } } };
 const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-const kodFromUrl = new URLSearchParams(location.search).get("kod");
-if (kodFromUrl) store.set("fnp-demo-code", kodFromUrl);
-const code = kodFromUrl || store.get("fnp-demo-code") || "";
 
 let current = -1;
 let rola = null;
@@ -260,7 +266,6 @@ $("send").onclick = async () => {
   const text = $("text").value.trim();
   if (!text) { status("Dokończ zdanie, choćby jednym słowem.", true); $("text").focus(); return; }
   if (!rola) { status("Wybierz, kim jesteś w firmie.", true); return; }
-  if (!code) { status(ERRORS[403], true); return; }
   const consent = $("consent").checked;
   const send = $("send");
   send.disabled = true; send.classList.add("busy");
@@ -270,7 +275,7 @@ $("send").onclick = async () => {
     const res = await fetch("api/wpis", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code, rola, starter: STARTERS[current].id, text, consent, client: clientId() }),
+      body: JSON.stringify({ rola, starter: STARTERS[current].id, text, consent, client: clientId() }),
     });
     let data = {};
     try { data = await res.json(); } catch { data = {}; }

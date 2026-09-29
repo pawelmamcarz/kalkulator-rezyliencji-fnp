@@ -85,12 +85,12 @@ describe("rotunda constants", () => {
 });
 
 describe("POST /rotunda/api/wpis", () => {
-  it("rejects a wrong or missing code before Jev and the database", async () => {
-    expect((await send({ code: "zly" })).status).toBe(403);
-    expect((await send({ code: undefined })).status).toBe(403);
-    expect((await handleWpis(wpis({}), { ...env, DEMO_CODE: "" }, fakeFetch)).status).toBe(403);
-    expect(calls).toHaveLength(0);
-    expect(rows()).toHaveLength(0);
+  it("accepts a public entry without a code, while keeping a server-side hash salt", async () => {
+    expect((await send({ code: undefined })).status).toBe(200);
+    expect(calls).toHaveLength(1);
+    expect(rows()).toHaveLength(1);
+    expect((await handleWpis(wpis({ code: undefined }), { ...env, DEMO_CODE: "" }, fakeFetch)).status).toBe(503);
+    expect(calls).toHaveLength(1);
   });
 
   it("validates role, starter, text length and consent", async () => {
@@ -206,9 +206,8 @@ describe("POST /rotunda/api/wpis", () => {
 });
 
 describe("GET /rotunda/api/stan", () => {
-  it("requires the code", async () => {
-    expect((await handleStan(new Request("https://fnp.test/rotunda/api/stan?code=zly"), env)).status).toBe(403);
-    expect((await handleStan(new Request("https://fnp.test/rotunda/api/stan"), env)).status).toBe(403);
+  it("shows the public map without a code", async () => {
+    expect((await handleStan(new Request("https://fnp.test/rotunda/api/stan"), env)).status).toBe(200);
   });
 
   it("aggregates the room and suppresses role groups with n < 3", async () => {

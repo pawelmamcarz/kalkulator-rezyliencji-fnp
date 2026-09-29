@@ -122,10 +122,9 @@ async function readBody(request) {
 export async function handleWpis(request, env, fetchImpl, now = () => new Date()) {
   const body = await readBody(request);
   if (body === undefined) return json({ error: "Niepoprawny JSON." }, 400);
-  if (!sameCode(body?.code, env.DEMO_CODE)) return json({ error: "Niepoprawny kod dostępu." }, 403);
   const invalid = validateWpis(body);
   if (invalid) return json({ error: invalid }, 400);
-  if (!env.TYPESAFE_API_KEY || !env.DB) return json({ error: "Demo nie jest w pełni skonfigurowane." }, 503);
+  if (!env.TYPESAFE_API_KEY || !env.DB || !env.DEMO_CODE) return json({ error: "Demo nie jest w pełni skonfigurowane." }, 503);
 
   const entry = { rola: body.rola, starter: body.starter, text: body.text.trim(), consent: body.consent };
   const ipHash = await hashIp(request.headers.get("CF-Connecting-IP") ?? "unknown", env.DEMO_CODE);
@@ -202,9 +201,7 @@ export function summarize(rows) {
   return group;
 }
 
-export async function handleStan(request, env, now = () => new Date()) {
-  const url = new URL(request.url);
-  if (!sameCode(url.searchParams.get("code") ?? undefined, env.DEMO_CODE)) return json({ error: "Niepoprawny kod dostępu." }, 403);
+export async function handleStan(_request, env, now = () => new Date()) {
   if (!env.DB) return json({ error: "Demo nie jest w pełni skonfigurowane." }, 503);
   const { results: rows = [] } = await env.DB.prepare("SELECT rola, silence, area, causes FROM wpisy").all();
   const { results: quotes = [] } = await env.DB.prepare(

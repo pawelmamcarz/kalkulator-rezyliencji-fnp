@@ -1,6 +1,6 @@
 import { DEFAULT_MODEL, callSystemOne } from "../../scripts/jev-client.js";
 import { aggregate, buildRequest, mapLimit, validateResponses } from "../../scripts/jev-diagnoza.lib.js";
-import { handleModeracja, handleStan, handleWpis, json, sameCode } from "./rotunda.js";
+import { handleModeracja, handleStan, handleWpis, hashIp, json, sameCode } from "./rotunda.js";
 
 export { sameCode };
 
@@ -8,7 +8,7 @@ export { sameCode };
 // code aggregates per team. Answer text is never stored or logged here;
 // it is sent to TypeSafe for judgment only.
 
-export const LIMITS = { maxAnswers: 40, maxText: 500, maxTeam: 40, minTeamSize: 3 };
+export const LIMITS = { maxAnswers: 20, maxText: 500, maxTeam: 40, minTeamSize: 3, maxBatches: 3, rateWindowMs: 10 * 60 * 1000 };
 
 export function validateDemoInput(body) {
   if (!body || typeof body !== "object") return "Niepoprawne zapytanie.";
@@ -20,17 +20,24 @@ export function validateDemoInput(body) {
   return null;
 }
 
-export async function handleMapa(request, env, fetchImpl) {
+export async function handleMapa(request, env, fetchImpl, now = () => new Date()) {
   let body;
   try {
     body = await request.json();
   } catch {
     return json({ error: "Niepoprawny JSON." }, 400);
   }
-  if (!sameCode(body?.code, env.DEMO_CODE)) return json({ error: "Niepoprawny kod dostępu." }, 403);
   const invalid = validateDemoInput(body);
   if (invalid) return json({ error: invalid }, 400);
-  if (!env.TYPESAFE_API_KEY) return json({ error: "Demo nie ma skonfigurowanego klucza." }, 503);
+  if (!env.TYPESAFE_API_KEY || !env.DB || !env.DEMO_CODE) return json({ error: "Demo nie jest w pełni skonfigurowane." }, 503);
+  const ipHash = await hashIp(request.headers.get("CF-Connecting-IP") ?? "unknown", env.DEMO_CODE);
+  const createdAt = now().toISOString();
+  const since = new Date(now().getTime() - LIMITS.rateWindowMs).toISOString();
+  const reserved = await env.DB.prepare(
+    `INSERT INTO mapa_requests (id, ip_hash, created_at)
+     SELECT ?, ?, ? WHERE (SELECT COUNT(*) FROM mapa_requests WHERE ip_hash = ? AND created_at >= ?) < ?`,
+  ).bind(crypto.randomUUID(), ipHash, createdAt, ipHash, since, LIMITS.maxBatches).run();
+  if (!reserved?.meta?.changes) return json({ error: "Za dużo analiz z tego połączenia. Spróbuj za kilka minut." }, 429);
   const rows = body.answers.map((r) => ({ team: r.team.trim(), text: r.text.trim() }));
   try {
     const answers = await mapLimit(rows, 6, async (row) => {

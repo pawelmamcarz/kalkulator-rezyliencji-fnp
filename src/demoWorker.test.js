@@ -1,12 +1,28 @@
-import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { beforeEach, describe, expect, it } from "vitest";
+import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { DatabaseSync } from "node:sqlite";
 import worker from "../demo/src/worker.js";
 import { LIMITS, handleMapa, validateDemoInput } from "../demo/src/app.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const env = { DEMO_CODE: "stoisko", TYPESAFE_API_KEY: "test" };
+const migrationsDir = path.join(root, "demo/migrations");
+const migration = readdirSync(migrationsDir).filter((file) => file.endsWith(".sql")).sort()
+  .map((file) => readFileSync(path.join(migrationsDir, file), "utf8")).join("\n");
+function fakeD1() {
+  const db = new DatabaseSync(":memory:");
+  db.exec(migration);
+  const stmt = (sql, args = []) => ({
+    bind: (...next) => stmt(sql, next),
+    run: async () => ({ meta: { changes: Number(db.prepare(sql).run(...args).changes) } }),
+  });
+  return { prepare: (sql) => stmt(sql) };
+}
+let env;
+beforeEach(() => {
+  env = { DEMO_CODE: "stoisko", TYPESAFE_API_KEY: "test", DB: fakeD1() };
+});
 
 const answer = (silent) => ({
   milczenie: { type: "noul", noul: silent ? 0.9 : 0.1 },
@@ -34,12 +50,21 @@ const rows = [
 ];
 
 describe("conference demo worker", () => {
-  it("rejects a wrong or missing access code before calling Jev", async () => {
+  it("allows the public heatmap without a code but requires server configuration", async () => {
     calls.length = 0;
-    expect((await handleMapa(post({ code: "zly", answers: rows }), env, fakeFetch)).status).toBe(403);
-    expect((await handleMapa(post({ answers: rows }), env, fakeFetch)).status).toBe(403);
-    expect((await handleMapa(post({ code: "stoisko", answers: rows }), { ...env, DEMO_CODE: "" }, fakeFetch)).status).toBe(403);
-    expect(calls).toHaveLength(0);
+    expect((await handleMapa(post({ answers: rows }), env, fakeFetch)).status).toBe(200);
+    expect(calls).toHaveLength(rows.length);
+    expect((await handleMapa(post({ answers: rows }), { ...env, DEMO_CODE: "" }, fakeFetch)).status).toBe(503);
+    expect(calls).toHaveLength(rows.length);
+  });
+
+  it("limits public bulk analyses before calling Jev", async () => {
+    calls.length = 0;
+    for (let i = 0; i < LIMITS.maxBatches; i++) {
+      expect((await handleMapa(post({ answers: rows }), env, fakeFetch)).status).toBe(200);
+    }
+    expect((await handleMapa(post({ answers: rows }), env, fakeFetch)).status).toBe(429);
+    expect(calls).toHaveLength(rows.length * LIMITS.maxBatches);
   });
 
   it("enforces input limits", () => {
