@@ -1,6 +1,6 @@
 # Kalkulator: odpowiedzi na pytania z briefu
 
-Stan: 3 października 2026 r. Notatka jest tekstową wersją odpowiedzi wpisanych do pliku „Brief na spotkanie – ankieta i Kalkulator (odp. Pawła).docx”. Podstawa: to repozytorium (`docs/PRIORY.md`, `docs/AUDYT-2026-09-04.md`, `src/fnpModel.js`, `LICENSE`) oraz główne repozytorium silence-tax.com (`podatekodmilczenia`: protokół walidacji, formularz danych, Worker ankiety, `fnp_batch.py`). Wersja kodu FNP: `2026.39.2.1`.
+Stan: 4 października 2026 r. Notatka jest tekstową wersją odpowiedzi wpisanych do pliku „Brief na spotkanie – ankieta i Kalkulator (odp. Pawła).docx”. Podstawa: to repozytorium (`docs/PRIORY.md`, `docs/AUDYT-2026-09-04.md`, `src/fnpModel.js`, `LICENSE`) oraz główne repozytorium silence-tax.com (`podatekodmilczenia`: protokół walidacji, formularz danych, Worker ankiety, `fnp_batch.py`). Wersja kodu FNP: `2026.39.2.1`.
 
 Źródło pytań: „Brief na spotkanie – ankieta i Kalkulator” (Marta, 3.10.2026). Załączniki dla Fundacji: `docs/dla-fundacji/` (Zał. 1–4).
 
@@ -9,7 +9,7 @@ Stan: 3 października 2026 r. Notatka jest tekstową wersją odpowiedzi wpisanyc
 1. Kalkulator istnieje jako działające narzędzie publiczne (https://fnp.silence-tax.com) z opisanym modelem, jawnymi założeniami i testami. Warunek krytyczny 3 jest spełniony w zakresie **scenariusza skali** (Zał. 1).
 2. Narzędzie nie robi jeszcze tego, co zakłada ścieżka: nie jest powiązane z ankietą w interfejsie, nie liczy zmiany przed i po, nie rozróżnia zespołów. Plan testu na danych firm istnieje (protokół walidacji, Zał. 2), wyników jeszcze nie ma.
 3. W głównym repozytorium są materiały badania walidacyjnego: kod Workera ankiety, formularz danych firmy, szablon zgody i starszy skrypt wsadowy łączący ankietę z modelem. Część pochodzi sprzed przebudowy modelu z lipca 2026 i wymaga aktualizacji.
-4. Prawa nie są rozstrzygnięte na korzyść Fundacji: oba repozytoria są na licencji MIT, a autorem jest Paweł Mamcarz (pkt 14).
+4. Prawa: autor przekazuje Fundacji kalkulator wraz ze swoją pracą w zamian za udział w zyskach i wspiera sprzedaż. Formę przekazania i licencję trzeba spisać, bo dziś oba repozytoria są na licencji MIT (pkt 14).
 
 ## Badanie i metodyka (pytania, które dotychczas były otwarte)
 
@@ -24,13 +24,13 @@ Stan: 3 października 2026 r. Notatka jest tekstową wersją odpowiedzi wpisanyc
 ## Stan prac i model
 
 **14. Co dziś istnieje i do kogo należą prawa?**
-Działające narzędzie webowe, silnik z testami (205 na 3.10.2026) i dokumentacja priorów. Autor: Paweł Mamcarz, kod na licencji MIT, silnik Silence Tax również jest autora. Pełna wersja na silence-tax.com (13 modułów, katalog interwencji z optymalizatorem, materiały akademickie) to osobne repozytorium, także MIT. MIT pozwala każdemu kopiować kod, także komercyjnie, co dotyczy zdania Marty o „podawaniu na tacy”. Nie da się skopiować z repozytorium: neutralności Fundacji, benchmarku Ipsos, danych z diagnoz. **Decyzja z prawnikiem:** licencja osobnego wydania dla ścieżki płatnej, albo pozostanie przy MIT.
+Działające narzędzie webowe, silnik z testami (283 na 4.10.2026) i dokumentacja priorów. Autor: Paweł Mamcarz, kod na licencji MIT, silnik Silence Tax również jest autora. Pełna wersja na silence-tax.com (13 modułów, katalog interwencji z optymalizatorem, materiały akademickie) to osobne repozytorium, także MIT. MIT pozwala każdemu kopiować kod, także komercyjnie, co dotyczy zdania Marty o „podawaniu na tacy”. Nie da się skopiować z repozytorium: neutralności Fundacji, benchmarku Ipsos, danych z diagnoz. **Ustalenie autora z Fundacją:** autor przekazuje Fundacji kalkulator wraz ze swoją pracą w zamian za udział w zyskach i wspiera sprzedaż. **Do spisania z prawnikiem:** forma przekazania praw i licencja.
 
 **15. Co dokładnie liczy?**
 Jeden poziom: scenariusz skali kosztu milczenia dla jednej firmy. Wejścia: przychód, koszty, FTE, średnia roczna płaca, rotacja, klimat (suwak, szacunek własny). Wynik: kwota z pasmem P10–P90 dla trzech obszarów w sumie i dwóch poza sumą. Poziomu „związek w firmie” (BP a rotacja na danych firmy) nie ma. Autor zaznaczył w briefie: „Mogę dodać”.
 
 **16. Założenia i źródła.**
-Spisane w `PRIORY.md`; zestawienie z wartościami i statusem: Zał. 1. Kwoty to priory autora, badania uzasadniają mechanizm. Końce krzywych przypisane do Ipsos czekają na audyt tabel, więc nie mówimy, że model jest skalibrowany na Ipsos. Odniesienie rotacji 14,8% (GUS) jest niezweryfikowane.
+Spisane w `PRIORY.md`; zestawienie z wartościami i statusem: Zał. 1. Kwoty to priory autora, badania uzasadniają mechanizm. Końce krzywych przypisane do Ipsos czekają na audyt tabel, więc nie mówimy, że model jest skalibrowany na Ipsos. Odniesienie rotacji 14,8% ma nieustalone pochodzenie: w publikacji GUS, której je przypisywano, tej wartości nie ma. GUS podaje współczynnik zwolnień 19,7% (2023) i 18,7% (2024), obejmujący wszystkie odejścia.
 
 **17. Przedział czy jedna kwota?**
 Kwota z pasmem P10–P90 (2000 losowań). Pasmo to rozrzut przyjętego scenariusza, nie przedział ufności. W głównym repozytorium jest nazywane granicami scenariusza i ten język proponuję w ofercie. Kontrakt produktu zakazuje obietnicy ROI i wyceny księgowej. W ofercie dla zarządu: granice scenariusza i procent przychodu, nie kwota środkowa.
@@ -39,7 +39,7 @@ Kwota z pasmem P10–P90 (2000 losowań). Pasmo to rozrzut przyjętego scenarius
 Uzasadniają mechanizm (Kiewitz i in. 2016, Adamska 2016, Penney 2016), nie wielkości w złotych. Przełożenie na polskie warunki jest częściowe. W materiałach sprzedażowych nie obiecujemy „bazy opracowań” jako podstawy kwot.
 
 **19. Powiązanie z ankietą.**
-W interfejsie Kalkulatora FNP: brak. Klimat to suwak wpisywany przez osobę z firmy. W głównym repozytorium jest skrypt wsadowy `fnp_batch.py`: przelicza wynik ankiety (skala 1–7 lub 0–100) na klimat 0–100 i liczy model dla każdej firmy z pliku CSV, zapisując predykcje przed porównaniem z wynikami. Pochodzi z maja 2026 i odwzorowuje starszy, pełny silnik (13 modułów, inne wartości startowe niż FNP), więc dla ścieżki Fundacji trzeba go przepisać na obecny model. Protokół traktuje wynik PS-7 przeskalowany do 0–100 jako główne wejście modelu. Brakuje: interfejsu łączącego ankietę z Kalkulatorem i agregacji do zespołu.
+W interfejsie Kalkulatora FNP: brak. Klimat to suwak wpisywany przez osobę z firmy. Stary skrypt wsadowy z głównego repozytorium (`fnp_batch.py`) liczył inny model niż silnik, więc jego wyników nie używamy. Zastąpiło go narzędzie `npm run fnp:wsad` (opis: `docs/WSAD.md`): bierze plik CSV z wynikami ankiet wielu firm, przelicza wynik (skala 1–7, 1–5 albo 0–100) na klimat 0–100, liczy obecny model FNP, daje powtarzalny wynik ze skrótem SHA-256 i zestawia dwa pomiary tej samej firmy jako różnicę scenariuszy. Protokół traktuje wynik PS-7 przeskalowany do 0–100 jako główne wejście modelu. Brakuje: interfejsu łączącego ankietę z Kalkulatorem i agregacji do zespołu.
 
 ## Dane i wiarygodność
 
@@ -87,9 +87,19 @@ W narzędziu: brak. Dwa uruchomienia modelu to porównanie scenariuszy, nie dow�
 | Opisany model i założenia | Tak, dla scenariusza skali (Zał. 1) |
 | Wynik da się wyjaśnić zarządowi | Tak, w formie granic scenariusza i priorów, nie wyceny |
 | Walidacja ankiety i modelu | Plan i protokół są (Zał. 2); brak wyników; rozbieżność skal (Ipsos czy literatura) |
-| Połączenie z ankietą | Starszy skrypt wsadowy do przepisania; w interfejsie nie |
+| Połączenie z ankietą | Nowe narzędzie wsadowe na obecnym modelu (`npm run fnp:wsad`); w interfejsie nie |
 | Pomiar przed i po | Opisany w protokole, nie wdrożony |
 | Dane osobowe i formalności | Częściowo: szablon zgody i RODO dla badania; brak umowy powierzenia i inspektora (Zał. 4) |
-| Prawa Fundacji do narzędzia | Nierozstrzygnięte (MIT, autor Paweł Mamcarz) |
+| Prawa Fundacji do narzędzia | Ustalone co do zasady (przekazanie za udział w zyskach); umowa i licencja do spisania |
 
 Rekomendowany werdykt z perspektywy Kalkulatora: **„idziemy dalej z warunkami”**, z warunkami: prawa (14), wybór skal z psychometrą (10, 11), plan pilotażu i status rejestracji (9, 23), metoda przed/po (24), dokumenty RODO (30, 31, 33).
+
+## Aktualizacja z 4 października 2026 r.
+
+- **Model.** Przegląd logiki wykrył i naprawił cztery błędy niezależne od danych (opis: Zał. 1, sekcja 7). Firma przykładowa: 3,12 mln zł zamiast 3,32 mln zł. Silnik jest teraz jeden, wspólny dla kalkulatora FNP i silence-tax.com.
+- **Źródła.** Sprawdzono 46 cytowanych źródeł. 14,8% rotacji nie jest liczbą GUS. Na stronie zostały tylko liczby Ipsos potwierdzone publicznie (71%, 42%, 85% wobec 59%); 52%, 72%, 68%, 73% i średnia 41 wymagają pełnego raportu lub tabel Ipsos.
+- **Skale (pyt. 10).** UWES jest bezpłatna tylko do celów akademickich; płatna usługa wymaga umowy z autorami. Dla skal Edmondson, Van Dyne i Teppera nie znaleziono jawnej licencji. To nie jest porada prawna.
+- **Protokół (pyt. 23).** Kryterium obalenia wymaga przeliczenia: jego uzasadnienie statystyczne było błędne (przy około 60 firmach wartość krytyczna korelacji to około 0,21, nie 0,15).
+- **Strona.** Główny przepływ kalkulatora ma 434 słowa zamiast ponad 2300; metodologia jest w zwijanej sekcji „Jak to liczymy”.
+- **Rotunda.** Opisy dotyczą zdań, a nie osób czy sali; próg zespołu w heatmapie to 5; kalkulator jest pokazany jako osobna zajawka i nie korzysta z wyników gry.
+- **Jedna strona na spotkanie:** `docs/dla-fundacji/Stan-wiedzy-na-spotkanie.docx` oraz `docs/STAN-WIEDZY.md`.
