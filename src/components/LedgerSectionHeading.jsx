@@ -1,6 +1,6 @@
 import useMediaQuery, { MOBILE_QUERY } from "../hooks/useMediaQuery.js";
 
-export default function LedgerSectionHeading({ num, title, kicker }) {
+export default function LedgerSectionHeading({ num, title, kicker, titleId }) {
   const isMobile = useMediaQuery(MOBILE_QUERY);
 
   return (
@@ -22,7 +22,7 @@ export default function LedgerSectionHeading({ num, title, kicker }) {
       }}>
         {num}
       </div>
-      <h2 style={{
+      <h2 id={titleId} style={{
         fontFamily: "var(--mono)",
         fontSize: isMobile ? 24 : 36,
         fontWeight: 700,

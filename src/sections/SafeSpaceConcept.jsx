@@ -1,4 +1,3 @@
-import LedgerSectionHeading from "../components/LedgerSectionHeading.jsx";
 import useMediaQuery, { MOBILE_QUERY } from "../hooks/useMediaQuery.js";
 
 const PATH = [
@@ -12,7 +11,7 @@ const PATH = [
   },
   {
     name: "Działanie",
-    text: "Najpierw wspólna edukacja, następnie interwencje w miejscach, w których diagnoza wykazała deficyt.",
+    text: "Najpierw wspólna edukacja, następnie interwencje w miejscach, w których diagnoza wykazała deficyt, z ustalonym sposobem oceny zmiany.",
   },
 ];
 
@@ -44,32 +43,28 @@ const AREAS = [
   },
 ];
 
+// Body of the collapsed "Model Safe Space" block inside "Co dalej".
 export default function SafeSpaceConcept() {
   const isMobile = useMediaQuery(MOBILE_QUERY);
 
   return (
-    <section id="safe-space" style={{ padding: "48px 0" }}>
-      <LedgerSectionHeading
-        num="PROGRAM FNP"
-        title="Jak działa Safe Space"
-        kicker="Od sygnału do dobranych działań"
-      />
-      <p style={{ maxWidth: 800, marginTop: 20, lineHeight: 1.6 }}>
+    <div style={{ marginTop: 12 }}>
+      <p style={{ maxWidth: 800, lineHeight: 1.6 }}>
         Wynik kalkulatora otwiera rozmowę o skali problemu. Model Safe Space porządkuje pytania o to, co utrudnia ludziom zabieranie głosu i na jakim poziomie warto działać. Sam wynik nie dobiera interwencji.
       </p>
 
-      <ol style={{ listStyle: "none", display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))", gap: 0, marginTop: 28, borderTop: "2px solid var(--l-rule)", borderBottom: "1px solid var(--l-rule)" }}>
+      <ol style={{ listStyle: "none", display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))", gap: 0, marginTop: 20, borderTop: "2px solid var(--l-rule)", borderBottom: "1px solid var(--l-rule)" }}>
         {PATH.map((step, index) => (
-          <li key={step.name} style={{ padding: "18px 20px 22px", borderLeft: !isMobile && index > 0 ? "1px solid var(--l-grid)" : "none", borderTop: isMobile && index > 0 ? "1px solid var(--l-grid)" : "none" }}>
+          <li key={step.name} style={{ padding: "16px 18px 18px", borderLeft: !isMobile && index > 0 ? "1px solid var(--l-grid)" : "none", borderTop: isMobile && index > 0 ? "1px solid var(--l-grid)" : "none" }}>
             <div style={{ fontFamily: "var(--mono)", color: "var(--l-stamp)", fontSize: 12, marginBottom: 8 }}>{index + 1}. {step.name}</div>
             <p style={{ lineHeight: 1.5 }}>{step.text}</p>
           </li>
         ))}
       </ol>
 
-      <h3 style={{ fontFamily: "var(--mono)", fontSize: isMobile ? 21 : 26, margin: "34px 0 8px" }}>Pięć warunków bezpiecznej pracy</h3>
+      <h3 style={{ fontFamily: "var(--mono)", fontSize: isMobile ? 19 : 22, margin: "26px 0 8px" }}>Pięć warunków bezpiecznej pracy</h3>
       <p style={{ maxWidth: 800, color: "var(--l-mute)", marginBottom: 16 }}>
-        To obszary diagnozy i programu Safe Space. Są odrębne od pięciu kategorii kosztów pokazywanych wyżej.
+        To obszary diagnozy i programu Safe Space. Są odrębne od pięciu kategorii kosztów w wyniku.
       </p>
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))", gap: 14 }}>
         {AREAS.map((area) => (
@@ -81,8 +76,8 @@ export default function SafeSpaceConcept() {
         ))}
       </div>
       <p style={{ maxWidth: 820, borderLeft: "3px solid var(--l-accent)", paddingLeft: 16, marginTop: 20, lineHeight: 1.55 }}>
-        Krok 1 buduje wspólny język przez edukację. Krok 2 dobiera zmianę do wyniku diagnozy, na poziomie organizacji, lidera lub zespołu. Przykłady pochodzą z programu Safe Space, a ich skuteczność w danej firmie wymaga osobnej oceny.
+        Najpierw edukacja buduje wspólny język. Potem zmianę dobiera się do wyniku diagnozy, na poziomie organizacji, lidera lub zespołu. Przykłady pochodzą z programu Safe Space, a ich skuteczność w danej firmie wymaga osobnej oceny.
       </p>
-    </section>
+    </div>
   );
 }

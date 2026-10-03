@@ -179,8 +179,29 @@ nav a { display: inline-flex; align-items: center; min-height: 44px; }
 input[type="range"] { height: 44px; background: linear-gradient(var(--l-ink), var(--l-ink)) center / 100% 2px no-repeat; }
 input[type="range"]::-webkit-slider-thumb { width: 24px; height: 24px; }
 input[type="range"]::-moz-range-thumb { width: 24px; height: 24px; }
+details.fold > summary {
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 600;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--l-rule);
+  background: #fff;
+  list-style: none;
+}
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary::before { content: "+"; font-weight: 700; width: 1em; flex: none; }
+details.fold[open] > summary::before { content: "\2212"; }
+details.fold > summary:focus-visible { outline: 2px solid var(--l-stamp); outline-offset: 3px; }
+.howto > .methodology { margin-top: 20px; max-width: 860px; }
+.methodology > section { margin-top: 36px; }
+.methodology h3 { font-family: var(--mono); font-size: 22px; line-height: 1.3; margin: 0 0 14px; padding-top: 12px; border-top: 2px solid var(--l-rule); }
+.methodology h4 { font-size: 19px; line-height: 1.3; margin: 26px 0 12px; }
 .methodology p + p { margin-top: 14px; }
-.methodology h3 { font-size: 22px; line-height: 1.3; margin: 28px 0 14px; }
 .methodology ol { padding-left: 24px; }
 .methodology li + li { margin-top: 12px; }
 .methodology details { border-top: 1px solid var(--l-rule); padding: 16px 0; margin-top: 16px; }

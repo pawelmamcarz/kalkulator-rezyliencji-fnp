@@ -5,11 +5,11 @@ export const DEFAULT_PARAMS = {
 };
 
 export const INPUT_FIELDS = [
-  { key: "revenue", label: "Przychody roczne", min: 0, max: 1e13, unit: "zł", hint: "Przychody za ostatni pełny rok, w złotych." },
-  { key: "costs", label: "Koszty roczne", min: 0, max: 1e13, unit: "zł", hint: "Ten sam rok i zakres organizacji co przychody. Służą do porównania z wynikiem finansowym." },
-  { key: "employees", label: "Zatrudnienie w etatach (FTE)", min: 1, max: 5_000_000, unit: "FTE", hint: "Średnioroczne pełne etaty. Dwie osoby na pół etatu to 1 FTE." },
-  { key: "avgSalary", label: "Wynagrodzenie brutto na etat / rok", min: 0, max: 10_000_000, unit: "zł", hint: "Roczna płaca brutto na pełny etat, z premiami, bez składek pracodawcy. Płacę miesięczną pomnóż przez 12." },
-  { key: "turnoverPct", label: "Roczna rotacja pracowników", min: 0, max: 100, unit: "%", hint: "Odejścia w roku ÷ średnie zatrudnienie × 100%. Przy rotacji powyżej 100% model nie obsługuje tej sytuacji." },
+  { key: "revenue", label: "Przychody roczne", min: 0, max: 1e13, unit: "zł", hint: "Ostatni pełny rok. Służą tylko do obliczenia procentu." },
+  { key: "costs", label: "Koszty roczne", min: 0, max: 1e13, unit: "zł", hint: "Ten sam rok. Służą tylko do porównania z marżą." },
+  { key: "employees", label: "Liczba etatów", min: 1, max: 5_000_000, unit: "etatów", hint: "Średnio w roku. Dwa pół etatu to jeden etat." },
+  { key: "avgSalary", label: "Roczna płaca brutto na etat", min: 0, max: 10_000_000, unit: "zł", hint: "Średnio, z premiami, bez składek pracodawcy." },
+  { key: "turnoverPct", label: "Rotacja roczna", min: 0, max: 100, unit: "%", hint: "Ile osób na 100 zatrudnionych odeszło w ciągu roku." },
 ];
 
 export function inputError(value, { min, max }) {

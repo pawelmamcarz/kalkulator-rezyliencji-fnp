@@ -1,5 +1,4 @@
 import { fmtCurrencyCompact as fmt } from "../logic.js";
-import LedgerSectionHeading from "../components/LedgerSectionHeading.jsx";
 import useMediaQuery, { MOBILE_QUERY } from "../hooks/useMediaQuery.js";
 import { CHANNEL_COPY, splitChannel } from "../channels.js";
 
@@ -9,13 +8,9 @@ export default function Channels({ valuation, params }) {
   const money = (n) => fmt(n, "PLN", "pl");
 
   return (
-    <section id="obszary" style={{ padding: "48px 0" }}>
-      <LedgerSectionHeading
-        num="OBSZARY"
-        title="Co składa się na wynik"
-        kicker="Pięć obszarów, trzy w sumie"
-      />
-      <p style={{ fontFamily: "var(--serif)", fontSize: 17, lineHeight: 1.6, maxWidth: 820, marginTop: 22 }}>
+    <section id="obszary" aria-labelledby="obszary-title">
+      <h3 id="obszary-title">Pięć obszarów wyniku, trzy w sumie</h3>
+      <p style={{ fontFamily: "var(--serif)", fontSize: 17, lineHeight: 1.6, maxWidth: 820 }}>
         Sumujemy scenariusze rotacji, błędów i wypalenia. Badania uzasadniają rozważanie tych mechanizmów,
         ale ich przeliczniki pieniężne nadal są założeniami autora. Innowacje i koordynacja pozostają poza sumą.
       </p>
@@ -39,14 +34,14 @@ export default function Channels({ valuation, params }) {
             >
               <span style={{ fontFamily: "var(--mono)", fontWeight: 700 }}>{String(index + 1).padStart(2, "0")}</span>
               <div>
-                <strong style={{ fontFamily: "var(--serif)", fontSize: 20 }}>{copy?.title || channel.id}</strong>
+                <h4 style={{ fontFamily: "var(--serif)", fontSize: 20, margin: 0 }}>{copy?.title || channel.id}</h4>
                 <p style={{ fontFamily: "var(--serif)", fontStyle: "italic", margin: "8px 0 6px", lineHeight: 1.45 }}>
                   {copy?.image}
                 </p>
                 <p style={{ fontFamily: "var(--serif)", lineHeight: 1.5, color: "var(--l-ink-2)" }}>{copy?.body}</p>
                 {channel.id === "continuity" && (
                   <p className="micro" style={{ marginTop: 8 }}>
-                    Zadeklarowana rotacja: {params.turnoverPct}%. Model łączy założenie związane z klimatem i nadwyżkę ponad punkt odniesienia 14,8%, z wagami 50/50. Liczbę odejść ogranicza deklaracja. Pochodzenie punktu odniesienia opisujemy w metodologii.
+                    Zadeklarowana rotacja: {params.turnoverPct}%. Model bierze połowę dodatkowych odejść wynikających z klimatu, a deklaracja jest tylko górnym limitem: niższa zmniejsza kwotę, wyższa jej nie zwiększa. Rotacji powyżej punktu odniesienia nie przypisujemy milczeniu. Szczegóły opisujemy niżej, w założeniach autora.
                   </p>
                 )}
               </div>
