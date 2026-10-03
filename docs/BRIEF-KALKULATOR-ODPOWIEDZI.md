@@ -1,72 +1,95 @@
-# Kalkulator: odpowiedzi na pytania z briefu (pkt 14–24, uzupełnienia 27, 33, 36)
+# Kalkulator: odpowiedzi na pytania z briefu
 
-Stan: 3 października 2026 r. Podstawa: kod i dokumenty tego repozytorium (`docs/PRIORY.md`, `docs/AUDYT-2026-09-04.md`, `src/fnpModel.js`, `LICENSE`), wersja `2026.39.2.1`. Odpowiedzi opisują to, co **istnieje dziś**. Tam, gdzie brief zakłada coś, czego Kalkulator nie robi, jest to napisane wprost.
+Stan: 3 października 2026 r. Notatka jest tekstową wersją odpowiedzi wpisanych do pliku „Brief na spotkanie – ankieta i Kalkulator (odp. Pawła).docx”. Podstawa: to repozytorium (`docs/PRIORY.md`, `docs/AUDYT-2026-09-04.md`, `src/fnpModel.js`, `LICENSE`) oraz główne repozytorium silence-tax.com (`podatekodmilczenia`: protokół walidacji, formularz danych, Worker ankiety, `fnp_batch.py`). Wersja kodu FNP: `2026.39.2.1`.
 
-Źródło pytań: „Brief na spotkanie – ankieta i Kalkulator” (Marta, 3.10.2026).
+Źródło pytań: „Brief na spotkanie – ankieta i Kalkulator” (Marta, 3.10.2026). Załączniki dla Fundacji: `docs/dla-fundacji/` (Zał. 1–4).
 
-## Najważniejsze w trzech zdaniach
+## Najważniejsze w czterech zdaniach
 
-1. Kalkulator istnieje jako działające narzędzie publiczne (https://fnp.silence-tax.com) z opisanym modelem, jawnymi założeniami i testami. Warunek krytyczny 3 („opisany model i założenia”) jest spełniony w zakresie **scenariusza skali**.
-2. To nie jest narzędzie z briefu w całości: nie jest powiązany z ankietą, nie liczy zmiany przed i po, nie uwzględnia różnic między zespołami i nie był sprawdzony na danych prawdziwej firmy.
-3. Prawa nie są dziś rozstrzygnięte na korzyść Fundacji: kod jest na licencji MIT, autorem jest Paweł Mamcarz. To do ustalenia przed sprzedażą (pkt 14).
+1. Kalkulator istnieje jako działające narzędzie publiczne (https://fnp.silence-tax.com) z opisanym modelem, jawnymi założeniami i testami. Warunek krytyczny 3 jest spełniony w zakresie **scenariusza skali** (Zał. 1).
+2. Narzędzie nie robi jeszcze tego, co zakłada ścieżka: nie jest powiązane z ankietą w interfejsie, nie liczy zmiany przed i po, nie rozróżnia zespołów. Plan testu na danych firm istnieje (protokół walidacji, Zał. 2), wyników jeszcze nie ma.
+3. W głównym repozytorium jest gotowa infrastruktura badania walidacyjnego: Worker ankiety, formularz danych firmy, szablon zgody i skrypt łączący ankietę z modelem w trybie wsadowym.
+4. Prawa nie są rozstrzygnięte na korzyść Fundacji: oba repozytoria są na licencji MIT, a autorem jest Paweł Mamcarz (pkt 14).
+
+## Badanie i metodyka (pytania, które dotychczas były otwarte)
+
+**9. Pilotaż (150–300 osób).** Protokół walidacji zakłada fazę A na 15 firmach (co najmniej 50 FTE) z minimum 15 ważnymi odpowiedziami na firmę, docelowo 20, czyli około 225–300 osób. To mieści się w proponowanym zakresie. Zbieranie planowano na IV kwartał 2026 – III kwartał 2027, rejestrację wstępną na III kwartał 2026. **Do uzupełnienia:** status rejestracji, liczba zgłoszonych firm, firma pilotażowa i termin. Zał. 2.
+
+**11. Zmienne skutku.** Osiem zmiennych: rotacja dobrowolna, błędy i defekty na 1000 godzin, zgłoszone pomysły, zaangażowanie (UWES-9), absencja, dzielenie się wiedzą (podskala milczenia uległego), narzut kierowniczy, poczucie bezpieczeństwa (PS-7). Większość pochodzi z rejestrów firmy, nie z badania Ipsos, więc spójność z raportem Ipsos sprawdzamy z psychometrą. Zał. 2 i 3.
+
+**12. Długość ankiety.** Wersja badawcza: około 35 pozycji, około 10 minut na osobę. Ostateczną długość ustala twórca narzędzia. Przejście na pytania Ipsos zmieni długość i protokół.
+
+**Uwaga do pytania 10 (skale).** Brief zakłada skalę Ipsos i brak skal z literatury. Protokół w obecnej postaci używa skal z literatury (Edmondson 1999, Van Dyne 2003, UWES-9). To rozbieżność do rozstrzygnięcia z psychometrą, razem z warunkami użycia skal w zastosowaniu komercyjnym.
 
 ## Stan prac i model
 
 **14. Co dziś istnieje i do kogo należą prawa?**
-Działające narzędzie webowe (React, strona publiczna), silnik obliczeń z testami (142 testy w audycie z 4.09.2026), dokumentacja priorów. Silnik pochodzi z Silence Tax, a wersja FNP dodaje własne priory (`src/fnpModel.js`). Autor: Paweł Mamcarz, kod na licencji MIT (copyright autora), kolaboracja z Fundacją Nowe Przestrzenie. MIT pozwala każdemu używać i kopiować kod, także komercyjnie. Z tego wynika wprost, że „podajemy na tacy model biznesowy innym firmom” dotyczy też kodu. Czego nie da się skopiować z repozytorium: neutralności Fundacji, benchmarku Ipsos, danych z diagnoz. **Decyzja do podjęcia:** czy wersja używana w płatnej ścieżce ma pozostać pod MIT, być osobnym wydaniem z umową licencyjną z Fundacją, czy przejść na inną licencję. Wymaga to prawnika.
+Działające narzędzie webowe, silnik z testami (142 w audycie z 4.09.2026) i dokumentacja priorów. Autor: Paweł Mamcarz, kod na licencji MIT, silnik Silence Tax również jest autora. Pełna wersja na silence-tax.com (13 modułów, katalog interwencji z optymalizatorem, materiały akademickie) to osobne repozytorium, także MIT. MIT pozwala każdemu kopiować kod, także komercyjnie, co dotyczy zdania Marty o „podawaniu na tacy”. Nie da się skopiować z repozytorium: neutralności Fundacji, benchmarku Ipsos, danych z diagnoz. **Decyzja z prawnikiem:** licencja osobnego wydania dla ścieżki płatnej, albo pozostanie przy MIT.
 
-**15. Co dokładnie liczy? Które poziomy?**
-Liczy jeden poziom: **scenariusz skali kosztu milczenia** dla jednej firmy. Wejścia: przychód, koszty, liczba FTE, średnia roczna płaca brutto, deklarowana rotacja, jeden suwak klimatu 0–100 (szacunek własny, nie pomiar). Wyjście: kwota i P10–P90 dla trzech obszarów wchodzących do sumy (rotacja i utrata wiedzy, błędy i compliance, wypalenie i pasywność) oraz dwa obszary pokazane „poza sumą” (innowacje i uczenie się, koordynacja i hierarchia). Nie potrafię z kodu potwierdzić, jak „cztery poziomy” z dokumentu Marty (koszty bieżące, związek w firmie, scenariusze, koszt milczenia) mapują się na ten kod. Aplikacja realizuje najbliżej poziom „scenariusze/koszt milczenia”. Poziom „związek w firmie” (BP a rotacja na danych firmy) **nie jest zaimplementowany**.
+**15. Co dokładnie liczy?**
+Jeden poziom: scenariusz skali kosztu milczenia dla jednej firmy. Wejścia: przychód, koszty, FTE, średnia roczna płaca, rotacja, klimat (suwak, szacunek własny). Wynik: kwota z pasmem P10–P90 dla trzech obszarów w sumie i dwóch poza sumą. Poziomu „związek w firmie” (BP a rotacja na danych firmy) nie ma. Autor zaznaczył w briefie: „Mogę dodać”.
 
-**16. Jakie założenia i skąd?**
-Spisane w `docs/PRIORY.md` z wartościami i uzasadnieniem. Najważniejsze: koszt zastąpienia 0,75 rocznej płacy, odniesienie rotacji 14,8% (przypisane do GUS, **niezweryfikowane**), rozkład zdarzeń błędów (cztery kategorie, koszty od 500 do 250 000 zł), koszt wypalenia, korekty nakładania kosztów. Status źródeł jest uczciwy: **środki i stromości krzywych są autorskie**, końce krzywych przypisane do Ipsos × FNP czekają na audyt tabel. Nie wolno komunikować, że model jest skalibrowany na Ipsos. Dla klienta ta tabela jest odpowiedzią na „każde założenie musi mieć źródło”: dziś część ma źródło, a część jest wprost nazwana priorem autora.
+**16. Założenia i źródła.**
+Spisane w `PRIORY.md`; zestawienie z wartościami i statusem: Zał. 1. Kwoty to priory autora, badania uzasadniają mechanizm. Końce krzywych przypisane do Ipsos czekają na audyt tabel, więc nie mówimy, że model jest skalibrowany na Ipsos. Odniesienie rotacji 14,8% (GUS) jest niezweryfikowane.
 
 **17. Przedział czy jedna kwota?**
-Oba, ale nagłówek jest kwotą punktową z pasmem P10–P90 (2000 losowań, stałe ziarno). Pasmo to rozrzut przyjętego scenariusza, **nie przedział ufności** straty firmy; nie obejmuje niepewności klimatu ani priorów. Kontrakt produktu zakazuje obietnicy ROI i wyceny księgowej. Ryzyko z briefu („jedna kwota tworzy oczekiwanie oszczędności”) jest realne: na stronie trzeba utrzymać język „scenariusz skali”. W ofercie dla zarządu proponuję pokazywać wyłącznie pasmo i procent przychodu, nie kwotę środkową.
+Kwota z pasmem P10–P90 (2000 losowań). Pasmo to rozrzut przyjętego scenariusza, nie przedział ufności. W głównym repozytorium jest nazywane granicami scenariusza i ten język proponuję w ofercie. Kontrakt produktu zakazuje obietnicy ROI i wyceny księgowej. W ofercie dla zarządu: granice scenariusza i procent przychodu, nie kwota środkowa.
 
-**18. Na jakich badaniach opiera się model?**
-Badania uzasadniają **mechanizm**, nie przeliczniki pieniężne: Kiewitz i in. (2016) o strachu i milczeniu obronnym, Adamska (2016) o rodzajach milczenia, Penney (2016) o efekcie mrożenia (nie przenosimy wielkości efektu na firmy). Wartości w złotych to priory autora. Przełożenie na polskie warunki: częściowo (Ipsos × FNP 2026 jako kontekst polski, audyt tabel w toku). Materiały sprzedażowe nie powinny obiecywać „bazy opracowań naukowych” jako podstawy kwot.
+**18. Badania naukowe.**
+Uzasadniają mechanizm (Kiewitz i in. 2016, Adamska 2016, Penney 2016), nie wielkości w złotych. Przełożenie na polskie warunki jest częściowe. W materiałach sprzedażowych nie obiecujemy „bazy opracowań” jako podstawy kwot.
 
-**19. Jak model jest powiązany z ankietą?**
-**Nie jest.** Dziś klimat to jeden suwak z kotwicami behawioralnymi, który wpisuje osoba z firmy. Brak mapowania pytań ankiety na wejścia modelu, brak modułu D i filarów. Kontrakt publicznego produktu świadomie wyklucza siedmiopunktową skalę i mini-quiz. To jest główna luka względem briefu: żeby ankieta karmiła Kalkulator, trzeba zaprojektować interfejs danych (które wyniki filarów zastępują suwak, jak agregować do poziomu zespołu) i uzgodnić go z psychometrą.
+**19. Powiązanie z ankietą.**
+W interfejsie Kalkulatora FNP: brak. Klimat to suwak wpisywany przez osobę z firmy. W głównym repozytorium istnieje most wsadowy: skrypt `fnp_batch.py` przelicza wynik ankiety (skala 1–7 lub 0–100) na klimat 0–100 i uruchamia model dla każdej firmy, zapisując predykcje przed porównaniem z wynikami. Działa na pliku CSV. Protokół traktuje wynik PS-7 przeskalowany do 0–100 jako główne wejście modelu. Brakuje: interfejsu łączącego ankietę z Kalkulatorem i agregacji do zespołu.
 
 ## Dane i wiarygodność
 
-**20. Jakich danych potrzebuje minimalnie? Co, jeśli ich nie ma?**
-Sześć pól: przychód, koszty, FTE, średnia roczna płaca brutto, rotacja, klimat. Przychód jest tylko mianownikiem procentu, koszty tylko marżą. Realnie model napędzają FTE, płaca, klimat i rotacja. Wariant „brak danych”: rotację zastępuje odniesienie 14,8%, a klimat firma może podać tylko jako szacunek własny. Walidacja wejść blokuje wynik przy polach pustych lub niepoprawnych. Nie wymaga danych o absencji, zgłoszeniach ani incydentach: te wskazuje `PRIORY.md` jako dane, które mogłyby zastąpić priory.
+**20. Dane minimalne.**
+Do Kalkulatora: 4 pola (przychód, FTE, średnia płaca, rotacja) i szacunek klimatu. Pełna lista danych (około 50 pól w 6 sekcjach) jest w Zał. 3 z oznaczeniem, które są potrzebne do Kalkulatora. Wariant „brak danych”: rotacja równa odniesieniu 14,8%, klimat jako szacunek własny.
 
-**21. Od jakiej wielkości firmy wynik jest wiarygodny?**
-**Brak progu.** Model skaluje się liniowo z FTE, formularz odrzuca FTE poniżej 1. Audyt zaznacza, że rzadkie poważne zdarzenia skalowane liniowo mogą nie pasować do małych firm. Próg wiarygodności musi wyznaczyć psychometra lub statystyk; do tego czasu wskazuję tylko, że przykład referencyjny to 500 FTE.
+**21. Wielkość firmy (poprawka do wcześniejszej wersji).**
+Protokół wskazuje progi: od 50 FTE (poniżej hierarchia jest płytka i silnik prawdopodobnie przeszacowuje) oraz co najmniej 15 ważnych odpowiedzi na firmę do stabilnej średniej firmowej. To progi projektowe autora, nie ustalone przez psychometrę. Zał. 2.
 
-**22. Różnice między zespołami?**
-**Nie uwzględnia.** Model liczy jedną firmę jako całość z jednym klimatem. Praca zmianowa, struktura płac i typ pracy nie są parametrami. Mapa zespołów z kroku 4 ścieżki wymaga osobnej warstwy (analiza ankiety per zespół z progiem anonimowości 5 osób), której w repozytorium nie ma.
+**22. Różnice między zespołami.**
+Model kosztów liczy firmę jako całość. Protokół zakłada analizę wielopoziomową (respondenci w firmach, ICC około 0,15, 20 osób na firmę). Próg 5 osób z briefu (zespół) i 15 osób na firmę z protokołu dotyczą różnych poziomów agregacji. Mapa zespołów z kroku 4 wymaga osobnej warstwy.
 
-**23. Czy sprawdzony na prawdziwych danych firmy?**
-**Nie.** Testy dowodzą poprawności rachunku (monotoniczność klimatu, zerowa rotacja, skalowanie FTE, kontrola 5% przychodu dla firmy przykładowej), nie trafności kwot. Licencja i audyt mówią to wprost. Rekomendacja: traktować pierwszą firmę pilotażową (pkt 41) jako test, z planem zapisanym przed rozpoczęciem: jakie dane wewnętrzne, jakie porównanie, jakie kryterium „model nie zawodzi”.
+**23. Test na danych firmy (poprawka do wcześniejszej wersji).**
+Plan testu istnieje: protokół walidacji z hipotezami H1–H5 i kryterium obalenia (korelacja poniżej 0,15 przy co najmniej 60 firmach). Faza A na 15 firmach jest dla poziomu firmy eksploracyjna. Wyników na razie nie ma. Pierwsza firma pilotażowa może wejść do fazy A. Zał. 2.
 
-**24. Jak liczymy zmianę przy ponownym pomiarze?**
-**Nie liczymy; funkcja nie istnieje.** Model nie przechowuje wyników ani nie porównuje dwóch pomiarów. Można technicznie uruchomić go dwa razy z różnymi wejściami (ten sam seed daje porównywalne wyniki), ale to byłoby porównanie scenariuszy, nie dowód efektu programu. Dla kroku 9 ścieżki potrzebna jest osobna metoda przed/po oparta na ankiecie (różnica wyników zespołów, zespoły objęte i nieobjęte działaniami), zaprojektowana z psychometrą. Uczciwy język z kroku 10 („zmiana zbiegła się z…”) jest zgodny z kontraktem produktu.
+**24. Zmiana przy ponownym pomiarze.**
+W narzędziu: brak. Dwa uruchomienia modelu to porównanie scenariuszy, nie dowód efektu. Faza C protokołu opisuje logikę: wyniki pierwotne określone przed wdrożeniem, porównanie w czasie, grupa odniesienia jeśli to możliwe, ROI tylko przy obserwowanych kosztach i efektach. Zaproszenie dla firm przewiduje opcjonalny re-pomiar po 6 miesiącach. Główny protokół jest przekrojowy, więc metoda przed/po wymaga osobnego opisu z psychometrą. Zał. 2, sekcja 7.
 
-## Uzupełnienia
+## Badanie założycielskie ze sponsorami
 
-**27. Czy nazwa „Ile kosztuje milczenie w Twojej firmie” obiecuje za dużo?**
-Tak, w obecnej formie. Kontrakt produktu mówi o scenariuszu skali, nie o koszcie ani wycenie. Publiczny interfejs używa języka „scenariusz”. Nazwa w ofercie powinna go powtarzać, np. „Scenariusz skali kosztu milczenia”. Do decyzji Fundacji.
+**26. Czy badanie założycielskie może być pilotażem.** Tak: faza A walidacji może być wspólnym pilotażem ankiety i Kalkulatora, jeśli Fundacja przyjmie jej zasady (firma od 50 FTE, co najmniej 15 respondentów, dane z rejestrów, zgoda). Firmy w badaniu dostają bezpłatny raport indywidualny, co trzeba uzgodnić z modelem ścieżki płatnej.
 
-**33. Własność danych z diagnoz i benchmark.**
-Dziś Kalkulator **nie zbiera żadnych danych**: obliczenia są lokalne w przeglądarce. Nie ma więc czego współdzielić ani budować na tym poziomu 2. Jeśli dane z diagnoz mają zasilać benchmark i Kalkulator, potrzebny jest zapis w umowie z klientem oraz architektura zbierania (hosting w UE, umowa powierzenia). To nowy komponent, nie rozszerzenie istniejącego.
+**27. Nazwa „Ile kosztuje milczenie w Twojej firmie”.** Obiecuje więcej, niż Kalkulator daje. Propozycja: „Scenariusz skali kosztu milczenia”. Do decyzji Fundacji.
 
-**36. Ile czasu zajmie dopracowanie do pierwszego użycia?**
-Nie podaję terminu: zależy od decyzji, które nie są techniczne (pkt 14, 19, 24). Technicznie, jako lista pracy: (a) interfejs z ankiety do modelu (pkt 19), (b) metoda przed/po (pkt 24), (c) audyt tabel Ipsos i weryfikacja odniesienia 14,8% GUS (otwarte w audycie), (d) test na danych pilotażowej firmy (pkt 23). Czas każdego z nich do oszacowania z psychometrą i po decyzji o zakresie.
+## Platforma, dane i formalności
 
-## Podsumowanie dla warunku krytycznego 3
+**28. Platforma.** Działa infrastruktura ankiety: Worker na Cloudflare z magazynem KV (anonimowe odpowiedzi, kody firm, haszowany e-mail zgody, limity zapytań, eksport CSV tylko z tokenem administratora) i czterokrokowy formularz zgłoszenia firmy. Fundacja nie potrzebuje licencji. Bez ustawionej lokalizacji danych w UE i bez automatycznego usuwania po okresie przechowywania; trzeba to wdrożyć albo wybrać inną platformę.
+
+**29. Raporty.** Dziś przygotowuje je autor: skrypt wsadowy, wydruk raportu z przeglądarki, analiza w R zaplanowana w protokole. Nie ma pulpitu (Power BI, Looker Studio). Fundacja powinna wskazać osobę lub wykonawcę.
+
+**30. Umowa powierzenia.** Jest szablon zaproszenia i klauzula RODO dla badania naukowego (autor jako administrator). Wzoru umowy powierzenia nie ma. Projekt zmian i lista decyzji: Zał. 4.
+
+**31. Inspektor ochrony danych.** W materiałach brak. Zaproszenie zawiera stwierdzenie o niskim ryzyku reidentyfikacji, ale odrębnego dokumentu oceny skutków nie znalazłem. Do wskazania w Fundacji.
+
+**33. Własność danych i benchmark (poprawka do wcześniejszej wersji).** Sam Kalkulator FNP nie zbiera danych, ale w głównym repozytorium działa Worker ankiety badania walidacyjnego. Zgoda tam obejmuje cel naukowy, 5 lat przechowywania i zanonimizowany zbiór po publikacji. Nie obejmuje użycia danych z płatnych diagnoz do benchmarku ani rozwoju Kalkulatora: to wymaga zapisu w umowie z klientem (krok 10). Zał. 4.
+
+**36. Czas dopracowania Kalkulatora.** Terminu nie podaję, bo zależy od decyzji nietechnicznych (prawa, powiązanie z ankietą, metoda przed/po). Lista prac: interfejs ankieta–model, metoda przed/po, audyt tabel Ipsos i odniesienia GUS, test na firmie pilotażowej.
+
+**41. Firma pilotażowa.** Z perspektywy protokołu: co najmniej 50 FTE, 15 respondentów, 12 miesięcy danych z rejestrów. Czy pilotem może być sponsor lub partner konferencji, decyduje Fundacja.
+
+## Podsumowanie warunków krytycznych
 
 | Warunek | Stan |
 | --- | --- |
-| Opisany model i założenia | Tak, dla scenariusza skali (`PRIORY.md`) |
-| Wynik da się wyjaśnić zarządowi klienta | Tak, w formie pasma i priorów; nie jako wycena |
-| Połączenie z ankietą | Nie, wymaga projektu |
-| Pomiar przed i po | Nie, wymaga projektu |
-| Sprawdzenie na danych firmy | Nie, plan na firmie pilotażowej |
+| Opisany model i założenia | Tak, dla scenariusza skali (Zał. 1) |
+| Wynik da się wyjaśnić zarządowi | Tak, w formie granic scenariusza i priorów, nie wyceny |
+| Walidacja ankiety i modelu | Plan i protokół są (Zał. 2); brak wyników; rozbieżność skal (Ipsos czy literatura) |
+| Połączenie z ankietą | W trybie wsadowym tak, w interfejsie nie |
+| Pomiar przed i po | Opisany w protokole, nie wdrożony |
+| Dane osobowe i formalności | Częściowo: szablon zgody i RODO dla badania; brak umowy powierzenia i inspektora (Zał. 4) |
 | Prawa Fundacji do narzędzia | Nierozstrzygnięte (MIT, autor Paweł Mamcarz) |
 
-Rekomendowany werdykt z perspektywy Kalkulatora: **„idziemy dalej z warunkami”**, z warunkami z punktów 14, 19, 23 i 24.
+Rekomendowany werdykt z perspektywy Kalkulatora: **„idziemy dalej z warunkami”**, z warunkami: prawa (14), wybór skal z psychometrą (10, 11), plan pilotażu i status rejestracji (9, 23), metoda przed/po (24), dokumenty RODO (30, 31, 33).
