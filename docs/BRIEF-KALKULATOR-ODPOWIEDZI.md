@@ -44,7 +44,7 @@ W interfejsie Kalkulatora FNP: brak. Klimat to suwak wpisywany przez osobę z fi
 ## Dane i wiarygodność
 
 **20. Dane minimalne.**
-Do Kalkulatora: 4 pola (przychód, FTE, średnia płaca, rotacja) i szacunek klimatu. Pełna lista danych (41 pól w 6 sekcjach) jest w Zał. 3 z oznaczeniem, które są potrzebne do Kalkulatora. Wariant „brak danych”: rotacja równa odniesieniu 14,8%, klimat jako szacunek własny.
+Do Kalkulatora: 4 pola (przychód, FTE, średnia płaca, rotacja) i szacunek klimatu. Pełna lista danych (41 pól w 6 sekcjach) jest w Zał. 3 z oznaczeniem, które są potrzebne do Kalkulatora. Bez podanej rotacji model przyjmuje odniesienie 14,8% (po korekcie modelu z 3.10.2026; wcześniej liczył to inną ścieżką i zawyżał kwotę). Deklarowana rotacja działa tylko jako górne ograniczenie. Klimat bez ankiety to szacunek własny.
 
 **21. Wielkość firmy (poprawka do wcześniejszej wersji).**
 Protokół wskazuje progi: od 50 FTE (poniżej hierarchia jest płytka i silnik prawdopodobnie przeszacowuje) oraz co najmniej 15 ważnych odpowiedzi na firmę do stabilnej średniej firmowej. To progi projektowe autora, nie ustalone przez psychometrę. Zał. 2.
