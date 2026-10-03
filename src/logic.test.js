@@ -10,9 +10,20 @@ import {
   METRICS, INTERVENTIONS, INTERVENTION_GROUPS, DEFAULT_PROBLEM_DIST, CALIBRATION_MODES,
   estimateLevels, K_SIGMOID_DEFAULT_MULT, LEADER_SILENCE_FREQ_MULT,
 } from './logic.js';
+// The public FNP bundle must stay without HiGHS/WASM, so the barrel does not
+// re-export the solver; tests import it directly.
 import { solveInterventionMixHighs, buildInterventionMilp } from './logic/highsOptimizer.js';
 import { sensitivityReport } from './logic/sensitivity.js';
+import {
+  MODULE_INTERACTIONS, MODULE_INTERACTIONS_LEGACY, SILENCE_WEIGHTS, PL_TURNOVER_RATE_GUS,
+  OVERLAP_CORRECTIONS,
+} from './logic/constants.js';
+import { silenceWeightMultiplier, climateChurnRate, resolveSafety } from './logic/modules.js';
+import { normalizeFullModelParams } from './logic/analysis.js';
+import { computeRiskProfile } from './logic/risk.js';
+import { optimalSpan, optimalSpanExact } from './logic/williamson.js';
 import { COST_DESCRIPTIONS } from './descriptions.js';
+import { COST_DESCRIPTIONS_EN } from './descriptions_en.js';
 
 // ── Archetype params (each must include problemDist) ──
 const baseParams = (overrides = {}) => ({
@@ -480,11 +491,12 @@ describe('H. team segments', () => {
     // calibrated against the pre-2026-06-09 segment math, where problemDist
     // counts were double-scaled (segShare^2) and the error/help modules were
     // effectively quartered; with the fixed weighting the Jensen gap for this
-    // 25/65 split is ~2%. The sign for this particular case (spanning the
-    // midpoint, concave side wider) is "polarized is cheaper", but we don't
-    // over-specify.
+    // 25/65 split was ~2%. Engine audit 2026-10: removing the stepwise
+    // (rounded) span optimum, the double-counted interactions and the
+    // unnormalised silence weights moved it from +1.97% to +0.55% (polarized
+    // slightly MORE expensive). The test only asserts a measurable gap.
     const ratio = Math.abs(polarized.totalTax - uniform.totalTax) / uniform.totalTax;
-    expect(ratio).toBeGreaterThan(0.01);
+    expect(ratio).toBeGreaterThan(0.003);
     expect(ratio).toBeLessThan(1.0);
   });
 
@@ -645,13 +657,26 @@ describe('I. sensitivityReport', () => {
   // the CALIBRATED default K_SIGMOID_DEFAULT_MULT=0.4 (post-calibration, see
   // constants.js). ±25% perturbation = K=0.5 / K=0.3. Old test ranges (+7-8%
   // / -9-10%) were for default K=1 (pre-calibration) and no longer apply.
-  it('K_SIGMOID_MULT ±25% on the reference firm: +10–11% / −13–15% on totalTax', () => {
+  // Engine audit 2026-10: +11.0% / −13.1% before, +10.8% / −12.9% after the
+  // logic fixes (interactions, silence-weight normalisation, continuous span).
+  it('K_SIGMOID_MULT ±25% on the reference firm: about +11% / −13% on totalTax', () => {
     const r = sensitivityReport(REFERENCE, { delta: 0.25 });
     const kRow = r.rows.find(row => row.key === 'K_SIGMOID_MULT');
     expect(kRow.plusPct).toBeGreaterThan(0.094);
     expect(kRow.plusPct).toBeLessThan(0.114);
-    expect(kRow.minusPct).toBeGreaterThan(-0.150);
-    expect(kRow.minusPct).toBeLessThan(-0.130);
+    expect(kRow.minusPct).toBeGreaterThan(-0.140);
+    expect(kRow.minusPct).toBeLessThan(-0.120);
+  });
+
+  it('perturbs around the caller overrides instead of dropping them', () => {
+    const pinned = { ...REFERENCE, overrides: { ...CALIBRATION_MODES.conservative.overrides } };
+    const r = sensitivityReport(pinned, { delta: 0.25 });
+    expect(r.base).toBeCloseTo(computeCosts(pinned).totalTax, 6);
+    const kRow = r.rows.find(row => row.key === 'K_SIGMOID_MULT');
+    // The active value is the pinned 0.30, not the default 0.4.
+    expect(kRow.value).toBe(0.30);
+    const plus = computeCosts({ ...pinned, overrides: { ...pinned.overrides, K_SIGMOID_MULT: 0.30 * 1.25 } }).totalTax;
+    expect(kRow.plusPct).toBeCloseTo((plus - r.base) / r.base, 10);
   });
 });
 
@@ -1192,9 +1217,11 @@ describe('N. scopeMode freeze', () => {
     hierarchyLevels: 5, safety: 41,
   });
 
+  // Engine audit 2026-10 (logic fixes, no coefficient changes):
+  //   conservative 7_128_134 -> 6_564_933, full 13_550_750 -> 12_722_125.
   it('conservative headline snapshot for the reference firm', () => {
     const cons = computeCosts({ ...REFERENCE, scopeMode: 'conservative' });
-    expect(cons.totalTax).toBeCloseTo(7_128_134, -1);
+    expect(cons.totalTax).toBeCloseTo(6_564_933, -1);
   });
 
   it('scope identity: conservative + beta + experimental == full, in both modes', () => {
@@ -1203,7 +1230,7 @@ describe('N. scopeMode freeze', () => {
     expect(cons.totalTaxFull).toBeCloseTo(full.totalTax, 2);
     expect(cons.totalTax + cons.betaPotential + cons.experimentalPotential)
       .toBeCloseTo(cons.totalTaxFull, 2);
-    expect(full.totalTax).toBeCloseTo(13_550_750, -1);
+    expect(full.totalTax).toBeCloseTo(12_722_125, -1);
   });
 
   it('conservative scope propagates into MC, solver and applySafetyLift', () => {
@@ -1252,5 +1279,282 @@ describe('O. full-model reporting adapter', () => {
     );
     expect(withoutSource.valuation.ready).toBe(false);
     expect(withoutSource.valuation.total).toBeNull();
+  });
+});
+
+// ── Hero worked example ───────────────────────────────────────────────
+// The hero worked example is UI of the Silence Tax app and is tested there.
+
+// ── FNP-compatible opt-in engine paths (upstreamed from the FNP calculator) ──
+describe('J. FNP-compatible engine paths', () => {
+  const comp = (r, id) => r.components.find(c => c.id === id).value;
+  const distWith = (concealability) => [{
+    id: 'x', count: 3, cost: 5_000, lateMultiplier: 2.5,
+    ...(concealability === undefined ? {} : { concealability }),
+  }];
+  const withDist = (d, extra = {}) => baseParams({ problemDist: d, safety: 30, ...extra });
+
+  it('concealability 0 yields no concealment cost, undefined falls back to 0.3', () => {
+    const zero = computeCosts(withDist(distWith(0)));
+    const undef = computeCosts(withDist(distWith(undefined)));
+    const explicit = computeCosts(withDist(distWith(0.3)));
+    expect(zero.hiddenErrors).toBe(0);
+    expect(comp(zero, 'errors')).toBeLessThan(comp(undef, 'errors'));
+    expect(undef.hiddenErrors).toBeGreaterThan(0);
+    expect(undef.hiddenErrors).toBeCloseTo(explicit.hiddenErrors, 10);
+    expect(comp(undef, 'errors')).toBeCloseTo(comp(explicit, 'errors'), 6);
+  });
+
+  it('TURNOVER_DECLARED absent leaves the turnover component unchanged', () => {
+    const p = baseParams({ safety: 40 });
+    const none = comp(computeCosts(p), 'turnover');
+    expect(comp(computeCosts({ ...p, overrides: {} }), 'turnover')).toBe(none);
+    expect(comp(computeCosts({ ...p, overrides: { TURNOVER_DECLARED: undefined } }), 'turnover')).toBe(none);
+    expect(comp(computeCosts({ ...p, overrides: { TURNOVER_DECLARED: NaN } }), 'turnover')).toBe(none);
+  });
+
+  it('TURNOVER_DECLARED changes turnover and is capped by the declared rate', () => {
+    const p = baseParams({ safety: 40 });
+    const none = comp(computeCosts(p), 'turnover');
+    const high = comp(computeCosts({ ...p, overrides: { TURNOVER_DECLARED: 0.45 } }), 'turnover');
+    expect(high).not.toBe(none);
+    // Declared 0 caps excess churn at 0 -> no turnover cost.
+    const zero = comp(computeCosts({ ...p, overrides: { TURNOVER_DECLARED: 0 } }), 'turnover');
+    expect(zero).toBe(0);
+    // Monotone in the declared rate, and a low declared rate cannot exceed the cap.
+    const low = comp(computeCosts({ ...p, overrides: { TURNOVER_DECLARED: 0.05 } }), 'turnover');
+    expect(low).toBeLessThan(high);
+    const perFteCap = 0.05 * p.avgSalary * 0.75 * p.employees * 3;
+    expect(low).toBeLessThanOrEqual(perFteCap);
+  });
+
+  it('MODULE_INTERACTIONS override is honoured', () => {
+    const p = baseParams({ safety: 30 });
+    const base = computeCosts(p);
+    const off = computeCosts({ ...p, overrides: { MODULE_INTERACTIONS: [] } });
+    expect(off.interactionEffects ?? []).toHaveLength(0);
+    // destructiveFear -> burnout is still a default row; turnover has none.
+    expect(comp(off, 'burnout')).toBeLessThan(comp(base, 'burnout'));
+    expect(comp(off, 'turnover')).toBe(comp(base, 'turnover'));
+    const custom = computeCosts({
+      ...p,
+      overrides: { MODULE_INTERACTIONS: [{ fromMetric: 'burnoutRate', toId: 'turnover', w: 1.0 }] },
+    });
+    expect(comp(custom, 'turnover')).toBeGreaterThan(comp(base, 'turnover'));
+  });
+
+  it('non-numeric leaders do not throw; empty problemDist is handled', () => {
+    // Note: a non-array problemDist is still rejected downstream by problems.js
+    // (computeWeightedProblemCost); only the modules.js loop is guarded.
+    expect(() => computeCosts(baseParams({ problemDist: [] }))).not.toThrow();
+    for (const bad of ['abc', undefined, null, NaN, -5]) {
+      const r = computeCosts(baseParams({ leaders: bad }));
+      expect(comp(r, 'leader')).toBe(0);
+      expect(Number.isFinite(r.totalTax)).toBe(true);
+    }
+  });
+});
+
+// ── P. Engine audit 2026-10: logic fixes made default ─────────────────
+describe('P. engine audit 2026-10', () => {
+  const REFERENCE = baseParams({
+    employees: 500, revenue: 100_000_000, avgSalary: 90_000, leaders: 60,
+    hierarchyLevels: 5, safety: 41,
+  });
+  const comp = (r, id) => r.components.find(c => c.id === id).value;
+
+  describe('silence-type weights are normalised', () => {
+    it('multiplier is exactly 1 at an equal silence mix for every module', () => {
+      const equal = { defensive: 1 / 3, acquiescent: 1 / 3, prosocial: 1 / 3 };
+      for (const w of Object.values(SILENCE_WEIGHTS)) {
+        expect(silenceWeightMultiplier(w, equal)).toBeCloseTo(1, 12);
+      }
+    });
+
+    it('default divides each module by its equal-mix mean weight (legacy path = false)', () => {
+      const def = computeCosts(REFERENCE);
+      const legacy = computeCosts({ ...REFERENCE, overrides: { SILENCE_WEIGHTS_NORMALIZED: false } });
+      for (const [id, w] of Object.entries(SILENCE_WEIGHTS)) {
+        const mean = (w.def + w.acq + w.pro) / 3;
+        expect(comp(def, id) * mean).toBeCloseTo(comp(legacy, id), 4);
+      }
+    });
+
+    it('SILENCE_WEIGHTS_NORMALIZED: true (FNP) is identical to the default', () => {
+      const def = computeCosts(REFERENCE);
+      const fnp = computeCosts({ ...REFERENCE, overrides: { SILENCE_WEIGHTS_NORMALIZED: true } });
+      expect(fnp.totalTax).toBe(def.totalTax);
+    });
+  });
+
+  describe('double-counted interactions removed', () => {
+    const removed = [
+      ['blameRate', 'errors'], ['burnoutRate', 'turnover'],
+      ['passivity', 'innovation'], ['helpComfort', 'knowledgeLoss'],
+    ];
+    it('default list omits the four double-counting rows and keeps the other four', () => {
+      for (const [from, to] of removed) {
+        expect(MODULE_INTERACTIONS.some(r => r.fromMetric === from && r.toId === to)).toBe(false);
+        expect(MODULE_INTERACTIONS_LEGACY.some(r => r.fromMetric === from && r.toId === to)).toBe(true);
+      }
+      expect(MODULE_INTERACTIONS).toHaveLength(4);
+      const targets = computeCosts({ ...REFERENCE, safety: 20 }).interactionEffects.map(e => e.to);
+      for (const id of ['errors', 'turnover', 'innovation', 'knowledgeLoss']) expect(targets).not.toContain(id);
+    });
+
+    it('blameRate is already inside the errors module: removing its kick lowers only errors', () => {
+      const legacyOnlyBlame = MODULE_INTERACTIONS.concat([{ fromMetric: 'blameRate', toId: 'errors', w: 0.15 }]);
+      const withBlame = computeCosts({ ...REFERENCE, overrides: { MODULE_INTERACTIONS: legacyOnlyBlame } });
+      const def = computeCosts(REFERENCE);
+      expect(comp(withBlame, 'errors')).toBeGreaterThan(comp(def, 'errors'));
+      expect(comp(withBlame, 'turnover')).toBe(comp(def, 'turnover'));
+    });
+
+    it('legacy overrides reproduce the pre-audit full snapshot where the span fix is inactive', () => {
+      // At s = 41 with span 7 the continuous span optimum is >= 7, so the
+      // span-cost fix is inactive and the two legacy switches restore the
+      // pre-audit value exactly.
+      expect(optimalSpanExact(41)).toBeGreaterThanOrEqual(7);
+      const legacy = computeCosts({
+        ...REFERENCE,
+        overrides: { MODULE_INTERACTIONS: MODULE_INTERACTIONS_LEGACY, SILENCE_WEIGHTS_NORMALIZED: false },
+      });
+      expect(legacy.totalTax).toBeCloseTo(13_550_750, -1);
+    });
+  });
+
+  describe('missing climate is not computed as climate 0', () => {
+    it('computeCosts throws RangeError for a missing or non-numeric safety', () => {
+      for (const bad of [undefined, null, '', NaN, 'abc', Infinity]) {
+        expect(() => computeCosts({ ...REFERENCE, safety: bad })).toThrow(RangeError);
+      }
+      expect(() => resolveSafety(undefined)).toThrow(RangeError);
+    });
+
+    it('explicit 0 is still computed, and out-of-range values clamp to 0–100', () => {
+      const zero = computeCosts({ ...REFERENCE, safety: 0 }).totalTax;
+      expect(zero).toBeGreaterThan(0);
+      expect(computeCosts({ ...REFERENCE, safety: -50 }).totalTax).toBe(zero);
+      expect(computeCosts({ ...REFERENCE, safety: 150 }).totalTax).toBe(0);
+      expect(computeCosts({ ...REFERENCE, safety: '41' }).totalTax).toBe(computeCosts(REFERENCE).totalTax);
+    });
+
+    it('computeFullModelAnalysis returns the no-result state, not a scenario', () => {
+      for (const bad of [undefined, null, '', NaN]) {
+        const r = computeFullModelAnalysis({ ...REFERENCE, safety: bad, safetySource: 'estimate' }, { iterations: 100, seed: 1 });
+        expect(r.costs).toBeNull();
+        expect(r.mc).toBeNull();
+        expect(r.valuation.ready).toBe(false);
+        expect(r.valuation.total).toBeNull();
+        expect(r.valuation.channels).toEqual([]);
+        expect(r.valuation.missingInputs).toEqual(['safety']);
+        expect(r.effectiveParams.safety).toBeNull();
+      }
+      const ok = computeFullModelAnalysis({ ...REFERENCE, safetySource: 'estimate' }, { iterations: 100, seed: 1 });
+      expect(ok.valuation.missingInputs).toEqual([]);
+      expect(ok.valuation.total.base).toBe(ok.costs.totalTax);
+    });
+
+    it('risk profile gives no level for a missing climate', () => {
+      const r = computeRiskProfile({ safetySource: 'estimate' });
+      expect(r.safety).toBeNull();
+      expect(r.overallLevel).toBeNull();
+      expect(r.channels.every(c => c.level === null)).toBe(true);
+      expect(computeRiskProfile({ safety: 0, safetySource: 'estimate' }).overallLevel).toBe('elevated');
+    });
+
+    it('a segment at safety 0 is honoured and a segment without a score is an error', () => {
+      const seg = (safety) => computeCosts({
+        ...REFERENCE, teamSegments: [{ id: 'a', count: 50, avgSize: 10, safety }],
+      }).totalTax;
+      expect(seg(0)).toBeGreaterThan(seg(1));
+      expect(seg(0)).not.toBeCloseTo(seg(50), 0);
+      expect(() => seg(undefined)).toThrow(RangeError);
+      const r = computeFullModelAnalysis({
+        ...REFERENCE, safety: undefined, safetySource: 'estimate',
+        teamSegments: [{ id: 'a', count: 50, avgSize: 10, safety: 30 }],
+      }, { iterations: 100, seed: 1 });
+      expect(r.valuation.ready).toBe(true);
+    });
+
+    it('an empty segment is ignored instead of being given one employee', () => {
+      const one = computeCosts({ ...REFERENCE, teamSegments: [{ id: 'a', count: 50, avgSize: 10, safety: 30 }] });
+      const withEmpty = computeCosts({ ...REFERENCE, teamSegments: [
+        { id: 'a', count: 50, avgSize: 10, safety: 30 },
+        { id: 'empty', count: 0, avgSize: 10, safety: 0 },
+      ] });
+      expect(withEmpty.segmentResults).toHaveLength(1);
+      expect(withEmpty.totalTax).toBe(one.totalTax);
+    });
+  });
+
+  describe('explicit zeros are honoured', () => {
+    it('autonomy 0 is kept by the adapter and lowers no cost relative to 0.5', () => {
+      expect(normalizeFullModelParams({ autonomy: 0 }).autonomy).toBe(0);
+      expect(normalizeFullModelParams({}).autonomy).toBe(0.5);
+      const a0 = computeCosts({ ...REFERENCE, autonomy: 0 });
+      const a5 = computeCosts({ ...REFERENCE, autonomy: 0.5 });
+      expect(comp(a0, 'passivity')).toBeGreaterThan(comp(a5, 'passivity'));
+      const viaAdapter = computeFullModelAnalysis({ ...REFERENCE, autonomy: 0, safetySource: 'estimate' }, { iterations: 100, seed: 1 });
+      expect(viaAdapter.costs.totalTax).toBe(a0.totalTax);
+    });
+
+    it('non-numeric autonomy falls back to 0.5 instead of producing NaN', () => {
+      const r = computeCosts({ ...REFERENCE, autonomy: NaN });
+      expect(r.totalTax).toBe(computeCosts({ ...REFERENCE, autonomy: 0.5 }).totalTax);
+    });
+
+    it('leaders 0 is kept by the adapter; a missing count uses the 10% prior', () => {
+      expect(normalizeFullModelParams({ employees: 500, leaders: 0 }).leaders).toBe(0);
+      expect(normalizeFullModelParams({ employees: 500 }).leaders).toBe(50);
+    });
+
+    it('leaders cannot outnumber employees', () => {
+      const p = { ...REFERENCE, employees: 10, revenue: 1_000_000 };
+      const capped = computeCosts({ ...p, leaders: 10 });
+      expect(comp(computeCosts({ ...p, leaders: 1000 }), 'leader')).toBe(comp(capped, 'leader'));
+      expect(normalizeFullModelParams({ employees: 10, leaders: 1000 }).leaders).toBe(10);
+    });
+  });
+
+  describe('wider audit fixes', () => {
+    it('span cost is continuous in safety (no step at integer span optimum)', () => {
+      const p = { ...REFERENCE, employees: 2000, hierarchyLevels: 0 };
+      let maxStep = 0;
+      for (let s = 0; s < 60; s += 0.1) {
+        const a = comp(computeCosts({ ...p, safety: s }), 'governance');
+        const b = comp(computeCosts({ ...p, safety: s + 0.1 }), 'governance');
+        maxStep = Math.max(maxStep, Math.abs(a - b));
+      }
+      // Before the fix a 0.1-point step at s = 28.3 moved governance by about
+      // 1.82M PLN here (rounded span optimum); after it the largest step is about 36k.
+      expect(maxStep).toBeLessThan(50_000);
+      expect(optimalSpan(41)).toBe(Math.round(optimalSpanExact(41)));
+    });
+
+    it('a partial OVERLAP_CORRECTIONS override keeps the other defaults', () => {
+      const def = computeCosts(REFERENCE);
+      const partial = computeCosts({ ...REFERENCE, overrides: { OVERLAP_CORRECTIONS: { burnout: OVERLAP_CORRECTIONS.burnout } } });
+      expect(partial.totalTax).toBeCloseTo(def.totalTax, 6);
+    });
+
+    it('turnover uses the model churn rate, which stays below the 14.8% reference', () => {
+      expect(climateChurnRate(41)).toBeGreaterThan(0.10);
+      expect(climateChurnRate(41)).toBeLessThan(0.11);
+      for (let s = 0; s <= 100; s += 5) expect(climateChurnRate(s)).toBeLessThan(PL_TURNOVER_RATE_GUS);
+    });
+
+    it('turnover and burnout copy quote engine rates, not a separate formula', () => {
+      const params = { employees: 500, avgSalary: 90_000, safety: 41 };
+      const pl = COST_DESCRIPTIONS.turnover.interpret(params, 1_000_000);
+      const en = COST_DESCRIPTIONS_EN.turnover.interpret(params, 1_000_000);
+      expect(pl).toContain(`${(climateChurnRate(41) * 100).toFixed(1).replace('.', ',')}%`);
+      expect(en).toContain(`${(climateChurnRate(41) * 100).toFixed(1)}%`);
+      expect(pl).not.toMatch(/naturalny poziom/);
+      expect(en).not.toMatch(/natural churn/);
+      const burnout = COST_DESCRIPTIONS.burnout.interpret(params, 1_000_000);
+      const rate = getMetricValue('burnoutRate', 41, K_SIGMOID_DEFAULT_MULT);
+      expect(burnout).toContain(`${(rate * 100).toFixed(1).replace('.', ',')}%`);
+    });
   });
 });

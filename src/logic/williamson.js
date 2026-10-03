@@ -44,15 +44,23 @@ export function directiveDistortion(levels, safety) {
   return 1 - Math.pow(ad, levels);
 }
 
-export function optimalSpan(safety) {
+// Continuous span optimum e / (-ln α), clamped to [3, 50]. The cost path uses
+// this value: rounding it first made the span-cost module jump in steps of
+// several hundred thousand złoty per 0.5 PS point at each integer crossing.
+export function optimalSpanExact(safety) {
   const alpha = alphaFromSafety(safety);
   const negLnAlpha = -Math.log(alpha);
   if (negLnAlpha < 0.01) return 50;
-  return Math.max(3, Math.min(50, Math.round(Math.E / negLnAlpha)));
+  return Math.max(3, Math.min(50, Math.E / negLnAlpha));
+}
+
+// Rounded optimum, for display only.
+export function optimalSpan(safety) {
+  return Math.round(optimalSpanExact(safety));
 }
 
 export function spanEfficiencyGap(actualSpan, safety) {
-  const sOpt = optimalSpan(safety);
+  const sOpt = optimalSpanExact(safety);
   if (actualSpan <= sOpt) return 0;
   return (actualSpan - sOpt) / sOpt;
 }

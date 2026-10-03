@@ -18,6 +18,52 @@ import {
 import { silenceDecomposition } from './silence.js';
 import { computeWeightedProblemCost, computeTotalProblems } from './problems.js';
 
+// A value counts as given only when it is a finite number (numeric strings are
+// accepted). null, undefined, "" and NaN are "missing". This keeps an explicit
+// 0 (autonomy 0, safety 0, leaders 0) distinct from a missing value, which
+// `x || default` did not.
+function finiteOrNull(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function finiteOr(value, fallback) {
+  const n = finiteOrNull(value);
+  return n === null ? fallback : n;
+}
+
+// Psychological safety drives every module, so a missing or non-numeric value
+// must not be silently computed as some climate (it used to become NaN here
+// and 0, the most expensive climate, in the UI adapter). Values outside the
+// 0–100 scale are clamped to it: the curves are only defined on that scale.
+export function resolveSafety(value) {
+  const n = finiteOrNull(value);
+  if (n === null) {
+    throw new RangeError("computeCosts: safety must be a finite number on the 0–100 scale");
+  }
+  return Math.max(0, Math.min(100, n));
+}
+
+// Silence-type multiplier for one module: the share-weighted weight divided by
+// the equal-mix mean (def + acq + pro) / 3, so an equal mix of the three
+// silence types gives exactly 1. normalized = false is the legacy constant
+// multiplier, kept only for reproducing earlier numbers.
+export function silenceWeightMultiplier(w, { defensive, acquiescent, prosocial }, normalized = true) {
+  const mix = defensive * w.def + acquiescent * w.acq + prosocial * w.pro;
+  return normalized ? mix / ((w.def + w.acq + w.pro) / 3) : mix;
+}
+
+// Climate-driven annual churn rate used by the turnover module:
+// (1 - teamStability(s)) × 0.4 - 0.015, floored at 0. AUTHOR'S EXTENSION
+// (0.4 and 0.015 are priors). The turnover module counts only the excess of
+// this rate over its own value at s = 100; it is not compared with any
+// national average. Exported so UI copy can quote the engine's rate.
+export function climateChurnRate(safety, kMult = K_SIGMOID_DEFAULT_MULT, stability = null) {
+  const stab = stability ?? getMetricValue("teamStability", safety, kMult);
+  return Math.max(0, (1 - stab) * 0.4 - 0.015);
+}
+
 function _rawModules(safety, { revenue, employees, avgSalary, leaders, problemDist, hierarchyLevels, spanOfControl, recentTrauma, autonomy, overrides }) {
   // AUTHOR'S EXTENSION: unless resolved from an imported named constant, every
   // numeric conversion in this function is a structural prior. The cited
@@ -31,17 +77,20 @@ function _rawModules(safety, { revenue, employees, avgSalary, leaders, problemDi
   const NONAKA = O.NONAKA_SALARY_IMPACT ?? NONAKA_SALARY_IMPACT;
   const AUTONOMY_DAMPER = O.AUTONOMY_PASSIVITY_DAMPER ?? AUTONOMY_PASSIVITY_DAMPER;
   const AGENCY_MON_HI = O.AGENCY_MONITORING_HIGH ?? AGENCY_MONITORING_HIGH;
-  // Global multiplier on the sigmoid shape parameter `k` for every METRIC.
-  // Default K_SIGMOID_DEFAULT_MULT (currently 0.4) - see constants.js for the
-  // calibration rationale linking this to rozprawa §4.1.4 / §4.2.1. Override
-  // via overrides.K_SIGMOID_MULT (e.g. 1.0 for raw academic deep-dive, or
-  // ±25% perturbation in sensitivity analysis per rozprawa §4.1.5).
+  // Multiplier on the sigmoid shape parameter `k` of every METRIC (not the
+  // Williamson, governance, Argyris, Nonaka or agency curves). Default
+  // K_SIGMOID_DEFAULT_MULT (0.4) is an author's face-validity choice made
+  // against target totals, see constants.js; the totals it yields are not
+  // findings. Override via overrides.K_SIGMOID_MULT (e.g. 1.0 for the raw
+  // curves, or ±25% perturbation in sensitivity analysis).
   const kMult = O.K_SIGMOID_MULT ?? K_SIGMOID_DEFAULT_MULT;
 
-  const nLeaders = Math.max(0, Number(leaders) || 0);
+  // Leaders are a subset of employees: more leaders than people is not a
+  // physical organization, and the leader module is linear in the count.
+  const nLeaders = Math.min(Math.max(0, finiteOr(leaders, 0)), Math.max(0, finiteOr(employees, 0)));
   const dist = Array.isArray(problemDist) ? problemDist : [];
-  const trauma = Math.max(0, Math.min(1, recentTrauma || 0));
-  const autonomyClamped = Math.max(0, Math.min(1, autonomy ?? 0.5));
+  const trauma = Math.max(0, Math.min(1, finiteOr(recentTrauma, 0)));
+  const autonomyClamped = Math.max(0, Math.min(1, finiteOr(autonomy, 0.5)));
   const fearBoost = 1 + AVAILABILITY_MAX_BOOST * trauma;
   const mv = (key) => {
     const v = getMetricValue(key, safety, kMult);
@@ -60,8 +109,9 @@ function _rawModules(safety, { revenue, employees, avgSalary, leaders, problemDi
   let hiddenErrors = 0;
   for (const d of dist) {
     // Clamp to 1: hideRate is the fraction of errors concealed, so it cannot
-    // exceed 1. baseFearEff peaks at 1.3 (baseFear=1), which would otherwise
-    // let extreme blame/fear combos conceal more errors than exist.
+    // exceed 1. With the current METRICS endpoints baseFearEff stays below
+    // about 0.68, so the clamp only binds for concealability above about 1.47
+    // (an invalid input); it is a guard, not an active cap.
     const hideRate = Math.min(1, baseFearEff * (d.concealability ?? 0.3));
     const hiddenInCat = employees * d.count * hideRate;
     hiddenErrors += hiddenInCat;
@@ -73,18 +123,17 @@ function _rawModules(safety, { revenue, employees, avgSalary, leaders, problemDi
   const innovationLoss = revenue * 0.03 * (ideaSilR * 0.6 + riskAvR * 0.4); // AUTHOR'S EXTENSION
 
   const stabilityR = mv("teamStability");
-  const climateChurn = Math.max(0, (1 - stabilityR) * 0.4 - 0.015);
+  const climateChurn = climateChurnRate(safety, kMult, stabilityR);
   let excessChurn = climateChurn;
   const declaredTurnover = O.TURNOVER_DECLARED;
   if (Number.isFinite(declaredTurnover) && declaredTurnover >= 0) {
-    const stabilityHigh = getMetricValue("teamStability", 100, kMult);
-    const highChurn = Math.max(0, (1 - stabilityHigh) * 0.4 - 0.015);
+    const highChurn = climateChurnRate(100, kMult);
     const climateExcess = Math.max(0, climateChurn - highChurn);
-    const gus = O.PL_AVG_TURNOVER ?? 0.148;
-    const observedExcess = Math.max(0, declaredTurnover - gus);
-    const mixedExcess = 0.5 * climateExcess + 0.5 * observedExcess;
-    const usedExcess = Math.min(declaredTurnover, mixedExcess);
-    excessChurn = Math.min(declaredTurnover, usedExcess + highChurn);
+    // Half of the climate signal, capped by the declared rate. The declared
+    // rate is only a ceiling: turnover above any reference is not attributed
+    // to silence, because the s = 100 baseline uses the same declaration.
+    // AUTHOR'S EXTENSION (weight 0.5).
+    excessChurn = Math.min(declaredTurnover, 0.5 * climateExcess + highChurn);
   }
   let turnoverCost = employees * excessChurn * avgSalary * 0.75; // AUTHOR'S EXTENSION
 
@@ -103,7 +152,7 @@ function _rawModules(safety, { revenue, employees, avgSalary, leaders, problemDi
     * (1 - AUTONOMY_DAMPER * autonomyClamped); // Adamska (2015): autonomy reduces passivity
 
   const helpR = mv("helpComfort");
-  const avgProblemCost = computeWeightedProblemCost(problemDist);
+  const avgProblemCost = computeWeightedProblemCost(dist);
   const helpDeficitCost = employees * (1 - helpR) * 2 * avgProblemCost * 0.5; // AUTHOR'S EXTENSION
 
   const destructFear = mv("destructiveFear");
@@ -165,7 +214,10 @@ function _rawModules(safety, { revenue, employees, avgSalary, leaders, problemDi
   // (safety vs safety=100 baseline) consistently nets the correction out.
   // OVERLAP_GLOBAL is a scalar multiplier on the entire correction matrix,
   // exposed via overrides for sensitivity analysis (DK-5 audit).
-  const oc = O.OVERLAP_CORRECTIONS ?? OVERLAP_CORRECTIONS;
+  // A partial override replaces only the keys it names. Previously a partial
+  // object silently reset every unnamed module to 1 (e.g. learningDeficit
+  // from 0.40 to 1).
+  const oc = { ...OVERLAP_CORRECTIONS, ...(O.OVERLAP_CORRECTIONS || {}) };
   const og = O.OVERLAP_GLOBAL ?? 1;
   return {
     errorConcealmentCost: errorConcealmentCost * (oc.errors ?? 1) * og,
@@ -199,8 +251,12 @@ export function computeCosts(params) {
   return _computeCostsAggregate(params);
 }
 
-function _computeCostsAggregate(params) {
-  const { hierarchyLevels, spanOfControl, safety } = params;
+function _computeCostsAggregate(rawParams) {
+  const safety = resolveSafety(rawParams.safety);
+  const params = { ...rawParams, safety };
+  const { hierarchyLevels, spanOfControl } = params;
+  const autonomy = Math.max(0, Math.min(1, finiteOr(params.autonomy, 0.5)));
+  const dist = Array.isArray(params.problemDist) ? params.problemDist : [];
   const levels = hierarchyLevels || estimateLevels(params.employees, spanOfControl || 7);
   // kMult is resolved inside _rawModules (via O.K_SIGMOID_MULT ?? K_SIGMOID_DEFAULT_MULT).
   // The line below is kept only to propagate kMult to metricSeverity calls below;
@@ -279,15 +335,23 @@ function _computeCostsAggregate(params) {
     if (totalAmp) comp.value += totalAmp;
   }
 
-  const silence = silenceDecomposition(safety, params.autonomy ?? 0.5);
+  const silence = silenceDecomposition(safety, autonomy);
   const silenceTotal = silence.defensive + silence.acquiescent + silence.prosocial;
   if (silenceTotal > 0.01) {
-    const defS = silence.defensive / silenceTotal;
-    const acqS = silence.acquiescent / silenceTotal;
-    const proS = silence.prosocial / silenceTotal;
+    const shares = {
+      defensive: silence.defensive / silenceTotal,
+      acquiescent: silence.acquiescent / silenceTotal,
+      prosocial: silence.prosocial / silenceTotal,
+    };
+    // Normalised by default so the weights redistribute cost between silence
+    // types instead of acting as a constant per-module multiplier.
+    // SILENCE_WEIGHTS_NORMALIZED: false restores the legacy (unnormalised)
+    // path, only for reproducing earlier numbers; true (FNP) is the default.
+    const normalized = O.SILENCE_WEIGHTS_NORMALIZED !== false;
     for (const comp of components) {
       const w = SILENCE_WEIGHTS[comp.id];
-      if (w) comp.value *= (defS * w.def + acqS * w.acq + proS * w.pro);
+      if (!w) continue;
+      comp.value *= silenceWeightMultiplier(w, shares, normalized);
     }
   }
 
@@ -337,7 +401,7 @@ function _computeCostsAggregate(params) {
   const viaDirectMetrics = Math.max(0, sumBeforePeak - viaAlpha - viaInteractions);
 
   return {
-    components, totalTax, hiddenErrors, totalProblems: params.employees * computeTotalProblems(params.problemDist),
+    components, totalTax, hiddenErrors, totalProblems: params.employees * computeTotalProblems(dist),
     scopeMode, totalTaxFull, betaPotential, experimentalPotential,
     coaseBoundaryRatio,
     peakModule: peakModule?.id,
@@ -373,11 +437,15 @@ function normalizeTeamSegments(segments, totalEmployees) {
   const enriched = segments.map((seg, i) => ({
     id: seg.id ?? `seg_${i}`,
     label: seg.label ?? `Segment ${i + 1}`,
-    safety: Math.max(0, Math.min(100, Number(seg.safety) || 50)),
-    count: Math.max(0, Number(seg.count) || 0),
-    avgSize: Math.max(0, Number(seg.avgSize) || 0),
-    rawEmployees: Math.max(0, (Number(seg.count) || 0) * (Number(seg.avgSize) || 0)),
-  }));
+    // `Number(seg.safety) || 50` turned a toxic team at 0 into 50, and a
+    // missing score into 50. Safety 0 is honoured; a missing score is an
+    // error, the same as for the whole-firm path.
+    safety: resolveSafety(seg.safety),
+    count: Math.max(0, finiteOr(seg.count, 0)),
+    avgSize: Math.max(0, finiteOr(seg.avgSize, 0)),
+    rawEmployees: Math.max(0, finiteOr(seg.count, 0) * finiteOr(seg.avgSize, 0)),
+  // A segment with no people would otherwise be given one employee below.
+  })).filter((seg) => seg.rawEmployees > 0);
   const sumRaw = enriched.reduce((s, seg) => s + seg.rawEmployees, 0);
   if (sumRaw <= 0 || totalEmployees <= 0) return [];
   const scale = totalEmployees / sumRaw;
@@ -411,7 +479,7 @@ function _computeCostsSegmented(params) {
       safety: seg.safety,
       employees: seg.employees,
       revenue: params.revenue * segShare,
-      leaders: Math.max(0, Math.round(params.leaders * segShare)),
+      leaders: Math.max(0, Math.round(finiteOr(params.leaders, 0) * segShare)),
       // problemDist counts are per-employee rates (the aggregate path
       // multiplies them by `employees`), so they must NOT be rescaled here.
       // Scaling them by segShare on top of the per-segment headcount made
@@ -463,7 +531,7 @@ function _computeCostsSegmented(params) {
     components,
     totalTax,
     hiddenErrors,
-    totalProblems: params.employees * computeTotalProblems(params.problemDist),
+    totalProblems: params.employees * computeTotalProblems(Array.isArray(params.problemDist) ? params.problemDist : []),
     scopeMode: params.scopeMode || "full",
     totalTaxFull, betaPotential, experimentalPotential,
     coaseBoundaryRatio: params.revenue > 0 ? totalTax / (params.revenue * 0.05) : 0,

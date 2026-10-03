@@ -13,13 +13,28 @@ export const FNP_PROBLEM_DIST = [
 
 // In ostrożny mode burnout already has overlap 0.75 because exits sit in
 // turnover. Drop the extra burnout → turnover kick so the same people are
-// not billed twice in the three-module headline.
+// not billed twice in the three-module headline. blameRate already sits
+// inside the concealment rate of the errors module, so its extra kick on
+// errors is dropped for the same reason.
 export const FNP_MODULE_INTERACTIONS = MODULE_INTERACTIONS.filter(
-  (row) => !(row.fromMetric === "burnoutRate" && row.toId === "turnover"),
+  (row) => !(row.fromMetric === "burnoutRate" && row.toId === "turnover")
+    && !(row.fromMetric === "blameRate" && row.toId === "errors"),
 );
 
+const isBlank = (value) => value === undefined || value === null || value === "";
+
 export function fnpAnalysisParams(params) {
-  const declared = Number(params.turnoverPct);
+  // Missing inputs must not turn into extreme scenarios: a blank climate is
+  // not climate 0 and a blank turnover is not 0% turnover.
+  if (isBlank(params.safety) || !Number.isFinite(Number(params.safety))) {
+    throw new TypeError("Klimat (safety) musi być liczbą od 0 do 100.");
+  }
+  const blankTurnover = isBlank(params.turnoverPct);
+  if (!blankTurnover && !Number.isFinite(Number(params.turnoverPct))) {
+    throw new TypeError("Rotacja (turnoverPct) musi być liczbą albo pozostać pusta.");
+  }
+  // No declaration means the reference rate, the same as declaring it.
+  const declared = blankTurnover ? PL_TURNOVER_RATE_GUS * 100 : Number(params.turnoverPct);
   return {
     ...params,
     problemDist: params.problemDist || FNP_PROBLEM_DIST,
@@ -28,9 +43,9 @@ export function fnpAnalysisParams(params) {
     overrides: {
       ...CALIBRATION_MODES.conservative.overrides,
       MODULE_INTERACTIONS: FNP_MODULE_INTERACTIONS,
-      PL_AVG_TURNOVER: PL_TURNOVER_RATE_GUS,
+      SILENCE_WEIGHTS_NORMALIZED: true,
       ...(params.overrides || {}),
-      ...(Number.isFinite(declared) ? { TURNOVER_DECLARED: Math.max(0, declared) / 100 } : {}),
+      TURNOVER_DECLARED: Math.max(0, declared) / 100,
     },
   };
 }

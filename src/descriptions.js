@@ -10,32 +10,44 @@ import {
   alphaFromSafety,
   K_SIGMOID_DEFAULT_MULT,
   LEADER_SILENCE_FREQ_MULT,
+  DEFAULT_PROBLEM_DIST,
+  climateChurnRate,
+  estimateLevels,
+  PL_TURNOVER_RATE_GUS,
 } from "./logic.js";
+
+const pct1 = (x) => (x * 100).toFixed(1).replace(".", ",");
+const maxLateMultiplier = Math.max(...DEFAULT_PROBLEM_DIST.map((d) => d.lateMultiplier || 1));
+const levelsOf = (params) => params.hierarchyLevels || estimateLevels(params.employees || 1, params.spanOfControl || 7);
+// Excess over the s = 100 reference, the same construction the engine uses.
+const churnExcess = (safety) => Math.max(0, climateChurnRate(safety) - climateChurnRate(100));
+const burnoutExcess = (safety) => Math.max(0,
+  getMetricValue("burnoutRate", safety, K_SIGMOID_DEFAULT_MULT) - getMetricValue("burnoutRate", 100, K_SIGMOID_DEFAULT_MULT));
 
 export const COST_DESCRIPTIONS = {
   errors: {
     title: "Ukrywanie błędów",
     what: "Pracownicy, którzy boją się konsekwencji, ukrywają błędy zamiast je zgłaszać. Im dłużej błąd pozostaje niewidoczny, tym droższe jest jego naprawienie, średnio 3.5x więcej niż przy natychmiastowej detekcji.",
-    mechanism: `Kultura obwiniania (72% w zespołach o niskim BP vs 2% w wysokim) powoduje, że pracownicy uczą się strategii przetrwania: 'lepiej schować problem niż ryzykować karę'. To milczenie taktyczne, świadoma kalkulacja kosztów i zysków zabierania głosu (Adamska 2016). Błędy kumulują się, a gdy w końcu wychodzą na jaw, koszty naprawy są wielokrotnie wyższe.`,
+    mechanism: `Kultura obwiniania (w modelu 72% przy niskim BP vs 2% przy wysokim; wartości przypisywane raportowi Ipsos × FNP, do potwierdzenia w tabelach) powoduje, że pracownicy uczą się strategii przetrwania: 'lepiej schować problem niż ryzykować karę'. To milczenie taktyczne, świadoma kalkulacja kosztów i zysków zabierania głosu (Adamska 2016). Błędy kumulują się, a gdy w końcu wychodzą na jaw, koszty naprawy są wielokrotnie wyższe.`,
     example: "Kierowniczka jednego ze sklepów sieci supermarketów przez strach ukrywała pomyłkę, zamówiła 100 zamiast 10 palet śmietany. Bagaż z poprzedniego pracodawcy: 'radź sobie sama, jak nie, kara' (anonimowy case z manuskryptu §12.1).",
     tceConnection: "Gdy ludzie nie zgłaszają błędów dobrowolnie, firma musi budować kosztowne systemy kontroli (audyty, inspekcje, warstwy zatwierdzania). Im mniej zaufania, tym droższy monitoring.",
-    interpret: (params, value) => `W Twojej firmie (${params.employees} pracowników, safety: ${params.safety}) koszt ukrywania błędów to ${Math.round(value / 1000)}k PLN/rok, czyli ${Math.round(value / params.employees)} PLN na pracownika. Model uwzględnia 4 kategorie problemów, poważniejsze błędy mają wyższy mnożnik późnej detekcji (do 6x).`,
+    interpret: (params, value) => `W Twojej firmie (${params.employees} pracowników, safety: ${params.safety}) koszt ukrywania błędów to ${Math.round(value / 1000)}k PLN/rok, czyli ${Math.round(value / params.employees)} PLN na pracownika. Model uwzględnia 4 kategorie problemów, poważniejsze błędy mają wyższy mnożnik późnej detekcji (do ${maxLateMultiplier}x w domyślnym rozkładzie).`,
   },
   innovation: {
     title: "Utrata innowacyjności",
-    what: "Gdy ludzie boją się mówić, milczą z pomysłami. 52% pracowników w zespołach o niskim BP nie dzieli się pomysłami usprawnieniowymi. Do tego dochodzi unikanie ryzyka (70% w grupie low), co blokuje wdrażanie nawet tych pomysłów, które się przebijają.",
+    what: "Gdy ludzie boją się mówić, milczą z pomysłami. Model przyjmuje, że przy niskim BP 52% pracowników nie dzieli się pomysłami usprawnieniowymi, a 70% unika ryzyka, co blokuje wdrażanie nawet tych pomysłów, które się przebijają (wartości przypisywane raportowi Ipsos × FNP, do potwierdzenia w tabelach).",
     mechanism: "Innowacja wymaga dwóch rzeczy: zgłoszenia pomysłu i odwagi wdrożenia. Niskie BP blokuje oba kanały. Firma traci dostęp do pomysłów swoich ludzi, a to oni najlepiej znają procesy, klientów i wąskie gardła.",
-    example: "Case Groupon z raportu: brak wysłuchania pomysłu pracownika mógł zablokować 5-10x wzrost wolumenu. Jeden niewypowiedziany pomysł = potencjalne miliony.",
+    example: "Według raportu Fundacji Nowe Przestrzenie (case Groupon, niesprawdzony w materiałach publicznych): brak wysłuchania pomysłu pracownika mógł zablokować 5-10x wzrost wolumenu.",
     tceConnection: "Pracownicy znają procesy, klientów i wąskie gardła lepiej niż zarząd, ale gdy milczą, ta wiedza jest zamrożona. Firma płaci za wiedzę (pensje), ale z niej nie korzysta.",
     interpret: (params, value) => `Przy przychodzie ${Math.round(params.revenue / 1e6)}M PLN szacujemy potencjał innowacyjny na ${Math.round(params.revenue * 0.03 / 1e6)}M PLN/rok. Przy safety ${params.safety} tracisz z tego ${Math.round(value / 1e6 * 100) / 100}M PLN, bo pomysły nie docierają do decydentów.`,
   },
   turnover: {
     title: "Nadmierna rotacja",
-    what: "Stabilność zespołu w firmach o niskim BP to 59%, vs 85% w wysokim. Każde odejście kosztuje 6-9 miesięcy pensji (rekrutacja, onboarding, utracona produktywność, drain wiedzy). Benchmark rotacji: GUS 2024 – Polska 14,8% / SHRM 2024 – USA 19%.",
+    what: `Stabilność zespołu w firmach o niskim BP to 59%, vs 85% w wysokim. Model przyjmuje koszt odejścia równy 75% rocznej pensji (rekrutacja, onboarding, utracona produktywność, drain wiedzy); to prior autora, SHRM podaje szeroki zakres 50–200% rocznego wynagrodzenia, zależnie od stanowiska. Model nie porównuje rotacji ze średnią krajową: liczy nadwyżkę modelowej stopy odejść ponad jej wartość przy BP = 100. Wartość odniesienia ${pct1(PL_TURNOVER_RATE_GUS)}% ma nieznane pochodzenie: we wcześniejszych wersjach przypisywano ją GUS, czego nie potwierdzono, i nie wchodzi do obliczeń. GUS publikuje współczynnik zwolnień obejmujący wszystkie odejścia: 19,7% w 2023 r. i 18,7% w 2024 r.`,
     mechanism: "Ludzie nie odchodzą z firm, odchodzą od toksycznych kultur. Gdy brakuje bezpieczeństwa psychologicznego, najlepsi odchodzą pierwsi (mają gdzie). Zostają ci, którzy boją się zmian. To odwrotna selekcja.",
     example: "W zespole 100 osób różnica między 59% a 85% stabilności to ~26 dodatkowych odejść rocznie. Przy średniej pensji 120k PLN i koszcie rotacji 75% pensji = 2.3M PLN rocznie.",
-    tceConnection: "Hirschman (1970): gdy ludzie nie mogą mówić (voice), odchodzą (exit). Najlepsi odchodzą pierwsi, bo mają dokąd. Każde odejście to utrata wiedzy, relacji i inwestycji we wdrożenie.",
-    interpret: (params, value) => `Twoja firma (${params.employees} osób, śr. pensja ${Math.round(params.avgSalary / 1000)}k PLN) traci szacunkowo ${Math.round(value / 1000)}k PLN/rok na nadmierną rotację. To ${Math.round(value / params.avgSalary)} dodatkowych odejść ponad naturalny poziom.`,
+    tceConnection: "Hirschman (1970): gdy ludzie nie mogą mówić (voice), odchodzą (exit). Każde odejście to utrata wiedzy, relacji i inwestycji we wdrożenie.",
+    interpret: (params, value) => `Twoja firma (${params.employees} osób, śr. pensja ${Math.round(params.avgSalary / 1000)}k PLN) traci szacunkowo ${Math.round(value / 1000)}k PLN/rok na nadmierną rotację. Modelowa stopa odejść wynosi ${pct1(climateChurnRate(params.safety))}% przy BP ${params.safety} wobec ${pct1(climateChurnRate(100))}% przy BP = 100, czyli ok. ${Math.round(params.employees * churnExcess(params.safety))} odejść rocznie ponad poziom odniesienia modelu (nie ponad średnią krajową).`,
   },
   burnout: {
     title: "Wypalenie / presenteeism",
@@ -43,11 +55,11 @@ export const COST_DESCRIPTIONS = {
     mechanism: "Ciągły stres, lęk przed błędami, brak wsparcia, poczucie bezsensu, to recepta na wypalenie. Wypaleni pracownicy nie tylko mniej produkują, ale też generują więcej błędów, częściej chorują i obniżają morale zespołu.",
     example: "Badanie Ipsos: w grupie niskiego BP 51% deklaruje objawy wypalenia. To nie jest kwestia 'słabych jednostek', to systemowy problem kultury organizacji.",
     tceConnection: "Wypaleni pracownicy podejmują gorsze decyzje, popełniają więcej błędów i generują dodatkowe koszty w całej organizacji. To nie problem jednostki, to systemowy koszt toksycznej kultury.",
-    interpret: (params, value) => `Przy ${params.employees} pracownikach i safety ${params.safety} szacujemy, że ${Math.round(params.employees * 0.51 * (1 - params.safety / 100))} osób doświadcza wypalenia. Koszt utraconej produktywności: ${Math.round(value / 1000)}k PLN/rok.`,
+    interpret: (params, value) => `Przy ${params.employees} pracownikach i safety ${params.safety} modelowy wskaźnik wypalenia wynosi ${pct1(getMetricValue("burnoutRate", params.safety, K_SIGMOID_DEFAULT_MULT))}% wobec ${pct1(getMetricValue("burnoutRate", 100, K_SIGMOID_DEFAULT_MULT))}% przy BP = 100, czyli ok. ${Math.round(params.employees * burnoutExcess(params.safety))} osób ponad poziom odniesienia. Koszt utraconej produktywności: ${Math.round(value / 1000)}k PLN/rok.`,
   },
   passivity: {
     title: "Bierność i silosy",
-    what: "59% pracowników o niskim BP przyjmuje postawę 'nie wtrącam się'. Dodatkowo 35% uważa, że zgłaszanie usprawnień = bycie donosicielem. To podwójny hamulec: ludzie widzą problemy, ale świadomie milczą.",
+    what: "59% pracowników o niskim BP przyjmuje postawę 'nie wtrącam się'. Dodatkowo 36% uważa, że zgłaszanie usprawnień = bycie donosicielem. To podwójny hamulec: ludzie widzą problemy, ale świadomie milczą.",
     mechanism: `Bierność to klasyczne \u201Ebycie uciszonym\u201D (Adamska 2016), wyuczona bezradność, produkt socjalizacji organizacyjnej. Gdy kilka razy doświadczysz, że Twoje sugestie są ignorowane lub karane, uczysz się nie reagować automatycznie, poniżej progu świadomości. Silosy powstają naturalnie: 'moja działka, nie moja sprawa'. Firma traci tysiące mikro-usprawnień dziennie.`,
     example: "Każdy z 2000 pracowników widzi ~1 usprawnienie na 20 dni pracy. Przy 59% bierności firma traci dostęp do ~14 000 usprawnień rocznie. Nawet jeśli każde jest warte tylko 500 PLN, to 7M PLN niewykorzystanego potencjału.",
     tceConnection: "Bierność to racjonalna reakcja: po kilku zignorowaniach sugestii ludzie uczą się nie reagować. 'Nie moja sprawa' = mechanizm obronny, nie lenistwo. Firma traci tysiące mikro-usprawnień dziennie.",
@@ -79,11 +91,11 @@ export const COST_DESCRIPTIONS = {
   },
   hierarchy: {
     title: "Straty informacyjne hierarchii",
-    what: "Williamson (1967): Effective Control = alpha^n. Każda warstwa zarządzania filtruje informacje przechodzące w górę. Przy 5 warstwach i niskim BP, tylko 5% krytycznych informacji dociera do decydentów. Złe wieści są filtrowane agresywniej niż dobre (MUM effect, Rosen & Tesser 1970).",
+    what: "Williamson (1967) opisał utratę kontroli w kolejnych warstwach hierarchii; model zapisuje ją jako alpha^n (rekonstrukcja autora). Każda warstwa zarządzania filtruje informacje przechodzące w górę. W modelu przy 5 warstwach i niskim BP do decydentów dociera ok. 5% krytycznych informacji. Złe wieści przekazuje się niechętniej niż dobre (MUM effect, Rosen & Tesser 1970, eksperyment z dwiema osobami).",
     mechanism: "Informacja musi pokonać kolejne 'bramy' (menedżerów). Na każdej bramie część informacji jest filtrowana, świadomie (strach przed reakcją) lub nieświadomie (uproszczenie, priorytetyzacja). Niskie BP drastycznie obniża 'alpha' (fidelity rate) na każdej bramie, a efekt kumuluje się wykładniczo.",
     example: "Pracownik liniowy widzi ryzyko jakościowe. Mówi kierownikowi zmiany. Kierownik ocenia, że 'to nie tak poważne' i nie eskaluje. Informacja ginie na 2. z 5 warstw. Decyzja strategiczna zapada w ślepym punkcie.",
     tceConnection: "Każda warstwa zarządzania to filtr, część informacji ginie po drodze. Przy 5 warstwach i niskim BP tylko 5% złych wiadomości dociera na górę. Zarząd podejmuje decyzje na podstawie obrazu 3-6x bardziej optymistycznego niż rzeczywistość.",
-    interpret: (params, value) => `Twoja firma ma ${params.hierarchyLevels || 5} warstw zarządzania. Przy safety ${params.safety} alpha = ${alphaFromSafety(params.safety).toFixed(2)} na warstwę. Koszt decyzji podejmowanych bez pełnej informacji: ${Math.round(value / 1000)}k PLN/rok.`,
+    interpret: (params, value) => `Twoja firma ma ${levelsOf(params)} warstw zarządzania. Przy safety ${params.safety} alpha = ${alphaFromSafety(params.safety).toFixed(2)} na warstwę. Koszt decyzji podejmowanych bez pełnej informacji: ${Math.round(value / 1000)}k PLN/rok.`,
   },
   governance: {
     title: "Narzut governance (TCE)",
@@ -91,11 +103,11 @@ export const COST_DESCRIPTIONS = {
     mechanism: "Selective intervention puzzle (Williamson): duża firma nie może po prostu replikować efektywności małej, bo hierarchia automatycznie osłabia motywacje i wymaga zastąpienia ich kosztownymi systemami kontroli. Ale wysoki poziom BP częściowo to kompensuje, zaufanie redukuje potrzebę formalnego nadzoru.",
     example: "Firma 50-osobowa: menedżer zna wszystkich, widzi problemy bezpośrednio. Firma 2000-osobowa: potrzebuje systemu raportowania, audytu, compliance, HR, to wszystko 'governance overhead'. Przy niskim BP overhead rośnie jeszcze bardziej, bo ludzie nie komunikują problemów dobrowolnie.",
     tceConnection: "Im większa firma, tym więcej koordynacji, raportowania i kontroli. Wysokie BP pozwala zastąpić część tego nadzoru zaufaniem, ludzie sami zgłaszają problemy. Niskie BP = droższy overhead.",
-    interpret: (params, value) => `Governance penalty dla Twojej firmy (${params.employees} osób, ${params.hierarchyLevels || 5} warstw): ${value > 0 ? Math.round(value / 1000) + 'k PLN/rok narzutu ponad baseline małej firmy' : 'minimalny, wysoki safety kompensuje'}. Podniesienie BP pozwala zastąpić monitoring zaufaniem.`,
+    interpret: (params, value) => `Governance penalty dla Twojej firmy (${params.employees} osób, ${levelsOf(params)} warstw): ${value > 0 ? Math.round(value / 1000) + 'k PLN/rok narzutu ponad poziom tej samej firmy przy BP = 100' : 'minimalny, wysoki safety kompensuje'}. Podniesienie BP pozwala zastąpić monitoring zaufaniem.`,
   },
   learningDeficit: {
     title: "Deficyt uczenia organizacyjnego",
-    what: "Zdecydowana mniejszość organizacji z niskim BP faktycznie praktykuje double-loop learning (Argyris 1977), kwestionowanie założeń systemowych, a nie tylko korekcja bieżących błędów.",
+    what: "Double-loop learning (Argyris 1977) to kwestionowanie założeń systemowych, a nie tylko korekta bieżących błędów. Założenie autora: przy niskim BP organizacje rzadko je praktykują.",
     mechanism: "Milczenie blokuje kwestionowanie status quo. Single-loop learning = powtarzanie tych samych błędów. Double-loop wymaga otwartej dyskusji o założeniach, co jest niemożliwe bez bezpieczeństwa psychologicznego.",
     example: "Firma produkcyjna wdraża 'lean' ale nikt nie kwestionuje błędnych KPI, bo to 'pomysł zarządu'. Efekt: pozorne usprawnienia, rzeczywista stagnacja.",
     tceConnection: "Organizacja powtarza te same błędy, bo nikt nie kwestionuje założeń. Single-loop = poprawiamy wykonanie. Double-loop = pytamy 'czy robimy właściwą rzecz?'. Bez BP nie ma double-loop.",
@@ -140,8 +152,8 @@ export const REDUCTION_TIPS = [
   {
     num: 3,
     title: "Spłaszcz hierarchię tam, gdzie to możliwe",
-    desc: "Każda warstwa zarządzania filtruje 40-50% złych wiadomości. Zredukowanie z 6 do 4 warstw podwaja ilość informacji dochodzących do decydentów. Rozważ szerszy span of control i empowerment zespołów.",
-    source: "Williamson (1967), Nichols (1962), Likert (1961)",
+    desc: "Każda warstwa zarządzania upraszcza i filtruje to, co przekazuje wyżej. Mniej warstw to krótsza droga złych wiadomości do decydentów. Rozważ szerszy span of control i empowerment zespołów.",
+    source: "Williamson (1967)",
     impact: "high",
     modules: ["hierarchy", "governance", "innovation"],
   },
@@ -157,14 +169,14 @@ export const REDUCTION_TIPS = [
     num: 5,
     title: "Nagradzaj zgłaszanie problemów, nie tylko sukces",
     desc: "Publicznie doceniaj osoby, które zgłaszają błędy, ryzyka i obawy, nawet jeśli się mylą. 'Dziękuję, że to podniosłeś' zmienia percepcję z 'donosicielstwo' na 'odpowiedzialność'.",
-    source: "Raport Ipsos 2026 (35% usprawnienie = donos)",
+    source: "Raport Ipsos × FNP 2026 (36% usprawnienie = donos)",
     impact: "medium",
     modules: ["passivity", "errors", "help"],
   },
   {
     num: 6,
     title: "Mierz bezpieczeństwo psychologiczne regularnie i reaguj",
-    desc: "Kwestionariusz Edmondson (7 skał), badanie co kwartał, wyniki na poziomie zespołu (nie jednostki). Ważne: publikuj wyniki i plan działania. Samo badanie bez follow-up pogarsza sytuację.",
+    desc: "Kwestionariusz Edmondson (7 pozycji), badanie co kwartał, wyniki na poziomie zespołu (nie jednostki). Ważne: publikuj wyniki i plan działania. Samo badanie bez follow-up pogarsza sytuację.",
     source: "Edmondson (1999), Fundacja Nowe Przestrzenie",
     impact: "medium",
     modules: ["burnout", "passivity", "compliance"],
@@ -180,7 +192,7 @@ export const REDUCTION_TIPS = [
   {
     num: 8,
     title: "Buduj cross-functional zespoły, przełam silosy i wzmocnij autonomię",
-    desc: "Bierność ('nie moja sprawa') kwitnie w silosach. Zespoły mieszane (ops + dev + biznes) naturalnie wymuszają dzielenie się informacją. Rotacja między działami pomaga. Badania pokazują, że większa autonomia pracowników redukuje milczenie (Adamska 2015). Uwaga: przełamanie milczenia nie zawsze daje głos konstruktywny, może też dać głos destrukcyjny (Maynes & Podsakoff 2014). Interwencja musi łączyć otwarcie kanałów z budowaniem kultury konstruktywnego feedbacku.",
+    desc: "Bierność ('nie moja sprawa') kwitnie w silosach. Zespoły mieszane (ops + dev + biznes) naturalnie wymuszają dzielenie się informacją. Rotacja między działami pomaga. Adamska (2015) wiąże skłonność do milczenia z niższym zaspokojeniem potrzeb psychologicznych (łączny wskaźnik autonomii, kompetencji i relacji, rho = −0,63); samej autonomii nie badała jako moderatora. Uwaga: przełamanie milczenia nie zawsze daje głos konstruktywny, może też dać głos destrukcyjny (Maynes & Podsakoff 2014). Interwencja musi łączyć otwarcie kanałów z budowaniem kultury konstruktywnego feedbacku.",
     source: "Morrison & Milliken (2000), Adamska (2015), Maynes & Podsakoff (2014)",
     impact: "medium",
     modules: ["passivity", "innovation", "governance"],
@@ -188,16 +200,16 @@ export const REDUCTION_TIPS = [
   {
     num: 9,
     title: "Zmień narrację o błędach, z 'porażka' na 'dane'",
-    desc: "Język ma znaczenie. 'Experiment failed' → 'experiment returned data'. 'Kto zawinił?' → 'co możemy zmienić w procesie?'. Zmiana języka zmienia kulturę szybciej niż zmiana procedur.",
-    source: "Edmondson (1999), Sherf, Parke, Isaakyan (2021)",
+    desc: "Język ma znaczenie. 'Experiment failed' → 'experiment returned data'. 'Kto zawinił?' → 'co możemy zmienić w procesie?'.",
+    source: "Edmondson (1999)",
     impact: "medium",
     modules: ["errors", "burnout", "help"],
   },
   {
     num: 10,
     title: "Monitoruj 'bazę piramidy', sygnały słabe to system wczesnego ostrzegania",
-    desc: "Piramida Birda: na 1 katastrofę przypada 600 drobnych sygnałów. Jeśli nie widzisz drobnych problemów, nie znaczy, że ich nie ma. Znaczy, że ludzie milczą. Brak zgłoszeń = alarm, nie sukces.",
-    source: "Bird (1974) Management Guide to Loss Control, Institute Press (badanie ICA z 1969)",
+    desc: "Piramida Birda (według opisów badania z 1969 r.): na 1 poważny uraz przypada 10 drobnych urazów, 30 zdarzeń ze szkodą materialną i 600 zdarzeń bez urazu i szkody. Jeśli nie widzisz drobnych problemów, nie znaczy, że ich nie ma. Znaczy, że ludzie milczą. Brak zgłoszeń = alarm, nie sukces.",
+    source: "Bird (1974) Management Guide to Loss Control, Institute Press (badanie z 1969 r.)",
     impact: "high",
     modules: ["errors", "compliance", "passivity"],
   },
@@ -206,7 +218,7 @@ export const REDUCTION_TIPS = [
 export const METRIC_DESCRIPTIONS = {
   blameRate: {
     title: "Kultura obwiniania",
-    what: "Odsetek pracowników, których błędy są wykorzystywane przeciwko nim. W zespołach o niskim BP: 72%, w wysokim: zaledwie 2%.",
+    what: "Odsetek pracowników, których błędy są wykorzystywane przeciwko nim. Wartości krańcowe modelu: 72% przy niskim BP, 2% przy wysokim (do potwierdzenia w tabelach raportu Ipsos × FNP; publicznie: 42% wśród ogółu badanych).",
     impact: "Gdy błędy są karane, ludzie uczą się je ukrywać. To nie eliminuje błędów, tylko sprawia, że są niewidoczne do momentu, gdy staną się bardzo kosztowne.",
     interpret: (safety, yours, pl) => yours > pl
       ? `Twoja firma (${(yours * 100).toFixed(1)}%) jest POWYŻEJ średniej PL (${(pl * 100).toFixed(1)}%), kultura obwiniania jest silniejsza niż przeciętnie. To wymaga pilnej interwencji.`
@@ -214,7 +226,7 @@ export const METRIC_DESCRIPTIONS = {
   },
   errorFear: {
     title: "Ukrywanie błędów",
-    what: "Odsetek pracowników, którzy ukrywają błędy ze strachu przed konsekwencjami. 72% w niskim BP, 5% w wysokim.",
+    what: "Odsetek pracowników, którzy ukrywają błędy ze strachu przed konsekwencjami. Wartości krańcowe modelu: 72% przy niskim BP, 5% przy wysokim (do potwierdzenia w tabelach raportu Ipsos × FNP).",
     impact: "Ukryte błędy kumulują się i eskalują. Jeden mały błąd ukryty dziś = duży kryzys za miesiąc. Koszt naprawy rośnie wykładniczo z czasem.",
     interpret: (safety, yours, pl) => yours > pl
       ? `Twoja firma (${(yours * 100).toFixed(1)}%) ukrywa więcej błędów niż średnia PL (${(pl * 100).toFixed(1)}%). To jeden z najkosztowniejszych wskaźników, każdy ukryty błąd to potencjalna bomba zegarowa.`
@@ -223,7 +235,7 @@ export const METRIC_DESCRIPTIONS = {
   teamStability: {
     title: "Stabilność zespołu",
     what: "Odsetek pracowników, którzy zostają w firmie. 59% w niskim BP vs 85% w wysokim. Wysoka wartość = mniej rotacji, mniej kosztów rekrutacji.",
-    impact: "Każde odejście to koszt 6-9 miesięcy pensji. Ale prawdziwy koszt to utrata wiedzy, relacji z klientami i morale zespołu. Najlepsi odchodzą pierwsi.",
+    impact: "Model przyjmuje koszt odejścia równy 75% rocznej pensji (prior autora). Ale prawdziwy koszt to utrata wiedzy, relacji z klientami i morale zespołu. Najlepsi odchodzą pierwsi.",
     interpret: (safety, yours, pl) => yours > pl
       ? `Twoja stabilność (${(yours * 100).toFixed(1)}%) jest wyższa niż średnia PL (${(pl * 100).toFixed(1)}%). Zespoły są stabilne, to fundament efektywności.`
       : `Twoja stabilność (${(yours * 100).toFixed(1)}%) jest niższa niż średnia PL (${(pl * 100).toFixed(1)}%). Wysoka rotacja sygnalizuje problem z kulturą, ludzie 'głosują nogami".`,
@@ -246,7 +258,7 @@ export const METRIC_DESCRIPTIONS = {
   },
   ideaSilence: {
     title: "Milczenie z pomysłami",
-    what: "Odsetek pracowników, którzy nie dzielą się pomysłami. 52% w niskim BP vs 10% w wysokim.",
+    what: "Odsetek pracowników, którzy nie dzielą się pomysłami. Wartości krańcowe modelu: 52% przy niskim BP vs 10% przy wysokim (do potwierdzenia w tabelach raportu Ipsos × FNP).",
     impact: "Każdy niewypowiedziany pomysł to stracona szansa. Pracownicy na pierwszej linii widzą rzeczy niewidoczne z poziomu zarządu, ale milczą.",
     interpret: (safety, yours, pl) => yours > pl
       ? `Milczenie z pomysłami (${(yours * 100).toFixed(1)}%) powyżej średniej PL (${(pl * 100).toFixed(1)}%). Ponad połowa Twoich ludzi ma pomysły, ale je trzyma dla siebie.`
@@ -262,7 +274,7 @@ export const METRIC_DESCRIPTIONS = {
   },
   riskAversion: {
     title: "Unikanie ryzyka",
-    what: "Odsetek pracowników unikających ryzyka. 70% w niskim BP vs 15% w wysokim. Bez ryzyka nie ma innowacji.",
+    what: "Odsetek pracowników unikających ryzyka. Wartości krańcowe modelu: 70% przy niskim BP vs 15% przy wysokim (do potwierdzenia w tabelach raportu Ipsos × FNP). Bez ryzyka nie ma innowacji.",
     impact: "Unikanie ryzyka = status quo. Firma, w której nikt nie eksperymentuje, powoli traci konkurencyjność. Rynek nagradza odwagę, nie ostrożność.",
     interpret: (safety, yours, pl) => yours > pl
       ? `Unikanie ryzyka (${(yours * 100).toFixed(1)}%) powyżej średniej PL (${(pl * 100).toFixed(1)}%). Ludzie grają bezpiecznie, firma stoi w miejscu.`
