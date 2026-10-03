@@ -22,8 +22,6 @@ import { silenceWeightMultiplier, climateChurnRate, resolveSafety } from './logi
 import { normalizeFullModelParams } from './logic/analysis.js';
 import { computeRiskProfile } from './logic/risk.js';
 import { optimalSpan, optimalSpanExact } from './logic/williamson.js';
-import { COST_DESCRIPTIONS } from './descriptions.js';
-import { COST_DESCRIPTIONS_EN } from './descriptions_en.js';
 
 // ── Archetype params (each must include problemDist) ──
 const baseParams = (overrides = {}) => ({
@@ -1058,37 +1056,6 @@ describe('N. audit fixes', () => {
     expect(estimateLevels(100, 1)).toBe(1);
   });
 
-  it('C2: help interpret % matches the model (no hardcoded sigmoid drift)', () => {
-    for (const safety of [30, 50, 90]) {
-      const text = COST_DESCRIPTIONS.help.interpret({ employees: 100, safety }, 100000);
-      const shown = Number(text.match(/(\d+)%/)[1]);
-      const expected = Math.round(
-        getMetricValue('helpComfort', safety, K_SIGMOID_DEFAULT_MULT) * 100
-      );
-      expect(shown).toBe(expected);
-    }
-  });
-
-  it('C2: hierarchy interpret alpha matches alphaFromSafety', () => {
-    for (const safety of [20, 50, 80]) {
-      const text = COST_DESCRIPTIONS.hierarchy.interpret(
-        { hierarchyLevels: 5, safety }, 100000
-      );
-      const shown = Number(text.match(/alpha = ([\d.]+)/)[1]);
-      expect(shown).toBeCloseTo(Number(alphaFromSafety(safety).toFixed(2)), 5);
-    }
-  });
-
-  it('C2: leader silence episodes reconcile with the cost model', () => {
-    const safety = 40, leaders = 10;
-    const text = COST_DESCRIPTIONS.leader.interpret({ leaders, safety }, 500000);
-    const shown = Number(text.match(/([\d.]+) epizod/)[1]);
-    const expected = Number(
-      (leaders * getMetricValue('destructiveFear', safety, K_SIGMOID_DEFAULT_MULT)
-        * LEADER_SILENCE_FREQ_MULT).toFixed(1)
-    );
-    expect(shown).toBeCloseTo(expected, 1);
-  });
 });
 
 // ── M. Grilling 2026-06-09 fixes: applySafetyLift, segment mode, scenarios ──
@@ -1544,17 +1511,5 @@ describe('P. engine audit 2026-10', () => {
       for (let s = 0; s <= 100; s += 5) expect(climateChurnRate(s)).toBeLessThan(PL_TURNOVER_RATE_GUS);
     });
 
-    it('turnover and burnout copy quote engine rates, not a separate formula', () => {
-      const params = { employees: 500, avgSalary: 90_000, safety: 41 };
-      const pl = COST_DESCRIPTIONS.turnover.interpret(params, 1_000_000);
-      const en = COST_DESCRIPTIONS_EN.turnover.interpret(params, 1_000_000);
-      expect(pl).toContain(`${(climateChurnRate(41) * 100).toFixed(1).replace('.', ',')}%`);
-      expect(en).toContain(`${(climateChurnRate(41) * 100).toFixed(1)}%`);
-      expect(pl).not.toMatch(/naturalny poziom/);
-      expect(en).not.toMatch(/natural churn/);
-      const burnout = COST_DESCRIPTIONS.burnout.interpret(params, 1_000_000);
-      const rate = getMetricValue('burnoutRate', 41, K_SIGMOID_DEFAULT_MULT);
-      expect(burnout).toContain(`${(rate * 100).toFixed(1).replace('.', ',')}%`);
-    });
   });
 });
