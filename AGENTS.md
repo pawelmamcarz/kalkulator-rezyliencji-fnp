@@ -32,7 +32,7 @@ Output is a **scenario of scale**, not an accounting valuation, forecast, causal
 - Default: `scopeMode: conservative` + `CALIBRATION_MODES.conservative` + `safetySource: estimate`.
 - Headline money = validated core only (turnover, errors, burnout). Other areas show „poza sumą”, without adding złoty to the total.
 - One climate slider 0–100 with behavioral anchors. No 7-item Likert, no mini-quiz. Copy must say szacunek własny, nie pomiar.
-- Inputs: revenue, costs, headcount, average pay, turnover, climate. Headline uses FTE, salary, climate and declared turnover (mixed with GUS 14.8%, capped by the typed rate). Costs are for margin only. Revenue is the percent denominator.
+- Inputs: revenue, costs, headcount, average pay, turnover, climate. Headline uses FTE, salary, climate and declared turnover. Turnover = half of the climate signal, with the declared rate only as a ceiling: a lower rate lowers the amount, a higher one does not raise it, and turnover above the reference is not attributed to silence. The 14.8% reference (attributed to GUS, unverified) is used only when no rate is given. Costs are for margin only. Revenue is the percent denominator.
 - Five reporting areas, FNP labels, not the academic channel titles:
   1. Rotacja i utrata wiedzy
   2. Błędy i compliance
@@ -52,7 +52,9 @@ Do not re-export `highsOptimizer` from `src/logic.js`. The public bundle must st
 
 ## Methodology
 
-Public research only. Ipsos × FNP 2026 is context, not a completed table audit. Open code is inspectability, not proof. LICENSE disclaimer stays. FNP priors live in `src/fnpModel.js` (problem mix, no burnout→turnover kick, declared turnover). Do not change `DEFAULT_PROBLEM_DIST` used by `logic.test.js`. Optional Node-only claim audit: `npm run jev:audit` (Jev / TypeSafe; key from `TYPESAFE_API_KEY` only; see `docs/JEV-AUDYT.md`). Do not import it into the public bundle.
+Public research only. Ipsos × FNP 2026 is context, not a completed table audit. Open code is inspectability, not proof. LICENSE disclaimer stays. FNP priors live in `src/fnpModel.js` (problem mix, no burnout→turnover and no blameRate→errors kick, normalised silence-type weights via `SILENCE_WEIGHTS_NORMALIZED`, declared turnover as a ceiling with 14.8% for a blank rate, blank or non-numeric climate throws). Do not change `DEFAULT_PROBLEM_DIST` used by `logic.test.js`. Optional Node-only claim audit: `npm run jev:audit` (Jev / TypeSafe; key from `TYPESAFE_API_KEY` only; see `docs/JEV-AUDYT.md`). Do not import it into the public bundle.
+
+Node-only batch run of the public model for the validation study: `npm run fnp:wsad` (`scripts/fnp-wsad.js`, see `docs/WSAD.md`). Do not import it into the public bundle.
 
 ## Conventions
 

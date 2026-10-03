@@ -42,20 +42,29 @@ function riskLevel(safety) {
   return "lower";
 }
 
+function finiteOrNull(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
 export function computeRiskProfile(params = {}) {
-  const safety = Math.max(0, Math.min(100, Number(params.safety) || 0));
+  // A missing climate has no level. `Number(x) || 0` reported it as climate 0,
+  // the "elevated" band.
+  const rawSafety = finiteOrNull(params.safety);
+  const safety = rawSafety === null ? null : Math.max(0, Math.min(100, rawSafety));
   const safetySource = ["survey", "estimate"].includes(params.safetySource) ? params.safetySource : null;
-  const level = riskLevel(safety);
+  const level = safetySource && safety !== null ? riskLevel(safety) : null;
 
   return {
     safety,
     safetySource,
-    overallLevel: safetySource ? level : null,
+    overallLevel: level,
     inputQuality: safetySource === "survey" ? "measured" : safetySource === "estimate" ? "estimated" : "unknown",
     sourceStatus: "no-private-anchor-used",
     channels: CHANNELS.map((channel) => ({
       ...channel,
-      level: safetySource ? level : null,
+      level,
       score: null,
       monetaryValue: null,
       evidenceStatus: "verified-mechanism-not-valuation",

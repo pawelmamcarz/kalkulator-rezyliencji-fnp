@@ -26,7 +26,7 @@ Każdy koszt jest nadwyżką względem modelowego klimatu 100. Przy 100 nadwyżk
 
 [Instrukcja priory dla analityka](docs/PRIORY.md) opisuje wartości, uzasadnienie, źródła danych do aktualizacji i przykład obliczeń. Efekt mrożenia opisujemy na podstawie Kiewitz i in. (2016), Adamskiej (2016), z rozróżnieniem kontekstu badań Penneya (2016). Nie jest osobną pozycją pieniężną ani dodatkowym mnożnikiem rzekomo oszacowanym w tych badaniach.
 
-Przeliczniki pieniężne są autorskie. Końce krzywych przypisane w silniku do Ipsos × FNP mają status oczekujący na audyt źródła. Raport 2026 jest kontekstem, nie potwierdzoną kalibracją. Punkt odniesienia rotacji 14,8% zachowano dla ciągłości modelu, ale przypisanie do konkretnej tabeli GUS wymaga potwierdzenia.
+Przeliczniki pieniężne są autorskie. Końce krzywych przypisane w silniku do Ipsos × FNP mają status oczekujący na audyt źródła. Raport 2026 jest kontekstem, nie potwierdzoną kalibracją. Punkt odniesienia rotacji 14,8% model przyjmuje tylko wtedy, gdy nie podano stopy rotacji; deklarowana stopa jest wyłącznie górnym limitem modelowych odejść. Pochodzenie 14,8% jest nieustalone: wcześniejsze wersje przypisywały tę wartość GUS, czego nie potwierdzono. GUS publikuje współczynnik zwolnień obejmujący wszystkie odejścia: 19,7% w 2023 r. i 18,7% w 2024 r.
 
 Kod jest otwarty, aby umożliwić kontrolę. Nie stanowi to dowodu empirycznej trafności wyniku. Kontakt: pawel@mamcarz.com. Licencja MIT wraz z zastrzeżeniami w [LICENSE](LICENSE).
 

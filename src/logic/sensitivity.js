@@ -30,7 +30,7 @@ import {
 // stability under ρ variation"). MC_RHO_DEFAULT is exposed via
 // `computeCostsMC(params, N, { rho })` for callers who need to sweep it.
 const PERTURBABLE = [
-  { key: "K_SIGMOID_MULT",            value: K_SIGMOID_DEFAULT_MULT,    tier: "C", label: "k sigmoidy (globalna stromość)",  source: "AUTHOR: structural scenario prior" },
+  { key: "K_SIGMOID_MULT",            value: K_SIGMOID_DEFAULT_MULT,    tier: "C", label: "k sigmoidy (stromość krzywych METRICS)",  source: "AUTHOR: structural scenario prior" },
   { key: "OVERLAP_GLOBAL",            value: 1.0,                       tier: "C", label: "Globalna skala korekt overlap",     source: "AUTHOR (audit DK-5: ekspercka redukcja 15.4% → 13.1%)" },
   { key: "WYSIATI_PREMIUM",           value: WYSIATI_PREMIUM,           tier: "B", label: "WYSIATI premium",                   source: "Kahneman 2011 (kontekstowa)" },
   { key: "HIRSCHMAN_EXIT_AMPLIFIER",  value: HIRSCHMAN_EXIT_AMPLIFIER,  tier: "B", label: "Hirschman exit amplifier",          source: "AUTHOR: Hirschman-inspired prior" },
@@ -84,12 +84,18 @@ export function npvSensitivityGrid({
 }
 
 export function sensitivityReport(params, { delta = 0.25 } = {}) {
-  const base = computeCosts({ ...params, overrides: {} }).totalTax;
+  // Perturb around the caller's active scenario. The base and every
+  // perturbed run previously dropped params.overrides (e.g. a calibration
+  // mode), so the tornado described a different scenario from the headline
+  // and perturbed the default value even when the caller had pinned another.
+  const callerOverrides = params.overrides || {};
+  const base = computeCosts({ ...params, overrides: callerOverrides }).totalTax;
   if (!(base > 0)) return { base: 0, delta, rows: [] };
 
-  const rows = PERTURBABLE.map(({ key, value, source, tier, label }) => {
-    const plus = computeCosts({ ...params, overrides: { [key]: value * (1 + delta) } }).totalTax;
-    const minus = computeCosts({ ...params, overrides: { [key]: value * (1 - delta) } }).totalTax;
+  const rows = PERTURBABLE.map(({ key, value: defaultValue, source, tier, label }) => {
+    const value = Number.isFinite(callerOverrides[key]) ? callerOverrides[key] : defaultValue;
+    const plus = computeCosts({ ...params, overrides: { ...callerOverrides, [key]: value * (1 + delta) } }).totalTax;
+    const minus = computeCosts({ ...params, overrides: { ...callerOverrides, [key]: value * (1 - delta) } }).totalTax;
     return {
       key, source, tier, label, value,
       plusPct: (plus - base) / base,

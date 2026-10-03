@@ -31,7 +31,8 @@ export const AVAILABILITY_MAX_BOOST = 0.20;
 // (computeCosts, computeCostsMC, sensitivityReport). Surfaces Edmondson (2019)
 // finding that leaders self-rate PS ~10–15 pts higher than their employees.
 export const OVERCONFIDENCE_GAP = 12;
-// PEAK_END_PREMIUM - DISABLED. Kahneman-Redelmeier (1993) peak-end rule
+// PEAK_END_PREMIUM - DISABLED. The peak-end rule (Kahneman, Fredrickson,
+// Schreiber & Redelmeier 1993, Psychological Science 4(6):401-405)
 // describes retrospective MEMORY of experience, not cost summation. Applying
 // it as a +10% uplift on the largest cost module conflated cognitive bias with
 // accounting. Removed from the cost path. Kept as `0` so historical override
@@ -164,8 +165,13 @@ export const OVERLAP_CORRECTIONS = {
 // harder to address, persists longer → compounding costs
 export const AUTOMATIC_SILENCE_PENALTY = 0.08;
 
-// ── Adamska (2015): Autonomy moderator - AUTHOR'S EXTENSION ──
-// Greater autonomy → less passivity, shifts silence from automatic to tactical
+// ── Autonomy damper - AUTHOR'S EXTENSION, loosely inspired by Adamska (2015) ──
+// Adamska (2015), "Milczenie w organizacji. Rola uważności społecznej i
+// czynników kontekstowych", ZZL 1(102):115-130, does NOT test autonomy as a
+// variable or moderator. Autonomy is one part of a summed need-satisfaction
+// index (Ryan & Deci) that correlates with silence at rho = -0.63 (Table 1,
+// p. 121). The idea that autonomy damps passivity, and the 0.25 value, are
+// the author's assumptions.
 export const AUTONOMY_PASSIVITY_DAMPER = 0.25;
 
 // ── Voice quality floor - AUTHOR'S EXTENSION inspired by Maynes & Podsakoff (2014) ──
@@ -177,18 +183,23 @@ export const AUTONOMY_PASSIVITY_DAMPER = 0.25;
 // inspired axis (clarity of voice channel + pro-social orientation).
 export const VOICE_QUALITY_FLOOR = 0.50;
 
-// ── Sigmoid steepness default (CALIBRATION) ──
-// Rozprawa §4.1.4 nazywa parametr k "narzuconym priorem strukturalnym" - bez
-// zakotwiczenia empirycznego, ponieważ brak jest obserwacji w pośrednich
-// kwartylach BP umożliwiających fitowanie krzywej. Default 1.0 produkował
-// krzywą zbyt stromą: przy s=41 (PL avg, Ipsos 2026) tax = 25.4% rev podczas
-// gdy rozprawa §4.2.1 sc.1 broni 13–14% rev jako kalibracji wobec
-// face-validity references (Crosby, SHRM and Gallup are broader constructs and
-// are not calibration targets). Spłaszczenie
-// k do 0.4 dopasowuje toxic scenariusz (s=15: 27%) do rozprawy 24–28%
-// i znacząco przybliża PL avg (s=41: 17% z 25%) do 13–14%.
-// Sensitivity (measured 2026-06-09): ±25% k = +11% / −13% total.
-// Per-moduł k pozostaje w METRICS jako mnożnik bazowy (0.06–0.12).
+// ── Sigmoid steepness default (AUTHOR'S EXTENSION, face-validity choice) ──
+// Origin, stated plainly: there are no observations at intermediate PS levels
+// from which `k` could be fitted (rozprawa §4.1.4 calls it an imposed
+// structural prior). The value 0.4 was chosen BY THE AUTHOR so that the model's
+// own totals land near target percentages of revenue taken from the
+// dissertation scenarios (at the time: s=41 about 13–14%, s=15 about 24–28%;
+// the unflattened k gave about 25% at s=41). The value was therefore selected
+// against the output it produces. Consequences:
+//   - the resulting totals and percentages of revenue are a consequence of
+//     this choice, NOT a result, finding or validation of the model;
+//   - agreement between model totals and those dissertation percentages is
+//     circular and must not be cited as evidence;
+//   - ±25% perturbation (sensitivityReport) shows how much the headline
+//     depends on this single prior.
+// The multiplier scales only the 12 METRICS curves. The Williamson,
+// governance, Argyris, Nonaka and agency curves use fixed sigmoid shapes and
+// do not respond to it. Per-metric k stays in METRICS (0.06–0.12).
 export const K_SIGMOID_DEFAULT_MULT = 0.4;
 
 // ── Leader silence frequency multiplier (CALIBRATION) ──
@@ -251,7 +262,33 @@ export const MODULE_MATURITY = {
 // informacji, a nie złotówki.
 export const ANALYTICS_ONLY_WHEN_EXCLUDED = new Set(["hierarchy"]);
 
-export const MODULE_INTERACTIONS = [
+// ── Module interactions (AUTHOR'S EXTENSION) ──
+// Each row adds `w × severity(fromMetric)` of a module's own excess cost to
+// that module. A row is kept only when the source metric is NOT already an
+// input of the target module and the model does not itself declare that
+// effect to be part of the target module (OVERLAP_CORRECTIONS rationale).
+// Rows removed as double counts (still available in
+// MODULE_INTERACTIONS_LEGACY for reproducing earlier numbers):
+//   blameRate → errors: blameRate is inside the errors concealment rate,
+//     errorFear × (0.3 + 0.7 × blameRate), modules.js.
+//   burnoutRate → turnover: OVERLAP_CORRECTIONS.burnout (0.75) states that
+//     burnout-driven exits are already in `turnover`; adding them again to
+//     turnover counts the same exits twice.
+//   passivity → innovation: OVERLAP_CORRECTIONS.passivity (0.70) states that
+//     withheld effort is already in `innovation`.
+//   helpComfort → knowledgeLoss: OVERLAP_CORRECTIONS.knowledgeLoss (0.70)
+//     states that the SECI block is already in `help` (helpComfort).
+// The weights of the remaining rows are author priors, not estimates.
+export const MODULE_INTERACTIONS = Object.freeze([
+  { fromMetric: "destructiveFear",  toId: "burnout",     w: 0.15 },
+  { fromMetric: "errorFear",        toId: "compliance",  w: 0.10 },
+  { fromMetric: "errorFear",        toId: "learningDeficit", w: 0.15 },
+  { fromMetric: "destructiveFear",  toId: "agencyOverhead",  w: 0.15 },
+]);
+
+// Pre-audit interaction list, kept only so earlier scenarios can be
+// reproduced through overrides.MODULE_INTERACTIONS. Not used by default.
+export const MODULE_INTERACTIONS_LEGACY = Object.freeze([
   { fromMetric: "burnoutRate",      toId: "turnover",    w: 0.20 },
   { fromMetric: "blameRate",        toId: "errors",      w: 0.15 },
   { fromMetric: "passivity",        toId: "innovation",  w: 0.10 },
@@ -260,7 +297,7 @@ export const MODULE_INTERACTIONS = [
   { fromMetric: "errorFear",        toId: "learningDeficit", w: 0.15 },
   { fromMetric: "helpComfort",      toId: "knowledgeLoss",   w: 0.15 },
   { fromMetric: "destructiveFear",  toId: "agencyOverhead",  w: 0.15 },
-];
+]);
 
 export const PL_DISTRIBUTION = [
   { level: "Bardzo niski", levelEn: "Very low",  pct: 14, color: "#dc2626", safetyMid: 15 },
@@ -271,6 +308,8 @@ export const PL_DISTRIBUTION = [
 ];
 
 // PL_AVG_SAFETY anchored to Ipsos 2026 raw sample mean (rozprawa §4.1.2),
+// a figure (like PL_DISTRIBUTION) absent from the public Ipsos x FNP
+// materials and pending a table-level audit of the full report.
 // NOT computed from PL_DISTRIBUTION weighted means. Weighted mean of the
 // 5-bin distribution above gives ~47, but the raw sample mean (n=1000)
 // is 41 - the ~6pt gap comes from bin midpoint discretization on a
@@ -290,13 +329,37 @@ export const PL_DISTRIBUTION = [
 // on the estimator argument above, not on a sensitivity run.
 export const PL_AVG_SAFETY = 41;
 
+// Example organization shown in the hero before the visitor declares a
+// safety-score source. Illustrates the shape of the output; the numbers are
+// produced by the live engine, never typed in. AUTHOR'S EXTENSION (UI only).
+export const HERO_EXAMPLE_PARAMS = Object.freeze({
+  revenue: 120_000_000,
+  employees: 250,
+  avgSalary: 120_000,
+  safety: PL_AVG_SAFETY,
+  budget: 180_000,
+  safetySource: "estimate",
+});
+
 // ── Poland-specific benchmarks ──
-// GUS (Central Statistical Office of Poland) annual labour turnover rate.
-// Source: GUS, "Popyt na pracę" 2023 (published 2024): average turnover rate
-// in the Polish enterprise sector was 14.8%. Used as inline benchmark in the
-// CostsTab turnover module for PL locale; EN locale shows SHRM 2024 (US ~19%).
+// Reference turnover value of UNKNOWN ORIGIN, attributed to GUS in earlier
+// versions, NOT confirmed. "Popyt na pracę w 2023 roku" (GUS, 13.06.2024) has
+// no turnover rate; its only "14,8" is 14.8 thousand vacancies in one section.
+// GUS publishes hiring and separation rates (separations = all exits, not only
+// voluntary): 2023 hires 20.3%, separations 19.7%; 2024 hires 19.3%,
+// separations 18.7% (seen as the national comparison in GUS regional releases,
+// US Szczecin 16.09.2024 and 16.09.2025). Never present 14.8% as a GUS figure.
+// The ST cost engine does NOT read this constant. Its turnover module counts
+// excess churn over the model's own s = 100 churn, from the teamStability
+// curve: churn(s) = (1 - teamStability(s)) × 0.4 - 0.015, which is about 10.5%
+// at s = 41 and never reaches 14.8% at any climate (default k). Turnover cost
+// is therefore NOT "excess above the national average". The constant is only
+// consumed by callers that use the opt-in TURNOVER_DECLARED path (FNP).
 export const PL_TURNOVER_RATE_GUS = 0.148;
-// SHRM benchmark for reference (US market, 2024)
+// US total turnover 19% (incl. 8% involuntary) from the SHRM Human Capital
+// Benchmarking Report as reported in 2016 (HR Dive, 2016-08-04); not a 2024
+// figure. SHRM puts replacement cost at 50-200% of annual salary; the engine's
+// 0.75 x salary replacement cost (modules.js) is an author prior.
 export const US_TURNOVER_RATE_SHRM = 0.19;
 
 export const PLN_EUR_RATE = 4.25;
@@ -362,6 +425,14 @@ export const DEFAULT_PROBLEM_DIST = [
   { id: "critical", count: 0.1, cost: 250_000,  lateMultiplier: 5.0, concealability: 0.05 },
 ];
 
+// Silence-type weights (AUTHOR'S EXTENSION). modules.js divides the
+// share-weighted weight by the equal-mix mean (def + acq + pro) / 3, so at an
+// equal mix of the three silence types the multiplier is exactly 1 and the
+// weights only redistribute cost according to the modelled silence mix.
+// Without that normalisation they acted as a constant per-module multiplier
+// (e.g. burnout about +10–14% at every climate). overrides
+// .SILENCE_WEIGHTS_NORMALIZED = false restores the legacy behaviour only for
+// reproducing earlier numbers.
 export const SILENCE_WEIGHTS = {
   errors:     { def: 1.20, acq: 0.90, pro: 0.80 },
   innovation: { def: 0.90, acq: 1.30, pro: 0.90 },
