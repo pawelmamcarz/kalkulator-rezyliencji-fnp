@@ -20,4 +20,4 @@ npm run test:watch                      # Vitest watch mode
 
 ## Data flow
 
-`useParamsState` (inputs) → `useCostCalculation` → `validateInputs` (`src/inputs.js`) → `computeFnpAnalysis` (`src/fnpModel.js`, FNP priors on top of the Silence Tax engine via the `src/logic.js` barrel) → `src/sections/*` render the result. Area labels and descriptions shown in the app live in `src/channels.js` and `src/sections/*`. `src/descriptions.js` (and `src/descriptions_en.js`) are inherited from Silence Tax and not rendered; only `src/logic.test.js` imports `descriptions.js`.
+`useParamsState` (inputs) → `useCostCalculation` → `validateInputs` (`src/inputs.js`) → `computeFnpAnalysis` (`src/fnpModel.js`, FNP priors on top of the Silence Tax engine via the `src/logic.js` barrel) → `src/sections/*` render the result. Area labels and descriptions shown in the app live in `src/channels.js` and `src/sections/*`.
