@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
+<link rel="icon" href="data:,">
 <title>Rotunda FNP: ekran</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap">
@@ -40,8 +41,12 @@ h1 { font-family: var(--mono); text-transform: uppercase; font-size: 60px; line-
 .stat .num small { font-size: 46px; font-weight: 600; margin-left: 2px; }
 .stat .lbl { font-family: var(--mono); font-size: 15px; letter-spacing: .18em; text-transform: uppercase; color: var(--mute); margin-top: 6px; }
 .stat.silent .num { color: var(--accent); }
-.qr { display: grid; grid-template-columns: 148px auto; gap: 18px; align-items: center; border: 2px solid var(--rule); background: var(--card); padding: 12px 20px 12px 12px; }
-.qr canvas, .qr svg { width: 148px; height: 148px; display: block; }
+.stat .lbl { white-space: nowrap; }
+.stat.silent .lbl { letter-spacing: .06em; }
+.stat.wait .num { color: var(--mute); }
+.qtag { font-family: var(--mono); font-size: 13px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: #fff; background: var(--ink); padding: 2px 8px; display: inline-block; margin-bottom: 6px; }
+.qr { display: grid; grid-template-columns: 128px auto; gap: 18px; align-items: center; border: 2px solid var(--rule); background: var(--card); padding: 12px 20px 12px 12px; }
+.qr canvas, .qr svg { width: 128px; height: 128px; display: block; }
 .qr .cta { font-family: var(--mono); font-weight: 700; font-size: 20px; line-height: 1.2; text-transform: uppercase; letter-spacing: .04em; max-width: 220px; }
 .qr .url { font-family: var(--mono); font-size: 16px; color: var(--stamp); margin-top: 8px; letter-spacing: .02em; }
 
@@ -50,6 +55,11 @@ main { display: grid; grid-template-columns: 1fr 600px; gap: 32px; min-height: 0
 .left { display: grid; grid-template-rows: auto auto; align-content: start; gap: 20px; min-height: 0; }
 h2 { font-family: var(--mono); text-transform: uppercase; font-size: 22px; letter-spacing: .06em; border-top: 2px solid var(--rule); padding-top: 10px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
 h2 .note { font-family: var(--mono); font-size: 14px; letter-spacing: .12em; color: var(--mute); text-transform: uppercase; font-weight: 400; }
+.subnote { font-size: 18px; color: var(--mute); margin: -6px 0 12px; }
+.waiting { border: 2px solid var(--rule); background: var(--card); padding: 48px 56px; }
+.waiting .big { font-size: 56px; line-height: 1.15; }
+.waiting .big b { font-family: var(--mono); color: var(--stamp); }
+.waiting p { font-size: 26px; color: var(--mute); margin-top: 20px; max-width: 900px; }
 
 .roles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
 .role { min-width: 0; border: 1px solid var(--rule); background: var(--card); padding: 14px 18px 14px; display: flex; flex-direction: column; min-height: 300px; }
@@ -78,7 +88,12 @@ h2 .note { font-family: var(--mono); font-size: 14px; letter-spacing: .12em; col
 .arow .val small { color: var(--mute); font-size: 16px; }
 
 /* Quote */
-.right { display: flex; flex-direction: column; min-height: 0; }
+.right { display: flex; flex-direction: column; gap: 20px; min-height: 0; }
+.calc { display: grid; grid-template-columns: 132px 1fr; gap: 18px; align-items: center; border: 1px solid var(--rule); background: var(--card); padding: 12px 18px 12px 12px; }
+.calc svg { width: 132px; height: 132px; display: block; }
+.calc .name { font-family: var(--mono); font-weight: 700; font-size: 20px; text-transform: uppercase; letter-spacing: .02em; line-height: 1.2; }
+.calc .what { font-size: 18px; color: var(--mute); margin-top: 4px; line-height: 1.3; }
+.calc .url { font-family: var(--mono); font-size: 16px; color: var(--stamp); margin-top: 6px; }
 .quote { flex: 1; border: 2px solid var(--rule); background: var(--card); padding: 36px 40px; display: flex; flex-direction: column; position: relative; min-height: 0; overflow: hidden; }
 .quote .stamp { font-family: var(--mono); font-size: 14px; letter-spacing: .2em; text-transform: uppercase; color: var(--stamp); border: 1.5px solid var(--stamp); padding: 4px 10px; align-self: flex-start; transform: rotate(-2deg); }
 .quote blockquote { flex: 1; display: flex; align-items: center; font-size: 42px; line-height: 1.3; font-weight: 400; margin: 20px 0; }
@@ -126,15 +141,16 @@ footer b { color: var(--ink); font-weight: 600; }
     <div>
       <div class="micro">Fundacja Nowe Przestrzenie · Rotunda · 19 listopada 2026</div>
       <h1>Mapa milczenia Rotundy</h1>
-      <div class="sub">Czego nie powiedziałeś w tym miesiącu? Anonimowe wpisy uczestników, ocenione przez Jev, złożone na żywo.</div>
+      <div class="sub">Czego nie powiedziałeś w tym miesiącu? Wpisy chętnych uczestników, bez imion, ocenione przez Jev.</div>
     </div>
     <div class="stats">
-      <div class="stat"><div class="num" id="total">0</div><div class="lbl">wpisów sali</div></div>
-      <div class="stat silent"><div class="num"><span id="silent">0</span><small>%</small></div><div class="lbl">to milczenie</div></div>
+      <div class="stat"><div class="num" id="total">0</div><div class="lbl">wpisów</div></div>
+      <div class="stat silent" id="stat-silent"><div class="num"><span id="silent">–</span><small id="silent-pct" hidden>%</small></div><div class="lbl" id="silent-lbl">wpisów opisuje przemilczenie</div></div>
     </div>
     <div class="qr" id="qr-box">
       <div id="qr"></div>
       <div>
+        <div class="qtag">Gra</div>
         <div class="cta">Zeskanuj i dokończ zdanie</div>
         <div class="url">fnp.silence-tax.com/rotunda</div>
       </div>
@@ -144,23 +160,29 @@ footer b { color: var(--ink); font-weight: 600; }
   <main>
     <section class="welcome" id="welcome" hidden>
       <div>
-        <div class="big">Sala jeszcze <em>milczy</em>.<br>Dokończ pierwsze zdanie.</div>
-        <p>Wylosuj kartę na telefonie, dopisz jedno zdanie o tym, czego nie powiedziałeś w tym miesiącu, wybierz rolę. Za chwilę zobaczysz tutaj, z jakich powodów milczy ta sala.</p>
+        <div class="big">Jeszcze nie ma <em>wpisów</em>.<br>Dokończ pierwsze zdanie.</div>
+        <p id="welcome-p">Wylosuj kartę na telefonie, dopisz jedno zdanie o tym, czego nie powiedziałeś w tym miesiącu, wybierz rolę. Gdy wpisów będzie dość, zobaczysz tutaj, jakie przyczyny wskazują zdania uczestników.</p>
       </div>
       <div class="qrbig">
         <div id="qr-big"></div>
+        <div class="qtag">Gra</div>
         <div class="cta">Zeskanuj i dokończ zdanie</div>
         <div class="url">fnp.silence-tax.com/rotunda</div>
       </div>
     </section>
 
     <div class="left" id="left">
-      <section>
-        <h2><span>Dlaczego milczymy: według roli</span><span class="note">udział wśród wpisów o milczeniu</span></h2>
+      <section class="waiting" id="waiting" hidden>
+        <div class="big">Mamy <b id="wait-n">0</b> <span id="wait-word">wpisów</span>.</div>
+        <p id="wait-p"></p>
+      </section>
+      <section id="sec-roles" hidden>
+        <h2><span>Przyczyny wskazane w zdaniach: według roli</span><span class="note">% wpisów opisujących przemilczenie</span></h2>
+        <p class="subnote">Jedno zdanie może wskazać kilka przyczyn albo żadnej, więc słupki nie sumują się do 100%.</p>
         <div class="roles" id="roles"></div>
       </section>
-      <section class="areas">
-        <h2><span>Obszary FNP: cała sala</span><span class="note">liczba wpisów</span></h2>
+      <section class="areas" id="sec-areas" hidden>
+        <h2><span>Obszary FNP: wszystkie wpisy</span><span class="note">liczba i % wpisów opisujących przemilczenie</span></h2>
         <div class="list" id="areas"></div>
       </section>
     </div>
@@ -168,16 +190,25 @@ footer b { color: var(--ink); font-weight: 600; }
     <div class="right" id="right">
       <div class="quote">
         <div class="dots" id="dots"></div>
-        <div class="stamp" id="q-stamp">Głos z sali</div>
+        <div class="stamp" id="q-stamp">Cytat z wpisu</div>
         <blockquote id="q-text" class="fade"></blockquote>
         <div class="meta fade" id="q-meta"></div>
       </div>
+      <aside class="calc" aria-label="Kalkulator Rezyliencji FNP">
+        <div id="qr-calc"></div>
+        <div>
+          <div class="qtag">Kalkulator</div>
+          <div class="name">Kalkulator Rezyliencji FNP</div>
+          <div class="what">Roczny scenariusz skali kosztów dla Twojej firmy, z jej danych. Nie korzysta z wyników tej gry.</div>
+          <div class="url">fnp.silence-tax.com</div>
+        </div>
+      </aside>
     </div>
   </main>
 
   <footer>
-    <div>Prototyp Fundacji Nowe Przestrzenie, silnik Jev (TypeSafe). Anonimowa mapa sali, nie pomiar w żadnej firmie.</div>
-    <div><span class="conn" id="conn">łączenie</span> &nbsp;·&nbsp; Kalkulator: <b>fnp.silence-tax.com</b></div>
+    <div>Fundacja Nowe Przestrzenie × Paweł Mamcarz · silnik: Jev (TypeSafe) · <b>prototyp</b>. Mapa wpisów, nie pomiar osób, sali ani firmy.</div>
+    <div><span class="conn" id="conn">łączenie</span></div>
   </footer>
 </div>
 
@@ -187,7 +218,9 @@ const ROLES = { zarzad: "Zarząd", menedzer: "Menedżer", specjalista: "Specjali
 const CAUSES = { lek: "Lęk przed konsekwencjami", bezsens: "Nic się nie zmieni", brak_kanalu: "Brak kanału lub czasu", lojalnosc: "Ochrona innych" };
 const AREAS = { rotacja: "Rotacja i utrata wiedzy", bledy: "Błędy i compliance", wypalenie: "Wypalenie i pasywność", innowacje: "Innowacje i uczenie się", koordynacja: "Koordynacja i hierarchia", brak: "Poza obszarami" };
 const STARTERS = ["Szef nie wie, że…", "Wiem o błędzie, ale…", "Mój pomysł przepadł, bo…", "Na spotkaniu wszyscy kiwali głową, a ja…", "Klient nie wie, że…", "Do zarządu nie dociera, że…", "Odchodząc z firmy, powiem, że…", "Nie mówię o tym głośno, bo…"];
-const POLL_MS = 5000, QUOTE_MS = 8000, MIN_N = 3;
+const POLL_MS = 5000, QUOTE_MS = 8000;
+// Thresholds come from the server (`minN` in /api/stan); nothing is hardcoded here.
+let minN = { share: null, role: null };
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
@@ -203,9 +236,10 @@ function fitScreen() {
 fitScreen();
 addEventListener("resize", fitScreen);
 
-function drawQr(el, size) {
+const GAME_URL = "https://fnp.silence-tax.com/rotunda/";
+const CALC_URL = "https://fnp.silence-tax.com/?konferencja";
+function drawQr(el, size, url = GAME_URL) {
   try {
-    const url = "https://fnp.silence-tax.com/rotunda/";
     const q = qrcode(0, "M");
     q.addData(url);
     q.make();
@@ -216,8 +250,9 @@ function drawQr(el, size) {
     el.innerHTML = `<div style="width:${size}px;height:${size}px;border:1px dashed var(--grid)"></div>`;
   }
 }
-drawQr($("qr"), 148);
+drawQr($("qr"), 128);
 drawQr($("qr-big"), 360);
+drawQr($("qr-calc"), 132, CALC_URL);
 
 /* counters */
 const shown = { total: 0, silent: 0 };
@@ -237,7 +272,7 @@ function tween(key, el, target) {
 /* roles matrix */
 function ensureRoles() {
   if ($("roles").children.length) return;
-  const cols = [["all", "Cała sala"], ...Object.entries(ROLES)];
+  const cols = [["all", "Wszystkie wpisy"], ...Object.entries(ROLES)];
   $("roles").innerHTML = cols.map(([id, name]) => `
     <div class="role ${id === "all" ? "all" : ""}" id="role-${id}">
       <div class="head"><span class="name">${name}</span><span class="n" id="n-${id}"></span></div>
@@ -253,16 +288,21 @@ function renderGroup(id, g) {
   if (!g || g.suppressed || !g.n) {
     bars.hidden = true; empty.hidden = false;
     n.textContent = g && g.n ? `n = ${g.n}` : "n = 0";
-    empty.innerHTML = g && g.n ? `za mało wpisów<span class="micro">pokażemy od ${MIN_N} wpisów</span>` : `jeszcze bez wpisów`;
+    const small = g && g.n && minN.role && g.n < minN.role;
+    empty.innerHTML = !g || !g.n
+      ? "jeszcze bez wpisów"
+      : small
+        ? `za mało wpisów<span class="micro">pokażemy od ${minN.role} wpisów</span>`
+        : `ukryte dla anonimowości<span class="micro">inaczej dałoby się wyliczyć mniejszą grupę</span>`;
     return;
   }
   bars.hidden = false; empty.hidden = true;
-  n.textContent = `n = ${g.n} · milczy ${g.silent}`;
+  n.textContent = `n = ${g.n} · przemilczenie: ${g.silent}`;
   const causes = g.causes || {};
   const max = Math.max(0, ...Object.keys(CAUSES).map((c) => causes[c] || 0));
   if (!g.silent) {
     bars.hidden = true; empty.hidden = false;
-    empty.innerHTML = `same głosy, bez milczenia<span class="micro">${g.n} wpisów</span>`;
+    empty.innerHTML = `żaden wpis nie opisuje przemilczenia<span class="micro">${g.n} wpisów</span>`;
     return;
   }
   for (const cid of Object.keys(CAUSES)) {
@@ -276,7 +316,8 @@ function renderGroup(id, g) {
 
 function renderAreas(overall) {
   const areas = (overall && overall.areas) || {};
-  const total = (overall && overall.n) || 0;
+  // Areas are counted among entries describing withholding, so that is the denominator.
+  const total = (overall && overall.silent) || 0;
   const rows = Object.entries(AREAS).map(([id, lab]) => [id, lab, areas[id] || 0]).filter(([id, , v]) => id !== "brak" || v > 0);
   const max = Math.max(1, ...rows.map((r) => r[2]));
   const el = $("areas");
@@ -304,14 +345,15 @@ function showNextQuote() {
   if (!quotes.length) {
     const s = STARTERS[starterIndex++ % STARTERS.length];
     $("q-stamp").textContent = "Karta do dokończenia";
-    setQuote(`${esc(s.replace(/…$/, ""))}<em>…</em>`, `<span>Dokończ na telefonie, anonimowo, do 200 znaków</span>`, "starter");
+    setQuote(`${esc(s.replace(/…$/, ""))}<em>…</em>`, `<span>Dokończ na telefonie, bez imienia, do 200 znaków</span>`, "starter");
     dots.innerHTML = "";
     return;
   }
   qIndex = (qIndex + 1) % quotes.length;
   const q = quotes[qIndex];
-  $("q-stamp").textContent = "Głos z sali";
-  const meta = `<span>${esc(ROLES[q.rola] || q.rola || "")}</span>${q.topCause && CAUSES[q.topCause] ? `<span class="cause">${CAUSES[q.topCause]}</span>` : ""}`;
+  $("q-stamp").textContent = "Cytat z wpisu";
+  // The server sends no role for quotes from a suppressed role group.
+  const meta = `${q.rola && ROLES[q.rola] ? `<span>${ROLES[q.rola]}</span>` : ""}${q.topCause && CAUSES[q.topCause] ? `<span class="cause">${CAUSES[q.topCause]}</span>` : ""}`;
   setQuote(`„${esc(q.text)}”`, meta, q.text.length > 120 ? "long" : "");
   dots.innerHTML = quotes.map((_, i) => `<i class="${i === qIndex ? "on" : ""}"></i>`).join("");
 }
@@ -326,21 +368,51 @@ function setQuotes(list) {
 }
 
 /* state */
+function plural(n, one, few, many) {
+  const m10 = n % 10, m100 = n % 100;
+  if (n === 1) return one;
+  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
+  return many;
+}
+
 function render(d) {
+  if (d.minN) minN = d.minN;
   const total = d.total || 0;
   const empty = total === 0;
+  // The server sends silentShare = null until there are minN.share entries.
+  const ready = typeof d.silentShare === "number";
   $("welcome").hidden = !empty;
   $("left").hidden = empty;
   $("right").hidden = empty;
   $("qr-box").hidden = empty;
   tween("total", $("total"), total);
-  tween("silent", $("silent"), Math.round(100 * (d.silentShare || 0)));
+  $("stat-silent").classList.toggle("wait", !ready);
+  $("silent-pct").hidden = !ready;
+  if (ready) {
+    tween("silent", $("silent"), Math.round(100 * d.silentShare));
+    $("silent-lbl").textContent = "wpisów opisuje przemilczenie";
+  } else {
+    shown.silent = 0;
+    $("silent").textContent = "–";
+    $("silent-lbl").textContent = minN.share ? `udział od ${minN.share} wpisów` : "czekamy na wpisy";
+  }
   if (empty) return;
+  $("waiting").hidden = ready;
+  $("sec-roles").hidden = !ready;
+  $("sec-areas").hidden = !ready;
+  setQuotes(d.quotes);
+  if (!ready) {
+    $("wait-n").textContent = total;
+    $("wait-word").textContent = plural(total, "wpis", "wpisy", "wpisów");
+    $("wait-p").textContent = minN.share
+      ? `Proporcje i przyczyny pokażemy od ${minN.share} wpisów. Wcześniej każdy procent opisywałby pojedyncze osoby, nie zbiór wpisów.`
+      : "Proporcje i przyczyny pokażemy, gdy wpisów będzie więcej.";
+    return;
+  }
   ensureRoles();
   renderGroup("all", d.overall);
   for (const r of Object.keys(ROLES)) renderGroup(r, d.byRole && d.byRole[r]);
   renderAreas(d.overall);
-  setQuotes(d.quotes);
 }
 
 function setConn(ok, when) {

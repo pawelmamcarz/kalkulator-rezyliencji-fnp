@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
+<link rel="icon" href="data:,">
 <title>Mapa milczenia FNP: analiza</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Source+Serif+4:wght@400;600&display=swap">
@@ -61,17 +62,17 @@ footer a { color: var(--ink); }
 </head>
 <body>
 <main>
-  <div class="micro">Fundacja Nowe Przestrzenie × Paweł Mamcarz · silnik: Jev (TypeSafe)</div>
-  <h1>Mapa milczenia</h1>
-  <p class="lead">Wklej odpowiedzi pracowników na pytanie otwarte. Jev oceni każdą z nich, a kod złoży mapę: gdzie zespoły milczą, w jakich obszarach i z jakich powodów.</p>
+  <div class="micro">Fundacja Nowe Przestrzenie × Paweł Mamcarz · silnik: Jev (TypeSafe) · prototyp</div>
+  <h1>Mapa milczenia: demonstracja</h1>
+  <p class="lead">Demonstracja na wymyślonych odpowiedziach. Jev ocenia każde zdanie, a kod składa wyniki w tabelę według zespołów: ile zdań opisuje przemilczenie, jakich obszarów dotyczą i jakie przyczyny wskazują.</p>
 
   <div class="warn">
     <strong>Prototyp, niezwalidowany</strong><br>
-    Wynik to sygnał do rozmowy w diagnozie FNP, nie pomiar bezpieczeństwa psychologicznego ani wycena kosztów. Trafność nie została jeszcze sprawdzona na prawdziwych odpowiedziach. Nie wklejaj danych osobowych ani poufnych: tekst trafia do oceny przez usługę TypeSafe, nie jest zapisywany przez tę stronę.
+    To demonstracja, a wynik nie jest pomiarem zespołu ani bezpieczeństwa psychologicznego, nie jest też wyceną kosztów. Trafność nie została sprawdzona na prawdziwych odpowiedziach. Nie wklejaj prawdziwych odpowiedzi pracowników z imionami, nazwiskami ani szczegółami, po których da się kogoś rozpoznać. Tekst trafia do oceny przez usługę TypeSafe, ta strona go nie zapisuje. Zespoły z mniej niż 5 odpowiedziami są ukryte (próg anonimowości).
   </div>
 
   <label for="answers">Odpowiedzi: jedna w wierszu, <code>Zespół | treść</code></label>
-  <div class="hint">Do 20 odpowiedzi, każda do 500 znaków. Na start wpisaliśmy wymyślone przykłady.</div>
+  <div class="hint">Do 25 odpowiedzi, każda do 500 znaków. Na start wpisaliśmy wymyślone przykłady; zespół IT ma celowo tylko 2 odpowiedzi, żeby pokazać ukrywanie zespołów poniżej progu 5.</div>
   <textarea id="answers" spellcheck="false"></textarea>
 
   <div class="row">
@@ -81,15 +82,18 @@ footer a { color: var(--ink); }
   </div>
 
   <section id="out" hidden>
-    <h2>Mapa zespołów</h2>
+    <h2>Tabela zespołów</h2>
     <div class="scroll"><table id="teams"></table></div>
     <p class="hint" id="teams-note" style="margin-top:10px"></p>
     <h2>Odpowiedzi pojedynczo</h2>
     <div class="cards" id="cards"></div>
   </section>
 
+  <p class="warn"><a href="https://fnp.silence-tax.com/?konferencja">Kalkulator Rezyliencji FNP</a>: roczny scenariusz skali kosztów dla firmy, liczony z jej danych, nie z tej tabeli.</p>
+
   <footer>
-    Gra na telefon: <a href="../">Czego nie powiedziałeś w tym miesiącu?</a> · <a href="../ekran/">Mapa sali na żywo</a> · Kalkulator skali kosztów: <a href="https://fnp.silence-tax.com/?konferencja">fnp.silence-tax.com</a> · Diagnoza FNP: <a href="mailto:zapraszamy@noweprzestrzenie.pl">zapraszamy@noweprzestrzenie.pl</a>
+    Gra na telefon: <a href="../">Czego nie powiedziałeś w tym miesiącu?</a> · <a href="../ekran/">Mapa wpisów na żywo</a> · Diagnoza FNP: <a href="mailto:zapraszamy@noweprzestrzenie.pl">zapraszamy@noweprzestrzenie.pl</a><br>
+    Fundacja Nowe Przestrzenie × Paweł Mamcarz · silnik: Jev (TypeSafe) · prototyp
   </footer>
 </main>
 <script>
@@ -97,26 +101,29 @@ const SAMPLE = `Magazyn | Jak coś się sypie na zmianie, to lepiej nie mówić 
 Magazyn | Zgłaszaliśmy problem ze skanerami trzy razy, nic się nie zmieniło, więc już nikt nie zgłasza.
 Magazyn | Nie ma kiedy powiedzieć, bo odprawa trwa pięć minut i jest tylko o normach.
 Magazyn | Kryjemy się nawzajem z błędami na etykietach, żeby nie było kary dla zmiany.
+Magazyn | Nowy grafik ustalono bez nas, ale kierownik pyta co tydzień, co poprawić, i coś z tego wynika.
 Sprzedaż | Miałem pomysł na nowy pakiet dla klientów, ale szef powiedział, że to głupie, więc odpuściłem.
 Sprzedaż | Na spotkaniach mówi tylko dyrektor, reszta kiwa głową.
 Sprzedaż | Jestem zmęczona, robię swoje i nie wychylam się.
 Sprzedaż | Nie wiem, komu zgłosić, że marketing obiecuje klientom rzeczy, których nie mamy.
-IT | Na retro mówimy otwarcie o błędach i nikt nie jest za to karany.
-IT | Testujemy nowe rzeczy w piaskownicy, porażki omawiamy bez szukania winnych.
-IT | Nie zgłosiłem luki w uprawnieniach, bo zrobił ją kolega, a nie chcę mu robić problemów.
+Sprzedaż | Po przegranym przetargu rozmawialiśmy otwarcie, co poszło źle, i zmieniliśmy ofertę.
 Dział produkcji | Maszyna na linii 3 od tygodnia robi braki, ale mistrz mówi, żeby nie zatrzymywać, bo plan jest ważniejszy.
 Dział produkcji | Jak ktoś zatrzyma linię, to potem tłumaczy się na odprawie przed całą zmianą, więc nikt nie zatrzymuje.
 Dział produkcji | Mamy pomysł, jak skrócić przezbrojenie, ale technolog i tak robi po swojemu.
-Dział zakupów | Wiemy, że dostawca zawyża ceny, ale to znajomy dyrektora, więc nikt tego nie ruszy.
-Dział zakupów | Procedura przetargowa bywa obchodzona na koniec kwartału i wszyscy udają, że tego nie widzą.
-Dział zakupów | Proponowałam wspólne zamówienia z produkcją, ale nie ma nawet spotkania, na którym można to omówić.
+Dział produkcji | Nie mówię o zmęczeniu na nocnych zmianach, bo i tak nikt nie da zastępstwa.
+Dział produkcji | Zgłosiłem wyciek oleju i w ciągu godziny przyszedł utrzymaniowiec.
 Dział HR | Z rozmów wyjściowych wiemy, że ludzie odchodzą przez jednego kierownika, ale raport do zarządu jest wygładzony.
-Dział HR | Pracownicy zgłaszają nam mobbing nieformalnie i proszą, żeby nic z tym nie robić.
-Dział HR | Ankieta zaangażowania wychodzi co roku słabo i nic się z nią nie dzieje, więc przestaliśmy o nią walczyć.`;
+Dział HR | Pracownicy zgłaszają nam problemy w zespołach nieformalnie i proszą, żeby nic z tym nie robić.
+Dział HR | Ankieta zaangażowania wychodzi co roku słabo i nic się z nią nie dzieje, więc przestaliśmy o nią walczyć.
+Dział HR | Nie ma spotkania, na którym moglibyśmy omówić z produkcją, dlaczego rekrutacje trwają tak długo.
+Dział HR | Kiedy zgłosiłam błąd w liście płac, podziękowano mi i poprawiono procedurę.
+IT | Na retro mówimy otwarcie o błędach i nikt nie jest za to karany.
+IT | Nie zgłosiłem luki w uprawnieniach, bo zrobił ją kolega, a nie chcę mu robić problemów.`;
 
 const AREAS = { rotacja: "Rotacja i utrata wiedzy", bledy: "Błędy i compliance", wypalenie: "Wypalenie i pasywność", innowacje: "Innowacje i uczenie się", koordynacja: "Koordynacja i hierarchia", brak: "Poza obszarami" };
 const CAUSES = { lek: "Lęk przed konsekwencjami", bezsens: "Nic się nie zmieni", brak_kanalu: "Brak kanału lub czasu", lojalnosc: "Ochrona innych" };
 
+const MAX_ANSWERS = 25; // = LIMITS.maxAnswers in demo/src/app.js (a test keeps them equal)
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const pct = (x) => `${Math.round(100 * x)}%`;
@@ -138,7 +145,7 @@ function status(msg, err = false) {
 }
 
 function renderTeams(teams, min) {
-  const head = `<tr><th>Zespół</th><th>n</th><th>Milczy</th><th>Nasilenie 0–3</th><th>Główny obszar</th>${Object.values(CAUSES).map((c) => `<th>${c}</th>`).join("")}</tr>`;
+  const head = `<tr><th>Zespół</th><th>n</th><th>Opisuje przemilczenie</th><th>Ocena powagi wg Jev, średnia 0–3 (orientacyjnie)</th><th>Główny obszar</th>${Object.values(CAUSES).map((c) => `<th>${c}</th>`).join("")}</tr>`;
   const rows = teams.map((t) => {
     if (t.suppressed) return `<tr><td>${esc(t.team)}</td><td class="num">${t.n}</td><td colspan="${3 + Object.keys(CAUSES).length}" class="hint">ukryte: mniej niż ${min} odpowiedzi</td></tr>`;
     const top = Object.entries(t.areas).filter(([id]) => id !== "brak").sort((a, b) => b[1] - a[1])[0];
@@ -150,19 +157,21 @@ function renderTeams(teams, min) {
     return `<tr><td>${esc(t.team)}</td><td class="num">${t.n}</td><td class="num" style="${heat(t.silenceShare)}">${pct(t.silenceShare)}</td><td class="num" style="${heat(t.severity / 3)}">${t.severity.toFixed(1).replace(".", ",")}</td><td>${area}</td>${causes}</tr>`;
   }).join("");
   $("teams").innerHTML = `<thead>${head}</thead><tbody>${rows}</tbody>`;
-  $("teams-note").textContent = `Przyczyny: liczba odpowiedzi opisujących milczenie, w których Jev wskazał daną przyczynę (prawdopodobieństwo co najmniej 0,5). Jedna odpowiedź może mieć kilka przyczyn. Zespoły poniżej ${min} odpowiedzi są ukryte.`;
+  $("teams-note").textContent = `Przyczyny: liczba odpowiedzi opisujących przemilczenie, w których Jev wskazał daną przyczynę (prawdopodobieństwo co najmniej 0,5). Jedna odpowiedź może mieć kilka przyczyn. Ocena powagi to średnia z porządkowej oceny Jev 0–3: tylko orientacyjnie, to nie jest skala pomiarowa. Zespoły poniżej ${min} odpowiedzi są ukryte razem z ich odpowiedziami pojedynczo (próg anonimowości).`;
 }
 
 function renderCards(rows, answers) {
+  // The server returns null for answers of teams below the threshold.
   $("cards").innerHTML = rows.map((r, i) => {
     const a = answers[i];
+    if (!a) return "";
     const silent = a.milczenie.noul >= 0.5;
     const causes = Object.entries(CAUSES).filter(([id]) => a[`przyczyna_${id}`].noul >= 0.5).map(([, label]) => `<span class="chip on">${label}</span>`).join("");
     return `<article class="card">
       <div class="team">${esc(r.team)}</div>
       <p>${esc(r.text)}</p>
       <div class="chips">
-        <span class="chip ${silent ? "on" : "quiet"}">milczenie ${pct(a.milczenie.noul)}</span>
+        <span class="chip ${silent ? "on" : "quiet"}">przemilczenie: ${pct(a.milczenie.noul)} pewności</span>
         <span class="chip">${AREAS[a.obszar.choice] || a.obszar.choice}</span>
         ${silent ? causes : ""}
       </div>
@@ -173,7 +182,7 @@ function renderCards(rows, answers) {
 $("run").onclick = async () => {
   const rows = parse($("answers").value);
   if (!rows.length) return status("Wklej co najmniej jedną odpowiedź.", true);
-  if (rows.length > 20) return status("Maksymalnie 20 odpowiedzi naraz.", true);
+  if (rows.length > MAX_ANSWERS) return status(`Maksymalnie ${MAX_ANSWERS} odpowiedzi naraz.`, true);
   $("run").disabled = true;
   status(`Jev ocenia ${rows.length} odpowiedzi…`);
   try {

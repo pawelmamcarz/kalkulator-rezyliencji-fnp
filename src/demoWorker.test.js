@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
 import worker from "../demo/src/worker.js";
 import { LIMITS, handleMapa, validateDemoInput } from "../demo/src/app.js";
+import { MIN_TEAM_SIZE } from "../scripts/jev-diagnoza.lib.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const migrationsDir = path.join(root, "demo/migrations");
@@ -46,6 +47,8 @@ const rows = [
   { team: "A", text: "milczymy o błędach" },
   { team: "A", text: "milczę, bo kara" },
   { team: "A", text: "mówimy otwarcie" },
+  { team: "A", text: "milczymy przy szefie" },
+  { team: "A", text: "mówimy na retro" },
   { team: "B", text: "milczymy" },
 ];
 
@@ -67,6 +70,14 @@ describe("conference demo worker", () => {
     expect(calls).toHaveLength(rows.length * LIMITS.maxBatches);
   });
 
+  it("uses the project-wide team threshold and keeps the Jev-call ceiling per IP bounded", () => {
+    expect(MIN_TEAM_SIZE).toBe(5);
+    expect(LIMITS.minTeamSize).toBe(MIN_TEAM_SIZE);
+    // Before: 20 answers × 3 analyses = 60 Jev calls per IP per 10 min. Now 25 × 3 = 75.
+    expect(LIMITS.maxAnswers * LIMITS.maxBatches).toBe(75);
+    expect(LIMITS.rateWindowMs).toBe(10 * 60 * 1000);
+  });
+
   it("enforces input limits", () => {
     expect(validateDemoInput({ answers: rows })).toBeNull();
     expect(validateDemoInput({ answers: [] })).toMatch(/zespołu/);
@@ -81,9 +92,13 @@ describe("conference demo worker", () => {
     const data = await res.json();
     expect(data.answers).toHaveLength(rows.length);
     const a = data.teams.find((t) => t.team === "A");
-    expect(a).toMatchObject({ n: 3, silent: 2, suppressed: false });
-    expect(a.causes.lek).toBe(2);
+    expect(a).toMatchObject({ n: 5, silent: 3, suppressed: false });
+    expect(a.causes.lek).toBe(3);
+    expect(data.minTeamSize).toBe(5);
     expect(data.teams.find((t) => t.team === "B")).toEqual({ team: "B", n: 1, suppressed: true });
+    // Per-answer judgments of a suppressed team are withheld too.
+    expect(data.answers.slice(0, 5).every(Boolean)).toBe(true);
+    expect(data.answers[5]).toBeNull();
     expect(JSON.stringify(data)).not.toContain("milczymy o błędach");
   });
 
@@ -105,13 +120,34 @@ describe("conference demo worker", () => {
     expect((await worker.fetch(new Request("https://fnp.test/rotunda/api/mapa"), e, null, pass)).status).toBe(405);
   });
 
-  it("analiza page warns it is an unvalidated prototype and sends text to TypeSafe", () => {
+  it("analiza page warns it is an unvalidated demonstration and sends text to TypeSafe", () => {
     const html = readFileSync(path.join(root, "demo/public/rotunda/analiza/index.html"), "utf8");
     expect(html).toContain("Prototyp, niezwalidowany");
-    expect(html).toContain("nie pomiar");
+    expect(html).toContain("nie jest pomiarem zespołu");
+    expect(html).toContain("Nie wklejaj prawdziwych odpowiedzi");
     expect(html).toContain("TypeSafe");
+    expect(html).toContain(`mniej niż ${MIN_TEAM_SIZE} odpowiedziami`);
+    expect(html).toContain(`Do ${LIMITS.maxAnswers} odpowiedzi`);
+    expect(html).toContain(`const MAX_ANSWERS = ${LIMITS.maxAnswers};`);
+    expect(html).toContain("(orientacyjnie)");
+    expect(html).not.toContain("<th>Nasilenie");
+    expect(html).toContain('<a href="https://fnp.silence-tax.com/?konferencja">Kalkulator Rezyliencji FNP</a>');
     expect(html).toContain('name="robots" content="noindex"');
     expect(html).not.toMatch(/—|\bROI\b/);
+  });
+
+  it("built-in sample: most teams reach the threshold, one is deliberately below it", () => {
+    const html = readFileSync(path.join(root, "demo/public/rotunda/analiza/index.html"), "utf8");
+    const sample = html.match(/const SAMPLE = `([^`]*)`/)[1].split("\n").filter(Boolean);
+    expect(sample.length).toBeLessThanOrEqual(LIMITS.maxAnswers);
+    const sizes = {};
+    for (const line of sample) {
+      const team = line.slice(0, line.indexOf("|")).trim();
+      sizes[team] = (sizes[team] || 0) + 1;
+    }
+    const counts = Object.values(sizes);
+    expect(counts.filter((n) => n >= MIN_TEAM_SIZE).length).toBeGreaterThan(counts.length / 2);
+    expect(counts.filter((n) => n < MIN_TEAM_SIZE)).toHaveLength(1);
   });
 });
 
