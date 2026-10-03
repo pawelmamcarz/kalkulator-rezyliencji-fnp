@@ -13,7 +13,7 @@ Stan: 3 października 2026 r. Notatka jest tekstową wersją odpowiedzi wpisanyc
 
 ## Badanie i metodyka (pytania, które dotychczas były otwarte)
 
-**9. Pilotaż (150–300 osób).** Protokół walidacji zakłada fazę A na 15 firmach (co najmniej 50 FTE) z minimum 15 ważnymi odpowiedziami na firmę, docelowo 20, czyli około 225–300 osób. To mieści się w proponowanym zakresie. Zbieranie planowano na IV kwartał 2026 – III kwartał 2027, rejestrację wstępną na III kwartał 2026. **Do uzupełnienia:** status rejestracji, liczba zgłoszonych firm, firma pilotażowa i termin. Zał. 2.
+**9. Pilotaż (150–300 osób).** Protokół walidacji zakłada fazę A na 15 firmach (co najmniej 50 FTE) z minimum 15 ważnymi odpowiedziami na firmę, docelowo 20, czyli około 225–300 osób. To mieści się w proponowanym zakresie. Zbieranie planowano na IV kwartał 2026 – III kwartał 2027, rejestrację wstępną na III kwartał 2026. Stan na 3.10.2026: rejestracja wstępna jeszcze niezłożona (do zrobienia przed zbieraniem danych, harmonogram do aktualizacji); wstępnie dwie firmy zainteresowane; pilotaż: jedna firma z kontaktów Emilki i jedna z kontaktów autora (**do potwierdzenia, termin do ustalenia**). Zał. 2.
 
 **11. Zmienne skutku.** Osiem zmiennych: rotacja dobrowolna, błędy i defekty na 1000 godzin, zgłoszone pomysły, zaangażowanie (UWES-9), absencja, dzielenie się wiedzą (podskala milczenia uległego), narzut kierowniczy, poczucie bezpieczeństwa (PS-7). Większość pochodzi z rejestrów firmy, nie z badania Ipsos, więc spójność z raportem Ipsos sprawdzamy z psychometrą. Zał. 2 i 3.
 
