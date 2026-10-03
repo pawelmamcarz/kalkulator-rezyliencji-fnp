@@ -2,10 +2,10 @@ import { DEFAULT_MODEL, callSystemOne, noul, toApiQuestions } from "../../script
 import { AREAS, CAUSES, questions as diagnosisQuestions } from "../../scripts/jev-diagnoza.lib.js";
 
 // Rotunda booth game: „Czego nie powiedziałeś w tym miesiącu?”.
-// An anonymous map of the room, not a measurement of any company.
-// Answer text goes to TypeSafe for judgment; D1 keeps judgments, and text
-// only with consent, after the checks, until a moderator rejects it.
-// Nothing here logs answer text.
+// A map of what visitors chose to write, judged by Jev: not a measurement of
+// any person, room or company. Answer text goes to TypeSafe for judgment;
+// D1 keeps judgments, and text only with consent, after the checks, until a
+// moderator rejects it. Nothing here logs answer text.
 
 export const ROLES = {
   zarzad: "Zarząd",
@@ -36,6 +36,11 @@ export const CAUSE_IDS = Object.keys(CAUSES);
 
 export const ROTUNDA = {
   maxText: 200,
+  // Shared with the pages through `minN` in API responses; pages never hardcode them.
+  // No share or breakdown is published before `minShareN` entries (for the phone:
+  // `minShareN` entries describing withholding).
+  minShareN: 10,
+  // Role groups below this size are suppressed (see suppressRoles for the complement rule).
   minRoleSize: 3,
   maxQuotes: 12,
   // Per browser (client id), and a looser cap per IP for shared conference Wi-Fi.
@@ -45,7 +50,12 @@ export const ROTUNDA = {
   threshold: 0.5,
 };
 
-const BOOTH = "`odpowiedz` to anonimowe dokończenie zdania wpisane przez uczestnika konferencji na stoisku. Za zgodą autora może pojawić się jako cytat na wspólnym ekranie.";
+export const minN = () => ({ share: ROTUNDA.minShareN, role: ROTUNDA.minRoleSize });
+
+// Moderation secrets travel only in these request headers, never in a URL.
+export const MOD_HEADERS = { code: "X-Rotunda-Code", mod: "X-Rotunda-Mod" };
+
+const BOOTH = "`odpowiedz` to dokończenie zdania wpisane przez uczestnika konferencji na stoisku. Za zgodą autora może pojawić się jako cytat na wspólnym ekranie.";
 
 // Asked only when the visitor consents to a quote; both gate storing the text.
 export const QUOTE_CHECKS = {
@@ -130,13 +140,23 @@ export async function handleWpis(request, env, fetchImpl, now = () => new Date()
   const ipHash = await hashIp(request.headers.get("CF-Connecting-IP") ?? "unknown", env.DEMO_CODE);
   const clientHash = isClientId(body.client) ? await hashIp(`client:${body.client}`, env.DEMO_CODE) : null;
   const since = new Date(now().getTime() - ROTUNDA.rateWindowMs).toISOString();
-  const count = async (column, value) => (await env.DB.prepare(`SELECT COUNT(*) AS n FROM wpisy WHERE ${column} = ? AND created_at >= ?`)
-    .bind(value, since).first())?.n ?? 0;
+  // Reserve a slot before calling Jev, in one conditional INSERT, so concurrent
+  // requests cannot all pass a check-then-insert gap (same pattern as /api/mapa).
+  // Failed Jev calls keep their slot: the limit also caps TypeSafe spend.
   // Without a client id fall back to the strict per-IP limit.
-  const limited = clientHash
-    ? (await count("client_hash", clientHash)) >= ROTUNDA.rateLimit || (await count("ip_hash", ipHash)) >= ROTUNDA.ipRateLimit
-    : (await count("ip_hash", ipHash)) >= ROTUNDA.rateLimit;
-  if (limited) {
+  const reserved = await env.DB.prepare(clientHash
+    ? `INSERT INTO wpis_requests (id, ip_hash, client_hash, created_at)
+       SELECT ?, ?, ?, ?
+        WHERE (SELECT COUNT(*) FROM wpis_requests WHERE client_hash = ? AND created_at >= ?) < ?
+          AND (SELECT COUNT(*) FROM wpis_requests WHERE ip_hash = ? AND created_at >= ?) < ?`
+    : `INSERT INTO wpis_requests (id, ip_hash, client_hash, created_at)
+       SELECT ?, ?, ?, ?
+        WHERE (SELECT COUNT(*) FROM wpis_requests WHERE ip_hash = ? AND created_at >= ?) < ?`)
+    .bind(...(clientHash
+      ? [crypto.randomUUID(), ipHash, clientHash, now().toISOString(), clientHash, since, ROTUNDA.rateLimit, ipHash, since, ROTUNDA.ipRateLimit]
+      : [crypto.randomUUID(), ipHash, null, now().toISOString(), ipHash, since, ROTUNDA.rateLimit]))
+    .run();
+  if (!reserved?.meta?.changes) {
     return json({ error: "Za dużo wpisów z tego urządzenia. Spróbuj ponownie za kilka minut." }, 429);
   }
 
@@ -172,12 +192,13 @@ export async function handleWpis(request, env, fetchImpl, now = () => new Date()
        FROM wpisy`,
   ).bind(ROTUNDA.threshold, ROTUNDA.threshold, judgment.topCause).first();
   const silentCount = hall?.silent ?? 0;
-  const topCauseShare = judgment.topCause && silentCount ? (hall.same ?? 0) / silentCount : null;
+  // The share is among entries describing withholding, and only from minShareN of them.
+  const topCauseShare = judgment.topCause && silentCount >= ROTUNDA.minShareN ? (hall.same ?? 0) / silentCount : null;
 
   return json({
     id,
     judgment,
-    hall: { total: hall?.total ?? 0, topCauseShare },
+    hall: { total: hall?.total ?? 0, silent: silentCount, topCauseShare, minN: minN() },
     quote: storeText ? "pending" : "not_stored",
   });
 }
@@ -201,6 +222,22 @@ export function summarize(rows) {
   return group;
 }
 
+// Which role groups may be shown. A group below minRoleSize is suppressed. Because
+// `overall` is public, overall minus the shown groups equals the suppressed groups
+// combined; while that remainder is non-empty but smaller than minRoleSize, also
+// suppress the smallest shown group (complementary suppression), so no published
+// number can be narrowed down to fewer than minRoleSize entries by subtraction.
+export function suppressRoles(sizes, min = ROTUNDA.minRoleSize) {
+  const hidden = new Set(Object.keys(sizes).filter((r) => sizes[r] < min));
+  const remainder = () => [...hidden].reduce((sum, r) => sum + sizes[r], 0);
+  while (remainder() > 0 && remainder() < min) {
+    const shown = Object.keys(sizes).filter((r) => !hidden.has(r)).sort((a, b) => sizes[a] - sizes[b]);
+    if (!shown.length) break;
+    hidden.add(shown[0]);
+  }
+  return hidden;
+}
+
 export async function handleStan(_request, env, now = () => new Date()) {
   if (!env.DB) return json({ error: "Demo nie jest w pełni skonfigurowane." }, 503);
   const { results: rows = [] } = await env.DB.prepare("SELECT rola, silence, area, causes FROM wpisy").all();
@@ -209,41 +246,52 @@ export async function handleStan(_request, env, now = () => new Date()) {
       WHERE quote_status = 'approved' AND text IS NOT NULL
       ORDER BY moderated_at DESC, created_at DESC LIMIT ?`,
   ).bind(ROTUNDA.maxQuotes).all();
-  const overall = summarize(rows);
-  const byRole = Object.fromEntries(Object.keys(ROLES).map((rola) => {
-    const list = rows.filter((r) => r.rola === rola);
-    return [rola, list.length < ROTUNDA.minRoleSize ? { n: list.length, suppressed: true } : summarize(list)];
-  }));
+  const total = rows.length;
+  // Below minShareN entries nothing but counts is published: no share, no breakdown.
+  const ready = total >= ROTUNDA.minShareN;
+  const sizes = Object.fromEntries(Object.keys(ROLES).map((rola) => [rola, rows.filter((r) => r.rola === rola).length]));
+  const hidden = ready ? suppressRoles(sizes) : new Set(Object.keys(ROLES));
+  const byRole = Object.fromEntries(Object.keys(ROLES).map((rola) => [
+    rola,
+    hidden.has(rola) ? { n: sizes[rola], suppressed: true } : summarize(rows.filter((r) => r.rola === rola)),
+  ]));
+  const overall = ready ? summarize(rows) : { n: total, suppressed: true };
   return json({
-    total: overall.n,
-    silentShare: overall.n ? overall.silent / overall.n : 0,
+    total,
+    silentShare: ready ? overall.silent / total : null,
+    minN: minN(),
     updatedAt: now().toISOString(),
     overall,
     byRole,
-    quotes: quotes.map((q) => ({ id: q.id, text: q.text, rola: q.rola, topCause: q.top_cause ?? null })),
+    // A quote from a suppressed role group carries no role label.
+    quotes: quotes.map((q) => ({
+      id: q.id, text: q.text, rola: hidden.has(q.rola) ? null : q.rola, topCause: q.top_cause ?? null,
+    })),
   });
 }
 
+// Secrets in a URL can end up in request logs, so the query-string form is refused
+// outright (before any check) and only the two headers are read.
+const SECRET_PARAMS = ["code", "mod", "kod"];
+
 export async function handleModeracja(request, env, now = () => new Date()) {
   const isPost = request.method === "POST";
-  let code;
-  let mod;
-  let body;
-  if (isPost) {
-    body = await readBody(request);
-    if (body === undefined) return json({ error: "Niepoprawny JSON." }, 400);
-    code = body?.code;
-    mod = body?.mod;
-  } else {
-    const url = new URL(request.url);
-    code = url.searchParams.get("code") ?? undefined;
-    mod = url.searchParams.get("mod") ?? undefined;
+  const params = new URL(request.url).searchParams;
+  if (SECRET_PARAMS.some((p) => params.has(p))) {
+    return json({ error: "Kody moderatora przekazuj w nagłówkach, nie w adresie." }, 400);
   }
+  const code = request.headers.get(MOD_HEADERS.code) ?? undefined;
+  const mod = request.headers.get(MOD_HEADERS.mod) ?? undefined;
   // Evaluate both so timing does not reveal which code was wrong.
   const okCode = sameCode(code, env.DEMO_CODE);
   const okMod = sameCode(mod, env.MOD_CODE);
   if (!okCode || !okMod) return json({ error: "Niepoprawny kod moderatora." }, 403);
   if (!env.DB) return json({ error: "Demo nie jest w pełni skonfigurowane." }, 503);
+  let body;
+  if (isPost) {
+    body = await readBody(request);
+    if (body === undefined || body === null || typeof body !== "object") return json({ error: "Niepoprawny JSON." }, 400);
+  }
 
   if (!isPost) {
     const { results = [] } = await env.DB.prepare(

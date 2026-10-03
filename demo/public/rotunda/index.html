@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
+<link rel="icon" href="data:,">
 <meta name="theme-color" content="#fcfcfa">
 <title>Rotunda FNP</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -97,7 +98,7 @@ textarea::placeholder { color: var(--mute); font-style: italic; }
 #result.on { display: block; }
 #form.off { display: none; }
 .verdict { border: 2px solid var(--rule); background: var(--card); padding: 22px 18px; box-shadow: 6px 6px 0 var(--grid); margin-top: 14px; }
-.verdict .word { font-family: var(--mono); text-transform: uppercase; font-size: 34px; line-height: 1.05; letter-spacing: -.01em; }
+.verdict .word { font-family: var(--mono); text-transform: uppercase; font-size: 24px; line-height: 1.15; letter-spacing: -.01em; }
 .verdict.silent .word { color: var(--accent); }
 .verdict.voice .word { color: var(--stamp); }
 .verdict .score { font-family: var(--mono); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--mute); margin-top: 6px; }
@@ -105,7 +106,14 @@ textarea::placeholder { color: var(--mute); font-style: italic; }
 .verdict .cause small { display: block; font: 11px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--stamp); margin-bottom: 4px; font-weight: 400; }
 .verdict .hall { font-family: var(--mono); font-size: 13px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--grid); }
 .verdict .hall b { font-size: 20px; color: var(--ink); }
-.andon { margin-top: 18px; font-size: 16px; border-left: 3px solid var(--accent); padding-left: 12px; font-style: italic; }
+.verdict .hall.wait b { font-size: inherit; }
+.andon { margin-top: 18px; font-size: 16px; border-left: 3px solid var(--accent); padding-left: 12px; }
+.andon small { display: block; font: 11px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--mute); margin-bottom: 4px; font-style: normal; }
+.teaser { margin-top: 26px; border: 1px solid var(--rule); background: var(--card); padding: 16px; }
+.teaser h2 { font-family: var(--mono); text-transform: uppercase; font-size: 15px; letter-spacing: .04em; margin-bottom: 8px; }
+.teaser p { font-size: 15px; margin-bottom: 8px; }
+.teaser .not { color: var(--mute); }
+.teaser .btn { margin-top: 6px; }
 .quote-status { font-family: var(--mono); font-size: 12px; color: var(--mute); margin-top: 16px; line-height: 1.5; }
 .actions { display: grid; gap: 10px; margin-top: 22px; }
 .contact { font-size: 14px; color: var(--mute); margin-top: 16px; }
@@ -116,13 +124,13 @@ footer a { color: var(--ink); }
 </head>
 <body>
 <main>
-  <div class="micro"><b>Prototyp FNP</b> · anonimowo</div>
+  <div class="micro"><b>Prototyp FNP</b> · bez imienia i logowania</div>
   <h1>Czego nie powiedziałeś w tym miesiącu?</h1>
   <aside class="desktop-access">
     <div class="micro">Otwórz na telefonie</div>
     <img src="qr.png" width="180" height="180" alt="Kod QR do formularza Rotundy">
-    <p><a href="/rotunda/ekran/">Mapa sali na żywo</a></p>
-    <p><a href="/rotunda/analiza/">Heatmapa odpowiedzi zespołów</a></p>
+    <p><a href="/rotunda/ekran/">Mapa wpisów na żywo</a></p>
+    <p><a href="/rotunda/analiza/">Heatmapa: demonstracja na wymyślonych odpowiedziach</a></p>
     <p><a href="qr.png" download="rotunda-qr.png">Pobierz kod QR (PNG)</a></p>
   </aside>
 
@@ -140,7 +148,7 @@ footer a { color: var(--ink); }
 
     <div class="step"><label for="text">2 · Dokończ zdanie</label><span class="count" id="counter">0 / 200</span></div>
     <textarea id="text" maxlength="200" rows="3" placeholder="…dokończ zdanie własnymi słowami" autocomplete="off" autocapitalize="sentences" enterkeyhint="done"></textarea>
-    <p class="preview" id="preview" aria-live="polite"><span class="lbl">Tak przeczyta to sala</span><span class="st" id="preview-start"></span> <span id="preview-text">…</span></p>
+    <p class="preview" id="preview" aria-live="polite"><span class="lbl">Całe zdanie, które oceni Jev</span><span class="st" id="preview-start"></span> <span id="preview-text">…</span></p>
 
     <div class="step"><span>3 · Kim jesteś w firmie</span></div>
     <div class="roles" id="roles" role="group" aria-label="Rola w firmie">
@@ -157,7 +165,7 @@ footer a { color: var(--ink); }
     <button type="button" class="send" id="send"><span class="spin" aria-hidden="true"></span><span id="send-label">Wyślij i zobacz ocenę</span></button>
     <div id="status" role="status" aria-live="polite"></div>
 
-    <p class="privacy">To prototyp, nie pomiar. Tekst ocenia usługa TypeSafe (Jev). Bez zgody zapisujemy tylko ocenę, nie treść. Nie wpisuj nazwisk ani nazw firm.</p>
+    <p class="privacy">To prototyp, nie pomiar. Treść zawsze trafia do oceny przez usługę TypeSafe (Jev), także bez zgody na cytat. Zapisujemy ocenę, rolę, kartę, czas oraz skrót adresu IP i identyfikatora przeglądarki (do limitu wpisów); treść tylko za zgodą i po moderacji. Wpisy przechowujemy, dopóki organizator ich nie usunie. Nie wpisuj nazwisk ani nazw firm. Usunięcie cytatu z ekranu: napisz na <a href="mailto:zapraszamy@noweprzestrzenie.pl">zapraszamy@noweprzestrzenie.pl</a> i podaj jego treść.</p>
   </section>
 
   <section id="result" aria-live="polite">
@@ -167,17 +175,22 @@ footer a { color: var(--ink); }
       <div class="cause" id="cause"></div>
       <div class="hall" id="hall" hidden></div>
     </div>
-    <p class="andon" id="andon"></p>
+    <p class="andon"><small>Analogia, nie miara</small>W fabryce Toyoty w Georgetown (Kentucky) pracownicy pociągali linkę andon, która sygnalizuje problem na linii, około 2000 razy w tygodniu, a w jednej z fabryk Forda dwa razy (BBC News, „The triumph of lean production”, luty 2007). Ile takich zgłoszeń słychać u Ciebie w tygodniu?</p>
     <p class="quote-status" id="quote-status"></p>
     <div class="actions">
       <button type="button" id="again">Jeszcze raz</button>
-      <a class="btn ghost" href="https://fnp.silence-tax.com/?konferencja">Policz skalę w swojej firmie</a>
     </div>
+    <section class="teaser" aria-labelledby="teaser-h">
+      <h2 id="teaser-h">Kalkulator Rezyliencji FNP</h2>
+      <p>Kalkulator pokazuje roczny scenariusz skali kosztów związanych z rotacją, późno zgłaszanymi błędami i wypaleniem. Liczy go z pięciu liczb o Twojej firmie i Twojego szacunku klimatu.</p>
+      <p class="not">Kalkulator nie korzysta z wyniku tej gry.</p>
+      <a class="btn ghost" href="https://fnp.silence-tax.com/?konferencja">Otwórz Kalkulator Rezyliencji FNP</a>
+    </section>
     <p class="contact">Diagnoza FNP: <a href="mailto:zapraszamy@noweprzestrzenie.pl">zapraszamy@noweprzestrzenie.pl</a></p>
     <p class="privacy">Ocena Jev to sygnał do rozmowy, nie pomiar bezpieczeństwa psychologicznego. Prototyp, niezwalidowany na prawdziwych odpowiedziach.</p>
   </section>
 
-  <footer>Fundacja Nowe Przestrzenie × Paweł Mamcarz · silnik: Jev (TypeSafe)</footer>
+  <footer>Fundacja Nowe Przestrzenie × Paweł Mamcarz · silnik: Jev (TypeSafe) · prototyp</footer>
 </main>
 <script>
 const STARTERS = [
@@ -296,27 +309,34 @@ function renderResult(data) {
   const v = $("verdict");
   v.classList.toggle("silent", silent);
   v.classList.toggle("voice", !silent);
-  $("verdict-word").textContent = silent ? "Milczenie" : "Głos usłyszany";
-  $("verdict-score").textContent = typeof j.silence === "number" ? `Jev: milczenie ${pct(j.silence)} · szacunek, nie pomiar` : "Ocena Jev · szacunek, nie pomiar";
+  $("verdict-word").textContent = silent ? "Zdanie opisuje przemilczenie" : "Zdanie nie opisuje przemilczenia";
+  $("verdict-score").textContent = typeof j.silence === "number"
+    ? `Jev: ${pct(j.silence)} pewności, że zdanie opisuje przemilczenie · szacunek, nie pomiar`
+    : "Ocena Jev · szacunek, nie pomiar";
 
   const cause = silent && j.topCause && CAUSES[j.topCause];
   $("cause").innerHTML = cause
-    ? `<small>Główna przyczyna</small>${cause}`
-    : `<small>Przyczyna</small>${silent ? "Jev nie wskazał wyraźnej przyczyny" : "Zdanie brzmi jak głos, który dotarł do adresata"}`;
+    ? `<small>Główna przyczyna wskazana w zdaniu</small>${cause}`
+    : `<small>Przyczyna</small>${silent ? "Jev nie wskazał wyraźnej przyczyny" : "Według Jev zdanie nie mówi o wstrzymaniu się z czymś, więc nie szukamy przyczyny."}`;
 
-  const total = Number(hall.total) || 0;
+  // Share among entries describing withholding; the server sends it only from minN.share of them.
+  const silentN = Number(hall.silent) || 0;
   const share = typeof hall.topCauseShare === "number" ? hall.topCauseShare : null;
-  const showHall = cause && total >= 5 && share !== null;
-  $("hall").hidden = !showHall;
-  if (showHall) $("hall").innerHTML = `Tak odpowiada <b>${pct(share)}</b> sali (n = ${total})`;
-
-  $("andon").textContent = silent
-    ? "W fabryce Toyoty w Georgetown pracownicy pociągali linkę andon ok. 2000 razy w tygodniu (BBC, 2007). Twoje zdanie to jedno niepociągnięcie."
-    : "W fabryce Toyoty w Georgetown pracownicy pociągali linkę andon ok. 2000 razy w tygodniu (BBC, 2007). Twoje zdanie to jedno pociągnięcie. Ile ich jest u Ciebie w tygodniu?";
+  const need = hall.minN && Number(hall.minN.share);
+  const h = $("hall");
+  h.hidden = !cause;
+  h.classList.toggle("wait", share === null);
+  if (cause && share !== null) {
+    h.innerHTML = `Tę samą główną przyczynę ma <b>${pct(share)}</b> wpisów opisujących przemilczenie (n = ${silentN}). To wpisy osób, które zechciały coś napisać; jedna osoba mogła napisać kilka.`;
+  } else if (cause) {
+    h.textContent = need
+      ? `Porównanie z innymi wpisami pokażemy od ${need} wpisów opisujących przemilczenie (teraz: ${silentN}).`
+      : "Za mało wpisów, by pokazać porównanie.";
+  }
 
   $("quote-status").textContent = data.quote === "pending"
     ? "Twoje zdanie czeka na moderację. Jeśli przejdzie, pojawi się anonimowo na ekranie."
-    : "Treść nie została zapisana. Zapisaliśmy tylko ocenę Jev, bez tekstu.";
+    : "Treść nie została zapisana. Zapisaliśmy ocenę Jev, rolę, kartę i czas, bez tekstu.";
 
   $("form").classList.add("off");
   $("result").classList.add("on");

@@ -1,14 +1,16 @@
 import { DEFAULT_MODEL, callSystemOne } from "../../scripts/jev-client.js";
-import { aggregate, buildRequest, mapLimit, validateResponses } from "../../scripts/jev-diagnoza.lib.js";
+import { MIN_TEAM_SIZE, aggregate, buildRequest, mapLimit, validateResponses } from "../../scripts/jev-diagnoza.lib.js";
 import { handleModeracja, handleStan, handleWpis, hashIp, json, sameCode } from "./rotunda.js";
 
 export { sameCode };
 
-// Conference demo, paste tool (/rotunda/analiza/): booth visitors paste answers, Jev judges each one,
-// code aggregates per team. Answer text is never stored or logged here;
-// it is sent to TypeSafe for judgment only.
+// Conference demo, paste tool (/rotunda/analiza/): a demonstration on made-up answers,
+// not a measurement of any team. Jev judges each answer, code aggregates per team.
+// Answer text is never stored or logged here; it is sent to TypeSafe for judgment only.
 
-export const LIMITS = { maxAnswers: 20, maxText: 500, maxTeam: 40, minTeamSize: 3, maxBatches: 3, rateWindowMs: 10 * 60 * 1000 };
+// Team threshold is the project-wide anonymity threshold (MIN_TEAM_SIZE = 5).
+// Jev-call ceiling per IP: maxAnswers × maxBatches per rateWindowMs = 25 × 3 = 75 per 10 min.
+export const LIMITS = { maxAnswers: 25, maxText: 500, maxTeam: 40, minTeamSize: MIN_TEAM_SIZE, maxBatches: 3, rateWindowMs: 10 * 60 * 1000 };
 
 export function validateDemoInput(body) {
   if (!body || typeof body !== "object") return "Niepoprawne zapytanie.";
@@ -44,7 +46,15 @@ export async function handleMapa(request, env, fetchImpl, now = () => new Date()
       const res = await callSystemOne({ apiKey: env.TYPESAFE_API_KEY, ...buildRequest(row, DEFAULT_MODEL), fetchImpl });
       return res.answers;
     });
-    return json({ teams: aggregate(rows, answers, { minTeamSize: LIMITS.minTeamSize }), answers, minTeamSize: LIMITS.minTeamSize });
+    const teams = aggregate(rows, answers, { minTeamSize: LIMITS.minTeamSize });
+    // Per-answer judgments of a suppressed team are withheld too, or the table's suppression would be moot.
+    const hiddenTeams = new Set(teams.filter((t) => t.suppressed).map((t) => t.team));
+    return json({
+      teams,
+      answers: answers.map((a, i) => (hiddenTeams.has(rows[i].team) ? null : a)),
+      minTeamSize: LIMITS.minTeamSize,
+      maxAnswers: LIMITS.maxAnswers,
+    });
   } catch (error) {
     return json({ error: "Jev nie odpowiedział. Spróbuj ponownie za chwilę.", status: error.status ?? null }, 502);
   }

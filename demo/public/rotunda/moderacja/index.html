@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
+<link rel="icon" href="data:,">
 <title>Rotunda FNP: moderacja</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Source+Serif+4:wght@400;600&display=swap">
@@ -72,7 +73,7 @@ footer a { color: var(--ink); }
 </head>
 <body>
 <main>
-  <div class="micro">Fundacja Nowe Przestrzenie × Paweł Mamcarz · Rotunda</div>
+  <div class="micro">Fundacja Nowe Przestrzenie × Paweł Mamcarz · Rotunda · prototyp</div>
   <h1>Moderacja <span class="count" id="count" data-zero="true" aria-label="liczba wpisów do moderacji">0</span></h1>
 
   <div class="rule">
@@ -94,7 +95,8 @@ footer a { color: var(--ink); }
   <div class="list" id="list" hidden></div>
 
   <footer>
-    Ekran: <a href="../ekran/">/rotunda/ekran/</a> · Telefon: <a href="../">/rotunda/</a>
+    Ekran: <a href="../ekran/">/rotunda/ekran/</a> · Telefon: <a href="../">/rotunda/</a><br>
+    Fundacja Nowe Przestrzenie × Paweł Mamcarz · silnik: Jev (TypeSafe) · prototyp
   </footer>
 </main>
 <div class="toast" id="toast" role="alert"></div>
@@ -114,9 +116,15 @@ const store = {
   del(k) { try { localStorage.removeItem(k); } catch { /* ignore */ } },
 };
 
-const params = new URLSearchParams(location.search);
+// Bootstrap once from the link, preferably the fragment (#kod=…&mod=…), which the
+// browser never sends to the server; ?kod=…&mod=… still works for old links.
+// The codes are then kept in localStorage and stripped from the address bar.
+const params = new URLSearchParams(location.hash.slice(1) || location.search);
+const fromLink = params.has("kod") || params.has("mod");
 let kod = (params.get("kod") || store.get(KEY_KOD) || "").trim();
 let mod = (params.get("mod") || store.get(KEY_MOD) || "").trim();
+// Codes go to the API only in these headers, never in a URL.
+const authHeaders = () => ({ "X-Rotunda-Code": kod, "X-Rotunda-Mod": mod });
 
 let pending = [];
 let hidden = new Set();       // ids removed optimistically, waiting for the server
@@ -227,8 +235,8 @@ async function decide(id, decision) {
   try {
     const res = await fetch(API, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: kod, mod, id, decision }),
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify({ id, decision }),
     });
     let data = {};
     try { data = await res.json(); } catch { /* body optional */ }
@@ -248,8 +256,7 @@ async function poll() {
   if (polling || !kod || !mod) return;
   polling = true;
   try {
-    const url = `${API}?code=${encodeURIComponent(kod)}&mod=${encodeURIComponent(mod)}`;
-    const res = await fetch(url, { cache: "no-store" });
+    const res = await fetch(API, { cache: "no-store", headers: authHeaders() });
     let data = {};
     try { data = await res.json(); } catch { /* handled below */ }
     if (res.status === 403) {
@@ -332,9 +339,8 @@ document.addEventListener("visibilitychange", () => {
 });
 
 // Keep codes out of the address bar once remembered.
-if (params.has("mod") && kod && mod) {
-  store.set(KEY_KOD, kod);
-  store.set(KEY_MOD, mod);
+if (fromLink) {
+  if (kod && mod) { store.set(KEY_KOD, kod); store.set(KEY_MOD, mod); }
   try { history.replaceState(null, "", location.pathname); } catch { /* ignore */ }
 }
 
