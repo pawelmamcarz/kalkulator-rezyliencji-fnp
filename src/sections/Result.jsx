@@ -1,30 +1,48 @@
 import { fmtCurrencyCompact as fmt } from "../logic/format.js";
 import LedgerSectionHeading from "../components/LedgerSectionHeading.jsx";
+import { CHANNEL_COPY, splitChannel } from "../channels.js";
+
+const percent = (value) => new Intl.NumberFormat("pl-PL", { style: "percent", maximumFractionDigits: 1 }).format(value);
 
 export default function Result({ valuation, params }) {
   const total = valuation?.total;
-  const ofRevenue = total && params.revenue > 0 ? total.base / params.revenue : null;
-  const pct = ofRevenue === null ? null : new Intl.NumberFormat("pl-PL", { style: "percent", maximumFractionDigits: 1 }).format(ofRevenue);
+  const money = (value) => fmt(value, "PLN", "pl");
   const profit = params.revenue - params.costs;
+  const channels = (valuation?.channels || []).map((channel) => ({ id: channel.id, copy: CHANNEL_COPY[channel.id], split: splitChannel(channel) }));
+  const inSum = channels.filter((channel) => channel.split.inSum);
+  const outside = channels.filter((channel) => !channel.split.inSum);
   return (
-    <section id="wynik" style={{ padding: "40px 0" }}>
-      <LedgerSectionHeading num="KROK 2" title="Roczny scenariusz kosztu" kicker="Tryb ostrożny" />
-      <div role="status" aria-live="polite" aria-atomic="true" style={{ padding: "24px 0", borderBottom: "1px solid var(--l-rule)" }}>
+    <section id="wynik" style={{ padding: "28px 0" }}>
+      <LedgerSectionHeading num="Krok 2" title="Wynik" />
+      <div role="status" aria-live="polite" aria-atomic="true" style={{ padding: "18px 0", borderBottom: "1px solid var(--l-rule)" }}>
         {total ? <>
-          <p className="micro">Wariant bazowy</p>
-          <p style={{ fontFamily: "var(--mono)", fontSize: "clamp(30px, 5vw, 48px)", fontWeight: 700 }}>{fmt(total.base, "PLN", "pl")}</p>
-          <p>{pct !== null ? `${pct} zadeklarowanych przychodów rocznych.` : "Przychody wynoszą 0 zł, więc udziału procentowego nie obliczamy."}</p>
-          <p style={{ marginTop: 14, fontFamily: "var(--mono)" }}>Zakres P10–P90: {fmt(total.low, "PLN", "pl")} – {fmt(total.high, "PLN", "pl")}</p>
-        </> : <p>Uzupełnij lub popraw oznaczone pola w danych organizacji. Wynik będzie dostępny po wpisaniu poprawnych wartości.</p>}
+          <p className="micro">Roczny scenariusz kosztów</p>
+          <p style={{ fontFamily: "var(--mono)", fontSize: "clamp(30px, 5vw, 48px)", fontWeight: 700, lineHeight: 1.2 }}>{money(total.base)}</p>
+          <p style={{ fontFamily: "var(--mono)", marginTop: 6 }}>Zakres: od {money(total.low)} do {money(total.high)}</p>
+          <p style={{ marginTop: 10 }}>
+            {params.revenue > 0 ? `To ${percent(total.base / params.revenue)} rocznych przychodów.` : "Przychody wynoszą 0 zł, więc nie liczymy udziału w przychodach."}
+            {profit > 0 && params.revenue > 0 && ` To także ${percent(total.base / profit)} różnicy między przychodami a kosztami (${money(profit)}).`}
+          </p>
+          {profit <= 0 && <p style={{ marginTop: 8 }}>Koszty nie są niższe od przychodów, więc nie porównujemy wyniku z marżą.</p>}
+          {params.safety === 100 && <p style={{ marginTop: 8 }}>Przy 100/100 nadwyżka wynosi zero z definicji modelu. Nie oznacza to braku błędów, odejść ani wypalenia.</p>}
+          {params.avgSalary === 0 && <p style={{ marginTop: 8 }}>Przy płacy 0 zł koszty rotacji i wypalenia są zerowe. Błędy mają oddzielne koszty zdarzeń, więc nadal mogą zwiększać wynik.</p>}
+        </> : <p>Uzupełnij lub popraw oznaczone pola w danych firmy. Wtedy pokażemy wynik.</p>}
       </div>
-      {total && <div style={{ marginTop: 18, maxWidth: 820 }}>
-        <p>To nadwyżka względem modelowego klimatu 100/100, po korektach i zsumowaniu trzech obszarów. Zakres obejmuje środkowe 80% symulowanych kosztów. Nie jest przedziałem ufności z badania ani dolną i górną granicą możliwej straty.</p>
-        {params.safety === 100 && <p style={{ marginTop: 12 }}>Przy 100/100 nadwyżka wynosi zero z definicji modelu. Nie oznacza to braku błędów, odejść ani wypalenia.</p>}
-        {params.avgSalary === 0 && <p style={{ marginTop: 12 }}>Przy płacy 0 zł koszty rotacji i wypalenia są zerowe. Błędy mają oddzielne koszty zdarzeń, więc nadal mogą zwiększać wynik.</p>}
-        {profit > 0 && params.revenue > 0 && <p style={{ marginTop: 12 }}>Zadeklarowana różnica przychodów i kosztów to {fmt(profit, "PLN", "pl")}. Scenariusz odpowiada {new Intl.NumberFormat("pl-PL", { style: "percent", maximumFractionDigits: 1 }).format(total.base / profit)} tej różnicy. To porównanie skali, kwoty nie należy ponownie odejmować od zysku.</p>}
-        {profit <= 0 && <p style={{ marginTop: 12 }}>Koszty są równe przychodom lub od nich wyższe. Nie przeliczamy scenariusza na udział w dodatnim zysku.</p>}
-        <p style={{ marginTop: 12 }}><a href="#metodologia">Sprawdź założenia i sposób liczenia</a> lub <a href="#dane">zmień dane</a>.</p>
-      </div>}
+      {total && <>
+        <h3 style={{ fontSize: 18, margin: "18px 0 4px" }}>Co składa się na kwotę</h3>
+        <ul style={{ listStyle: "none" }}>
+          {inSum.map(({ id, copy, split }) => (
+            <li key={id} style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: "2px 16px", padding: "10px 0", borderBottom: "1px solid var(--l-grid)" }}>
+              <span style={{ flex: "1 1 280px", minWidth: 0 }}><strong>{copy?.title}.</strong> {copy?.short}</span>
+              <span style={{ fontFamily: "var(--mono)", fontWeight: 700, whiteSpace: "nowrap" }}>{money(split.headline)}</span>
+            </li>
+          ))}
+        </ul>
+        <p style={{ marginTop: 10 }}>Poza sumą, bez kwoty: {outside.map(({ copy }) => copy?.title).join(" oraz ")}.</p>
+        <p style={{ marginTop: 14, maxWidth: 820, borderLeft: "3px solid var(--l-accent)", paddingLeft: 14 }}>
+          To scenariusz przy założeniach autora, a nie wycena księgowa, prognoza, dowód przyczyny ani obietnica oszczędności. <a href="#jak-liczymy">Jak to liczymy</a>
+        </p>
+      </>}
     </section>
   );
 }

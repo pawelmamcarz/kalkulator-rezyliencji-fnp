@@ -1,17 +1,18 @@
-import LedgerSectionHeading from "../components/LedgerSectionHeading.jsx";
 import { FNP_PROBLEM_DIST } from "../fnpModel.js";
+import { PL_TURNOVER_RATE_GUS } from "../logic/constants.js";
 
 const number = (value) => value.toLocaleString("pl-PL");
+const referencePct = `${number(PL_TURNOVER_RATE_GUS * 100)}%`;
 const problemLabels = { trivial: "Drobne", medium: "Średnie", major: "Poważne", critical: "Krytyczne" };
 
 export default function Methodology() {
   return (
-    <section id="metodologia" className="methodology" style={{ padding: "40px 0" }}>
-      <LedgerSectionHeading num="METODA" title="Założenia autora i badania" kicker="Co wiemy, co przyjmujemy" />
-      <p style={{ marginTop: 22 }}><strong>Prior to założenie przyjęte przed sprawdzeniem modelu na danych danej firmy.</strong> W tym kalkulatorze oznacza wartość startową lub regułę przeliczenia, a nie wynik estymacji bayesowskiej. Badania pomagają określić mechanizm i kierunek zależności. Nie wyznaczają automatycznie kosztu w złotych.</p>
+    <section id="metodologia" aria-labelledby="metodologia-title">
+      <h3 id="metodologia-title">Założenia autora i badania: co wiemy, co przyjmujemy</h3>
+      <p><strong>Prior to założenie przyjęte przed sprawdzeniem modelu na danych danej firmy.</strong> W tym kalkulatorze oznacza wartość startową lub regułę przeliczenia, a nie wynik estymacji bayesowskiej. Badania pomagają określić mechanizm i kierunek zależności. Nie wyznaczają automatycznie kosztu w złotych.</p>
       <p>Wartości wybrano do ostrożnego scenariusza: ograniczono częstość najpoważniejszych zdarzeń, spłaszczono reakcję modelu na klimat i wyłączono z sumy obszary o słabszym uzasadnieniu. Nie ma danych, które dowodziłyby, że dokładnie te współczynniki są właściwe dla każdej firmy. Warunek wyniku do 5% przychodu dla przykładowej organizacji jest kontrolą skali przyjętą w projekcie, nie ustaleniem badawczym.</p>
 
-      <h3>Jak dane stają się kwotą</h3>
+      <h4>Jak dane stają się kwotą</h4>
       <ol>
         <li>Klimat 0–100 jest przekształcany przez łagodne krzywe w modelowe wskaźniki, np. obawy przed błędami i stabilności zespołu. To nie są zmierzone odsetki pracowników.</li>
         <li>Wskaźniki łączą się z etatami i roczną płacą albo z częstością i kosztem zdarzeń.</li>
@@ -23,13 +24,15 @@ export default function Methodology() {
         <summary>Najważniejsze priory: wartości, powody i dane do zmiany</summary>
         <dl className="prior-list">
           <dt>Reakcja na klimat: mnożnik stromości 0,30</dt>
-          <dd>Zmniejsza gwałtowność reakcji na jeden punkt suwaka. Kształt krzywych, ich środki i przesunięcie wskaźników lęku o 4 punkty są autorskie. Końce krzywych w silniku mają status „private-source-pending”: przypisano je do Ipsos × FNP, lecz audyt tabel nie jest zakończony. Nie traktujemy ich jako zweryfikowanej kalibracji. Do zmiany potrzebne są porównywalne pomiary klimatu i zachowań w wielu zespołach, także w środku skali.</dd>
-          <dt>Rotacja: 50% sygnału klimatu i 50% nadwyżki ponad 14,8%</dt>
-          <dd>Połączenie ogranicza zależność wyniku od samego suwaka. Deklarowana rotacja ogranicza modelową liczbę odejść. Punkt 14,8% jest zapisany w silniku jako odniesienie GUS; dokładna tabela i porównywalność definicji wymagają potwierdzenia. To nie jest aktualizowana na bieżąco średnia. Wagi 50/50 są autorskie. Zmieniaj odniesienie dopiero po uzgodnieniu definicji odejść, okresu i sektora.</dd>
+          <dd>Zmniejsza gwałtowność reakcji na jeden punkt suwaka. Wartość 0,30 jest wyborem autora, nie pomiarem: domyślny mnożnik silnika spłaszczono tak, aby sumy zbliżyły się do wartości z rozprawy autora, a wariant ostrożny obniża go o kolejne 25%. Kształt krzywych, ich środki i przesunięcie wskaźników lęku o 4 punkty są autorskie. Końce krzywych w silniku mają status „private-source-pending”: przypisano je do Ipsos × FNP, lecz audyt tabel nie jest zakończony. Nie traktujemy ich jako zweryfikowanej kalibracji. Do zmiany potrzebne są porównywalne pomiary klimatu i zachowań w wielu zespołach, także w środku skali.</dd>
+          <dt>Rotacja: połowa sygnału klimatu, deklaracja jako górny limit</dt>
+          <dd>Model bierze połowę dodatkowych odejść wynikających z klimatu. Zadeklarowana rotacja jest tylko górnym limitem: niższa deklaracja zmniejsza kwotę, wyższa jej nie zwiększa. Rotacji powyżej punktu odniesienia nie przypisujemy milczeniu. Waga 0,5 jest autorska. Punkt {referencePct} model przyjmuje wyłącznie wtedy, gdy nie podano stopy rotacji. Pochodzenie tej wartości jest nieustalone: wcześniejsze wersje przypisywały ją GUS, ale w publikacjach GUS jej nie znaleziono. GUS podaje współczynnik zwolnień obejmujący wszystkie odejścia, nie tylko dobrowolne: 19,7% w 2023 r. i 18,7% w 2024 r.</dd>
           <dt>Zastąpienie pracownika: 0,75 rocznej płacy brutto</dt>
-          <dd>To umowny koszt rekrutacji, wdrożenia i przejściowej utraty zdolności do pracy, równoważny dziewięciu miesięcznym płacom. Nie pochodzi z jednego badania. Zastąp go udokumentowanym kosztem obsadzenia stanowiska i wdrożenia, podzielonym przez płacę roczną. Nie sumuj drugi raz tych samych godzin ani utraty wiedzy. Dodatkowe wzmocnienie związane z blokowaniem głosu ma współczynnik 0,10, również autorski.</dd>
+          <dd>To umowny koszt rekrutacji, wdrożenia i przejściowej utraty zdolności do pracy, równoważny dziewięciu miesięcznym płacom. To założenie autora; SHRM podaje szeroki zakres 50–200% rocznego wynagrodzenia, zależnie od stanowiska. Zastąp go udokumentowanym kosztem obsadzenia stanowiska i wdrożenia, podzielonym przez płacę roczną. Nie sumuj drugi raz tych samych godzin ani utraty wiedzy. Dodatkowe wzmocnienie związane z blokowaniem głosu ma współczynnik 0,10, również autorski.</dd>
           <dt>Wypalenie: współczynnik kosztu 0,25 i korekta nakładania 0,75</dt>
           <dd>Pierwszy przelicza modelowy wskaźnik wypalenia na część płac, drugi zmniejsza koszt o 25%, bo część konsekwencji może już znajdować się w rotacji. Żaden nie oznacza, że pracownik z wypaleniem pracuje o 25% mniej. W wersji FNP wyłączono dodatkowe wzmocnienie rotacji przez wypalenie. Korekty można zastąpić analizą rozłącznych kosztów absencji, zastępstw i zakłóceń pracy na danych zbiorczych, z uwzględnieniem innych przyczyn.</dd>
+          <dt>Rodzaje milczenia i powiązania między obszarami</dt>
+          <dd>Wagi milczenia obronnego, rezygnacyjnego i prospołecznego są autorskie. W wersji FNP są znormalizowane: przy równym udziale trzech rodzajów mnożnik wynosi 1, więc wagi przesuwają koszt zależnie od modelowego składu milczenia, a nie podnoszą całej sumy. Wyłączono też dodatkowe wzmocnienie błędów przez kulturę obwiniania, bo obwinianie już zwiększa modelową skłonność do ukrywania błędów.</dd>
           <dt>Milczenie automatyczne: 1 + 0,04 × modelowy udział</dt>
           <dd>Założenie o utrwalaniu milczenia zwiększa wyliczone koszty o mniej niż 4%. Współczynnik 0,04 i udział są autorskie, nie zmierzone w firmie. Model przyjmuje też stałą autonomię 0,5. Aby zmienić ten mnożnik, potrzebne są powtarzane obserwacje utrzymywania się milczenia i jego skutków. W analizie wrażliwości można ustawić współczynnik korekty na 0 (czyli mnożnik na 1) i porównać wynik. Nie dodajemy obok niego kolejnego kosztu „mrożenia”.</dd>
         </dl>
@@ -55,8 +58,8 @@ export default function Methodology() {
         <p>Rozrzut i zależność to priory autora. Zakres nie uwzględnia wszystkich niepewności: nie losuje oceny klimatu, kształtu krzywych ani definicji kosztów. Zmiana przychodu nie zmienia kosztu ani pasma, tylko procent przychodów. Weryfikacja rozrzutu wymaga danych o kosztach w wielu okresach lub organizacjach.</p>
       </details>
 
-      <section id="efekt-mrozenia" style={{ marginTop: 32 }}>
-        <h3>Efekt mrożenia: co wnoszą publikacje z 2016 r.</h3>
+      <section id="efekt-mrozenia" aria-labelledby="efekt-mrozenia-title">
+        <h4 id="efekt-mrozenia-title">Efekt mrożenia: co wnoszą publikacje z 2016 r.</h4>
         <p>Obawa przed konsekwencjami może powstrzymywać pracownika przed zgłoszeniem problemu. Tutaj „efekt mrożenia” opisuje ten mechanizm autocenzury. Sam brak zgłoszeń nie pozwala rozstrzygnąć, czy zespół nie ma problemów, czy boi się o nich mówić.</p>
         <p><a href="https://pubmed.ncbi.nlm.nih.gov/26727209/">Kiewitz i współautorzy (2016), „Suffering in silence”</a>, w trzech badaniach analizowali związek nadużyć przełożonych, strachu i milczenia obronnego. Silniej odczuwany klimat strachu nasilał związek strachu z milczeniem. Badanie wspiera opis mechanizmu, nie dostarcza przelicznika strat w złotych.</p>
         <p><a href="https://doi.org/10.18290/rpsych.2016.19.1-3pl">Adamska (2016), „Milczenie i przełamywanie milczenia w organizacji”</a>, odróżnia milczenie wynikające ze społecznie podzielanych przekonań od milczenia jako świadomej taktyki. To praca koncepcyjna, nie estymacja uniwersalnej wielkości efektu mrożenia.</p>
@@ -64,7 +67,7 @@ export default function Methodology() {
         <p className="field-hint">Pojęcie pojawia się też u <a href="https://btlj.org/data/articles2016/vol31/31_1/0117_0182_Penney_ChillingEffects_WEB.pdf">Penneya (2016), „Chilling Effects: Online Surveillance and Wikipedia Use”</a>. Badanie dotyczyło korzystania z Wikipedii w kontekście ujawnień nadzoru państwowego. Nie przenosimy jego wielkości efektu na pracowników ani koszty firmy.</p>
       </section>
 
-      <h3>Jak modyfikować priory odpowiedzialnie</h3>
+      <h4>Jak modyfikować priory odpowiedzialnie</h4>
       <ol>
         <li><strong>Najpierw dane wejściowe.</strong> Ustal rok, zakres organizacji, FTE, płacę roczną i definicję rotacji. Zbierz oceny pracowników; jedna ocena kierownictwa nie zastępuje pomiaru.</li>
         <li><strong>Jedno założenie naraz.</strong> Porównaj wartość obecną, niższą i wyższą. Zaproponowane wartości muszą mieć opis źródła, jednostki, zakresu i niepewności. Nie dopasowuj ich do oczekiwanego wyniku finansowego.</li>
