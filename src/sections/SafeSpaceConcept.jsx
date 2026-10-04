@@ -1,4 +1,3 @@
-import useMediaQuery, { MOBILE_QUERY } from "../hooks/useMediaQuery.js";
 
 const PATH = [
   {
@@ -45,37 +44,36 @@ const AREAS = [
 
 // Body of the collapsed "Model Safe Space" block inside "Co dalej".
 export default function SafeSpaceConcept() {
-  const isMobile = useMediaQuery(MOBILE_QUERY);
 
   return (
-    <div style={{ marginTop: 12 }}>
-      <p style={{ maxWidth: 800, lineHeight: 1.6 }}>
+    <div style={{ marginTop: 16 }}>
+      <p>
         Wynik kalkulatora otwiera rozmowę o skali problemu. Model Safe Space porządkuje pytania o to, co utrudnia ludziom zabieranie głosu i na jakim poziomie warto działać. Sam wynik nie dobiera interwencji.
       </p>
 
-      <ol style={{ listStyle: "none", display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))", gap: 0, marginTop: 20, borderTop: "2px solid var(--l-rule)", borderBottom: "1px solid var(--l-rule)" }}>
+      <ol style={{ listStyle: "none", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 20, marginTop: 20 }}>
         {PATH.map((step, index) => (
-          <li key={step.name} style={{ padding: "16px 18px 18px", borderLeft: !isMobile && index > 0 ? "1px solid var(--l-grid)" : "none", borderTop: isMobile && index > 0 ? "1px solid var(--l-grid)" : "none" }}>
-            <div style={{ fontFamily: "var(--mono)", color: "var(--l-stamp)", fontSize: 12, marginBottom: 8 }}>{index + 1}. {step.name}</div>
-            <p style={{ lineHeight: 1.5 }}>{step.text}</p>
+          <li key={step.name}>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>{index + 1}. {step.name}</div>
+            <p>{step.text}</p>
           </li>
         ))}
       </ol>
 
-      <h3 style={{ fontFamily: "var(--mono)", fontSize: isMobile ? 19 : 22, margin: "26px 0 8px" }}>Pięć warunków bezpiecznej pracy</h3>
-      <p style={{ maxWidth: 800, color: "var(--l-mute)", marginBottom: 16 }}>
+      <h3 style={{ fontSize: "var(--t-l)", margin: "28px 0 8px" }}>Pięć warunków bezpiecznej pracy</h3>
+      <p className="muted" style={{ marginBottom: 16 }}>
         To obszary diagnozy i programu Safe Space. Są odrębne od pięciu kategorii kosztów w wyniku.
       </p>
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 24 }}>
         {AREAS.map((area) => (
-          <article key={area.name} style={{ background: "#fff", border: "1px solid var(--l-rule)", borderLeft: "4px solid var(--l-stamp)", padding: isMobile ? 16 : 20 }}>
-            <h4 style={{ fontFamily: "var(--mono)", fontSize: 18, lineHeight: 1.3, marginBottom: 8 }}>{area.name}</h4>
-            <p style={{ fontWeight: 600, marginBottom: 10 }}>{area.question}</p>
-            <p style={{ color: "var(--l-ink-2)", lineHeight: 1.5 }}>{area.example}</p>
+          <article key={area.name} style={{ paddingLeft: 16, borderLeft: "4px solid var(--safe)" }}>
+            <h4 style={{ marginBottom: 4 }}>{area.name}</h4>
+            <p style={{ marginBottom: 6 }}>{area.question}</p>
+            <p className="muted">{area.example}</p>
           </article>
         ))}
       </div>
-      <p style={{ maxWidth: 820, borderLeft: "3px solid var(--l-accent)", paddingLeft: 16, marginTop: 20, lineHeight: 1.55 }}>
+      <p style={{ marginTop: 20 }}>
         Najpierw edukacja buduje wspólny język. Potem zmianę dobiera się do wyniku diagnozy, na poziomie organizacji, lidera lub zespołu. Przykłady pochodzą z programu Safe Space, a ich skuteczność w danej firmie wymaga osobnej oceny.
       </p>
     </div>

@@ -14,6 +14,24 @@ export function share(value) {
   return PERCENT.format(value);
 }
 
+// "od 2,39 do 3,96 mln zł": the unit is written once when both ends share it.
+export function moneyRange(low, high) {
+  const a = money(low), b = money(high);
+  const unit = (text) => text.replace(/^[\d\s,\u00a0]+/, "");
+  const ua = unit(a);
+  return ua && ua === unit(b) ? `od ${a.slice(0, a.length - ua.length).trim()} do ${b}` : `od ${a} do ${b}`;
+}
+
+// Short form under the slider: "10 punktów niżej: X. 10 wyżej: Y."
+export function sensitivityShort(sensitivity) {
+  if (!sensitivity) return "";
+  const { step, lower, higher } = sensitivity;
+  const parts = [];
+  if (lower) parts.push(`${step} punktów niżej: ${money(lower.total)}.`);
+  if (higher) parts.push(lower ? `${step} wyżej: ${money(higher.total)}.` : `${step} punktów wyżej: ${money(higher.total)}.`);
+  return parts.join(" ");
+}
+
 // Plain Polish number (decimal comma), e.g. a declared turnover of 14.5.
 export const plNumber = (value) => Number(value).toLocaleString("pl-PL", { maximumFractionDigits: 2 });
 

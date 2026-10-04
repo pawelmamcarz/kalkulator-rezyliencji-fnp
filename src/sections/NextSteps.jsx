@@ -1,30 +1,25 @@
-import LedgerSectionHeading from "../components/LedgerSectionHeading.jsx";
 import SafeSpaceConcept from "./SafeSpaceConcept.jsx";
 
 export default function NextSteps({ ready, params, up }) {
   return (
-    <section id="dalej" style={{ padding: "28px 0" }}>
-      <LedgerSectionHeading num="Krok 3" title="Co dalej" />
-      <p style={{ marginTop: 14, maxWidth: 820 }}>
-        Liczba pokazuje skalę, ale nie mówi, co zmienić. To sprawdza diagnoza Fundacji Nowe Przestrzenie: co w Waszych zespołach utrudnia mówienie o problemach. Działania dobiera się dopiero po diagnozie.
+    <section id="dalej" className="b-next block" aria-labelledby="dalej-tytul">
+      <h2 id="dalej-tytul">Co dalej</h2>
+      <p style={{ marginTop: 8 }}>
+        Liczba pokazuje skalę, ale nie mówi, co zmienić. To sprawdza diagnoza Fundacji Nowe Przestrzenie, a działania dobiera się dopiero po niej.
       </p>
-      <div style={{ marginTop: 18 }}>
-        <a className="fnp-btn" href="mailto:zapraszamy@noweprzestrzenie.pl?subject=Diagnoza%20FNP">
-          Napisz do Fundacji
-        </a>
-        <p className="field-hint" style={{ marginTop: 6 }}>Otworzy się Twoja poczta. Nie dołączamy danych z kalkulatora.</p>
+      <div className="next-actions">
+        <a className="btn primary" href="mailto:zapraszamy@noweprzestrzenie.pl?subject=Diagnoza%20FNP">Napisz do Fundacji</a>
       </div>
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: 12, marginTop: 18 }}>
+      <p className="field-hint" style={{ marginTop: 8 }}>Otworzy się Twoja poczta. Nie dołączamy danych z kalkulatora.</p>
+      <div className="print-row">
         <div style={{ flex: "1 1 220px", maxWidth: 360, minWidth: 0 }}>
           <label htmlFor="companyName" className="field-hint" style={{ display: "block" }}>Nazwa firmy na wydruku (opcjonalnie)</label>
           <input id="companyName" className="num-input" type="text" maxLength={120} value={params.companyName} autoComplete="off"
-            onChange={(event) => up("companyName", event.target.value)} style={{ fontSize: 16, fontWeight: 400, marginTop: 4, padding: "0 10px", border: "1px solid var(--l-rule)", background: "#fff" }} />
+            onChange={(event) => up("companyName", event.target.value)} style={{ marginTop: 4 }} />
         </div>
-        <button type="button" className="fnp-btn ghost" disabled={!ready} onClick={() => window.print()}>
-          Drukuj lub zapisz PDF
-        </button>
+        <button type="button" className="btn" disabled={!ready} onClick={() => window.print()}>Drukuj lub zapisz PDF</button>
       </div>
-      <details id="safe-space" className="fold" style={{ marginTop: 22 }}>
+      <details id="safe-space" className="fold" style={{ marginTop: 24 }}>
         <summary>Model Safe Space: od wyniku do działań</summary>
         <SafeSpaceConcept />
       </details>
