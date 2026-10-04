@@ -24,7 +24,7 @@ Stan: 4 października 2026 r. Notatka jest tekstową wersją odpowiedzi wpisanyc
 ## Stan prac i model
 
 **14. Co dziś istnieje i do kogo należą prawa?**
-Działające narzędzie webowe, silnik z testami (283 na 4.10.2026) i dokumentacja priorów. Autor: Paweł Mamcarz, kod na licencji MIT, silnik Silence Tax również jest autora. Pełna wersja na silence-tax.com (13 modułów, katalog interwencji z optymalizatorem, materiały akademickie) to osobne repozytorium, także MIT. MIT pozwala każdemu kopiować kod, także komercyjnie, co dotyczy zdania Marty o „podawaniu na tacy”. Nie da się skopiować z repozytorium: neutralności Fundacji, benchmarku Ipsos, danych z diagnoz. **Ustalenie autora z Fundacją:** autor przekazuje Fundacji kalkulator wraz ze swoją pracą w zamian za udział w zyskach i wspiera sprzedaż. **Do spisania z prawnikiem:** forma przekazania praw i licencja.
+Działające narzędzie webowe, silnik z testami (325 na 5.10.2026) i dokumentacja priorów. Autor: Paweł Mamcarz, kod na licencji MIT, silnik Silence Tax również jest autora. Pełna wersja na silence-tax.com (13 modułów, katalog interwencji z optymalizatorem, materiały akademickie) to osobne repozytorium, także MIT. MIT pozwala każdemu kopiować kod, także komercyjnie, co dotyczy zdania Marty o „podawaniu na tacy”. Nie da się skopiować z repozytorium: neutralności Fundacji, benchmarku Ipsos, danych z diagnoz. **Ustalenie autora z Fundacją:** autor przekazuje Fundacji kalkulator wraz ze swoją pracą w zamian za udział w zyskach i wspiera sprzedaż. **Do spisania z prawnikiem:** forma przekazania praw i licencja.
 
 **15. Co dokładnie liczy?**
 Jeden poziom: scenariusz skali kosztu milczenia dla jednej firmy. Wejścia: przychód, koszty, FTE, średnia roczna płaca, rotacja, klimat (suwak, szacunek własny). Wynik: kwota z pasmem P10–P90 dla trzech obszarów w sumie i dwóch poza sumą. Poziomu „związek w firmie” (BP a rotacja na danych firmy) nie ma. Autor zaznaczył w briefie: „Mogę dodać”.
@@ -96,10 +96,20 @@ Rekomendowany werdykt z perspektywy Kalkulatora: **„idziemy dalej z warunkami�
 
 ## Aktualizacja z 4 października 2026 r.
 
-- **Model.** Przegląd logiki wykrył i naprawił cztery błędy niezależne od danych (opis: Zał. 1, sekcja 7). Firma przykładowa: 3,12 mln zł zamiast 3,32 mln zł. Silnik jest teraz jeden, wspólny dla kalkulatora FNP i silence-tax.com.
+- **Model.** Przegląd logiki wykrył i naprawił cztery błędy niezależne od danych (opis: Zał. 1, sekcja 7). Firma przykładowa: 3,15 mln zł (przed przeglądami 3,32 mln zł). Silnik jest teraz jeden, wspólny dla kalkulatora FNP i silence-tax.com.
 - **Źródła.** Sprawdzono 46 cytowanych źródeł. 14,8% rotacji nie jest liczbą GUS. Na stronie zostały tylko liczby Ipsos potwierdzone publicznie (71%, 42%, 85% wobec 59%); 52%, 72%, 68%, 73% i średnia 41 wymagają pełnego raportu lub tabel Ipsos.
 - **Skale (pyt. 10).** UWES jest bezpłatna tylko do celów akademickich; płatna usługa wymaga umowy z autorami. Dla skal Edmondson, Van Dyne i Teppera nie znaleziono jawnej licencji. To nie jest porada prawna.
-- **Protokół (pyt. 23).** Kryterium obalenia wymaga przeliczenia: jego uzasadnienie statystyczne było błędne (przy około 60 firmach wartość krytyczna korelacji to około 0,21, nie 0,15).
+- **Protokół (pyt. 23).** Kryterium obalenia wymaga przeliczenia: jego uzasadnienie statystyczne było błędne (przy 61 firmach wartość krytyczna korelacji to około 0,25 (poziom istotności 0,05) albo 0,21 (poziom 0,10), nie 0,15; 15 firm daje moc około 19%).
 - **Strona.** Główny przepływ kalkulatora ma 434 słowa zamiast ponad 2300; metodologia jest w zwijanej sekcji „Jak to liczymy”.
 - **Rotunda.** Opisy dotyczą zdań, a nie osób czy sali; próg zespołu w heatmapie to 5; kalkulator jest pokazany jako osobna zajawka i nie korzysta z wyników gry.
 - **Jedna strona na spotkanie:** `docs/dla-fundacji/Stan-wiedzy-na-spotkanie.docx` oraz `docs/STAN-WIEDZY.md`.
+
+## Aktualizacja z 5 października 2026 r.
+
+- **Rotacja.** Składnik rotacji jest teraz proporcjonalny do rotacji podanej przez firmę: model przypisuje klimatowi część jej odejść (przy klimacie 41 około 29% według krzywej modelu) i wlicza ją z wagą 0,5. Rotacja jest polem obowiązkowym, a krajowe odniesienie 14,8% zniknęło z modelu (to nie był wskaźnik krajowy GUS). Odpowiedź 20 w części „bez podanej rotacji” jest nieaktualna: bez rotacji model nie liczy.
+- **Drugi przegląd logiki.** Niezależny audyt nie znalazł błędu zmieniającego liczbę w domyślnym przepływie strony. Naprawiono 11 usterek w narzędziu wsadowym, w wywołaniach z kodu i w pełnym kalkulatorze. Firma przykładowa: 3,15 mln zł, od 2,39 do 3,96 mln zł.
+- **Wrażliwość na klimat.** Pod wynikiem strona pokazuje kwotę przy klimacie o 10 punktów niższym i wyższym (3,79 i 2,52 mln zł dla firmy przykładowej).
+- **Krzywe a raport Ipsos.** Przy obecnym ustawieniu model nie dochodzi do wartości końcowych przypisanych raportowi (stabilność zespołu 66–78% zamiast 59–85%, wypalenie 39–21% zamiast 51–8%). Audyt na surowych danych jest zaplanowany w `docs/walidacja/`.
+- **Przeliczniki na złote a badania.** Koszt zastąpienia pracownika (0,75 rocznej płacy) jest powyżej median z badań z opisaną metodą (około 0,2 dla typowego stanowiska); koszt wypalenia też jest powyżej tego, co wspierają słabe dowody. Wartości nie zmieniono: w płatnej diagnozie mają je zastąpić dane firmy.
+- **Walidacja.** 15 firm wystarcza do opisu, nie do potwierdzenia; wniosek potwierdzający wymaga około 61–85 firm zależnie od siły związku.
+- **Narzędzie wsadowe.** Wymaga kolumny z rotacją, odrzuca zapis „90.000” w plikach ze średnikiem, a porównanie dwóch pomiarów wymaga etykiet w formacie daty.
