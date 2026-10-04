@@ -1,59 +1,29 @@
-import useMediaQuery, { MOBILE_QUERY } from "../hooks/useMediaQuery.js";
-
 export default function Footer() {
-  const isMobile = useMediaQuery(MOBILE_QUERY);
   return (
-    <footer style={{ padding: "48px 0 60px", borderTop: "2px solid var(--l-rule)", marginTop: 24 }}>
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.4fr 1fr 1fr", gap: isMobile ? 24 : 40 }}>
+    <footer className="site-footer">
+      <div className="footer-grid">
         <div>
-          <div style={{ fontFamily: "var(--mono)", fontWeight: 700, textTransform: "uppercase" }}>
-            Kalkulator Rezyliencji FNP
-          </div>
-          <p style={{ fontFamily: "var(--serif)", fontSize: 14, lineHeight: 1.5, marginTop: 12, maxWidth: 480 }}>
+          <h2>Kalkulator Rezyliencji FNP</h2>
+          <p style={{ marginTop: 8 }}>
             Współpraca Fundacji Nowe Przestrzenie i Pawła Mamcarza, eksperta Fundacji i współtwórcy kalkulatora.
             Silnik obliczeniowy: Silence Tax (MIT).
           </p>
         </div>
         <div>
-          <div className="micro">Kontakt</div>
-          <div style={{ marginTop: 8, fontFamily: "var(--mono)", fontSize: 13 }}>
-            <a href="mailto:zapraszamy@noweprzestrzenie.pl" style={{ color: "var(--l-ink)" }}>zapraszamy@noweprzestrzenie.pl</a>
-          </div>
-          <div style={{ marginTop: 6, fontFamily: "var(--mono)", fontSize: 11, color: "var(--l-mute)" }}>
-            Metodologia: <a href="mailto:pawel@mamcarz.com" style={{ color: "var(--l-mute)" }}>pawel@mamcarz.com</a>
-          </div>
-          <div style={{ marginTop: 6, fontFamily: "var(--mono)", fontSize: 11, color: "var(--l-mute)" }}>
-            ORCID 0009-0002-3274-4226
-          </div>
+          <h2>Kontakt</h2>
+          <p style={{ marginTop: 8 }}><a href="mailto:zapraszamy@noweprzestrzenie.pl">zapraszamy@noweprzestrzenie.pl</a></p>
+          <p className="muted" style={{ marginTop: 4 }}>Metodologia: <a href="mailto:pawel@mamcarz.com">pawel@mamcarz.com</a></p>
+          <p className="muted num" style={{ marginTop: 4 }}>ORCID 0009-0002-3274-4226</p>
         </div>
         <div>
-          <div className="micro">Silnik</div>
-          <div style={{ marginTop: 8, fontFamily: "var(--mono)", fontSize: 13 }}>
-            <a href="https://github.com/pawelmamcarz/kalkulator-rezyliencji-fnp" style={{ color: "var(--l-ink)" }}>
-              Kod kalkulatora i założenia
-            </a>
-          </div>
-          <div style={{ marginTop: 6, fontFamily: "var(--mono)", fontSize: 11, color: "var(--l-mute)" }}>
-            obliczenia w przeglądarce · MIT
-          </div>
+          <h2>Silnik</h2>
+          <p style={{ marginTop: 8 }}><a href="https://github.com/pawelmamcarz/kalkulator-rezyliencji-fnp">Kod kalkulatora i założenia</a></p>
+          <p className="muted" style={{ marginTop: 4 }}>Obliczenia w przeglądarce, licencja MIT.</p>
         </div>
       </div>
-      <div style={{
-        marginTop: 28,
-        paddingTop: 16,
-        borderTop: "1px solid var(--l-rule)",
-        fontFamily: "var(--mono)",
-        fontSize: 10,
-        letterSpacing: "0.16em",
-        textTransform: "uppercase",
-        color: "var(--l-mute)",
-        display: "flex",
-        justifyContent: "space-between",
-        gap: 12,
-        flexWrap: "wrap",
-      }}>
+      <div className="footer-line">
         <span>Fundacja Nowe Przestrzenie × Paweł Mamcarz · silnik: Silence Tax</span>
-        <span>wersja beta · {__APP_VERSION__}</span>
+        <span className="num">wersja beta {__APP_VERSION__}</span>
       </div>
     </footer>
   );

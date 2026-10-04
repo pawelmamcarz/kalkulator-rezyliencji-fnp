@@ -60,7 +60,7 @@ Node-only batch run of the public model for the validation study: `npm run fnp:w
 
 - Polish diacritics required.
 - No em-dashes. Comma, colon, period, or en-dash for ranges.
-- Inline styles + tokens in `src/index.css`.
+- UI work follows `docs/DESIGN.md` (binding): role tokens, type scale and layout classes live in `src/index.css`; components use those classes, with inline styles only for one-off spacing.
 - Verify UI in the browser (desktop and mobile) before calling a visual change done.
 
 ## Version control

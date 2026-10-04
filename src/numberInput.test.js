@@ -16,12 +16,20 @@ describe("number fields: parse", () => {
   it("returns '' for an empty field and NaN for other text, so validation shows the field error", () => {
     expect(parseNumberInput("")).toBe("");
     expect(parseNumberInput("   ")).toBe("");
-    for (const text of ["100.000.000", "1e8", "abc", "1,5", "12a"]) {
+    for (const text of ["1e8", "abc", "1,5", "12a", "1.00.000", "100.000 000", "100.000,5", "1.5", "100.0000", ".100.000", "100.000."]) {
       expect(parseNumberInput(text)).toBeNaN();
       expect(validateInputs({ ...DEFAULT_PARAMS, revenue: parseNumberInput(text) }).revenue).toBe("Wpisz skończoną liczbę.");
     }
     expect(validateInputs({ ...DEFAULT_PARAMS, revenue: parseNumberInput("") }).revenue).toBe("Uzupełnij pole, aby obliczyć wynik.");
     expect(validateInputs({ ...DEFAULT_PARAMS, revenue: parseNumberInput("-5") }).revenue).toMatch(/^Wpisz liczbę od 0/);
+  });
+
+  it("accepts thousands grouped with dots, spaces or non-breaking spaces", () => {
+    for (const text of ["100.000.000", " 100.000.000 ", "100 000 000", `100${NB}000${NB}000`]) {
+      expect(parseNumberInput(text)).toBe(100_000_000);
+    }
+    expect(parseNumberInput("2.500.000.000")).toBe(2_500_000_000);
+    expect(parseNumberInput("90.000")).toBe(90_000);
   });
 
   it("percent fields take a decimal comma or point", () => {
@@ -42,7 +50,8 @@ describe("number fields: format", () => {
   });
 
   it("keeps text that does not parse unchanged", () => {
-    expect(formatTyped("100.000.000")).toBe("100.000.000");
+    expect(formatTyped("1.00.000")).toBe("1.00.000");
+    expect(show(formatTyped("100.000.000"))).toBe("100 000 000");
     expect(formatTyped("1e8")).toBe("1e8");
   });
 
@@ -64,7 +73,12 @@ describe("number fields: format", () => {
     expect(show(deleted.text)).toBe("2 590 000 000");
     expect(show(deleted.text.slice(0, deleted.caret))).toBe("2 590");
     expect(deleted.value).toBe(2_590_000_000);
-    // pasted with dots: unchanged, caret where it was
-    expect(reformat("100.000.000", 11)).toMatchObject({ text: "100.000.000", caret: 11 });
+    // pasted with dots: regrouped with spaces, caret still at the end
+    const pasted = reformat("100.000.000", 11);
+    expect(show(pasted.text)).toBe("100 000 000");
+    expect(pasted).toMatchObject({ caret: 11, value: 100_000_000 });
+    // malformed dots: unchanged, caret where it was, field error
+    expect(reformat("1.00.000", 8)).toMatchObject({ text: "1.00.000", caret: 8 });
+    expect(reformat("1.00.000", 8).value).toBeNaN();
   });
 });

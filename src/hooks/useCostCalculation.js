@@ -8,6 +8,8 @@ export function useCostCalculation(params) {
   return useMemo(() => {
     if (!valid) return null;
     const input = { revenue, employees, avgSalary, turnoverPct, safety };
-    return { ...computeFnpAnalysis(input), sensitivity: computeFnpClimateSensitivity(input) };
+    // The same firm at climate 0: the full-size outline of the disc.
+    const worst = computeFnpAnalysis({ ...input, safety: 0 }).costs.totalTax;
+    return { ...computeFnpAnalysis(input), sensitivity: computeFnpClimateSensitivity(input), worst };
   }, [valid, revenue, employees, avgSalary, turnoverPct, safety]);
 }

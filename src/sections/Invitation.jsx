@@ -8,20 +8,20 @@ export default function Invitation({ params, valuation, sensitivity }) {
   return (
     <div className="invitation-print-only">
       <p>Fundacja Nowe Przestrzenie × Paweł Mamcarz</p>
-      <h2 style={{ fontFamily: "var(--mono)", fontSize: 24, margin: "12px 0" }}>Kalkulator Rezyliencji FNP</h2>
+      <h2>Kalkulator Rezyliencji FNP</h2>
       <p style={{ overflowWrap: "anywhere" }}>{name}</p>
       <p>Scenariusz roczny · tryb ostrożny · szacunek własny, nie pomiar</p>
       {total ? <>
-        <p style={{ fontSize: 22, fontWeight: 700, marginTop: 16 }}>Wariant bazowy: {money(total.base)}</p>
+        <p className="print-amount">Wariant bazowy: {money(total.base)}</p>
         <p>Zakres P10–P90: {money(total.low)} – {money(total.high)}</p>
         {sensitivitySentence(sensitivity) && <p>{sensitivitySentence(sensitivity)}</p>}
         <p>{params.revenue > 0 ? `${share(total.base / params.revenue)} przychodów` : "Udział w przychodach: nie obliczamy przy 0 zł"}</p>
-        <h3 style={{ marginTop: 18 }}>Dane wejściowe</h3>
+        <h3>Dane wejściowe</h3>
         <ul style={{ paddingLeft: 18 }}>
           {INPUT_FIELDS.map((field) => <li key={field.key}>{field.label}: {Number(params[field.key]).toLocaleString("pl-PL")} {field.unit}</li>)}
           <li>Klimat organizacji: {params.safety}/100, szacunek własny</li>
         </ul>
-        <h3 style={{ marginTop: 18 }}>Obszary</h3>
+        <h3>Obszary</h3>
         <ol style={{ paddingLeft: 18 }}>
           {valuation.channels.map((channel) => {
             const split = splitChannel(channel);
