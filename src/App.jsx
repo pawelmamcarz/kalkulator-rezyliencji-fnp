@@ -12,6 +12,7 @@ import ConferenceBanner from "./sections/ConferenceBanner.jsx";
 import HowWeCalculate from "./sections/HowWeCalculate.jsx";
 import Footer from "./sections/Footer.jsx";
 import Invitation from "./sections/Invitation.jsx";
+import LiveBar from "./components/LiveBar.jsx";
 
 export default function App() {
   const { params, up, reset, errors } = useParamsState();
@@ -25,6 +26,7 @@ export default function App() {
   return (
     <div className="l-board l-gutters" style={{ maxWidth: 1100, margin: "0 auto", padding: isMobile ? "0 16px" : "0 48px" }}>
       <a className="skip-link" href="#dane">Przejdź do danych firmy</a>
+      <LiveBar total={analysis?.valuation?.total} safety={params.safety} />
       <Header />
       <main>
         <Hero />
