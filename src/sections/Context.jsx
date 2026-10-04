@@ -20,7 +20,7 @@ export default function Context() {
         ))}
       </div>
       <p className="field-hint" style={{ marginTop: 16, maxWidth: 820 }}>
-        Źródło: raport Fundacji Nowe Przestrzenie i Ipsos „Ile kosztuje milczenie? Niewidzialny podatek od braku bezpieczeństwa psychologicznego w polskim biznesie” (2026): badanie CAWI na 1000 osobach pracujących w zespołach co najmniej pięcioosobowych w sektorze prywatnym. Liczby w brzmieniu ze strony raportu i relacji prasowych; brzmienie pytań sprawdzimy w pełnym raporcie. To wyniki badania opinii, pokazane jako polski kontekst. Kalkulator nie przelicza tych odsetków na złote i nie jest na nich skalibrowany.
+        Źródło: raport Fundacji Nowe Przestrzenie i Ipsos „Ile kosztuje milczenie? Niewidzialny podatek od braku bezpieczeństwa psychologicznego w polskim biznesie” (2026): badanie CAWI na 1000 osobach pracujących w zespołach co najmniej pięcioosobowych w sektorze prywatnym. Liczby w brzmieniu ze strony raportu i relacji prasowych; brzmienie pytań sprawdzimy w pełnym raporcie. To wyniki badania opinii, pokazane jako polski kontekst. Część liczb z raportu posłużyła jako wartości końcowe krzywych modelu (stabilność zespołu 59% i 85%, wypalenie 51%); tych wartości nie sprawdzono jeszcze w tabelach badania. Kwoty kalkulatora nie są skalibrowane na tym badaniu.
       </p>
     </section>
   );

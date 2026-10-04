@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { computeFnpAnalysis } from "./fnpModel.js";
 import {
-  STATUS_BELOW_N, STATUS_OK, computeRow, mapScore, parseArgs, sha256, validateRows,
+  STATUS_BELOW_N, STATUS_OK, computeRow, mapScore, parseArgs, parseNumber, sha256, validateRows,
 } from "../scripts/fnp-wsad.lib.js";
 import { main } from "../scripts/fnp-wsad.js";
 
@@ -52,10 +52,10 @@ describe("FNP batch (wsad)", () => {
     const { out, code } = await run(`${HEADER}\nfirma_001,2026-10,41,40,500,90000,16,100000000\n`);
     expect(code).toBe(0);
     const [r] = parseOut(out);
-    expect(r.kwota_zl).toBe("3116935");
-    expect(r.proc_przychodu).toBe("3.12");
+    expect(r.kwota_zl).toBe("3146247");
+    expect(r.proc_przychodu).toBe("3.15");
     expect(r.status).toBe(STATUS_OK);
-    expect(r.rotacja_zrodlo).toBe("deklaracja");
+    expect(r).not.toHaveProperty("rotacja_zrodlo");
     expect(r.wersja).toBe(version);
   });
 
@@ -106,6 +106,7 @@ describe("FNP batch (wsad)", () => {
     const missing = await run("firma,klimat,n,fte\nfirma_001,41,40,500\n");
     expect(missing.code).toBe(1);
     expect(missing.err).toMatch(/Brak wymaganej kolumny: placa_roczna/);
+    expect(missing.err).toMatch(/Brak wymaganej kolumny: rotacja_proc/);
   });
 
   it("is deterministic and prints the SHA-256 of the exact bytes", async () => {
@@ -146,13 +147,29 @@ describe("FNP batch (wsad)", () => {
     for (const col of ["kwota_zl", "p10_zl", "p90_zl", "bledy_zl", "rotacja_zl", "wypalenie_zl"]) expect(out[1][col]).toBe(out[0][col]);
   });
 
-  it("treats missing declared turnover as the 14.8% reference rate", async () => {
-    const out = parseOut((await run(`${HEADER}\nfirma_001,,41,40,500,90000,,100000000\nfirma_002,,41,40,500,90000,14.8,100000000\n`)).out);
-    expect(out[0].rotacja_zrodlo).toBe("odniesienie");
-    expect(out[1].rotacja_zrodlo).toBe("deklaracja");
-    const direct = computeFnpAnalysis({ employees: 500, avgSalary: 90_000, safety: 41, revenue: 100_000_000, safetySource: "survey" });
-    expect(out[0].kwota_zl).toBe(String(Math.round(direct.costs.totalTax)));
-    for (const col of ["kwota_zl", "p10_zl", "p90_zl", "bledy_zl", "rotacja_zl", "wypalenie_zl"]) expect(out[0][col]).toBe(out[1][col]);
+  it("requires a declared turnover in every row (fail closed)", async () => {
+    const res = await run(`${HEADER}\nfirma_001,,41,40,500,90000,,100000000\nfirma_002,,41,40,500,90000,14.8,100000000\n`, ["--out", "wynik.csv"]);
+    expect(res.code).toBe(1);
+    expect(res.err).toMatch(/Linia 2 \(firma_001\): brak wartości w kolumnie rotacja_proc/);
+    expect(existsSync(path.join(res.dir, "wynik.csv"))).toBe(false);
+    const noColumn = await run("firma,klimat,n,fte,placa_roczna\nfirma_001,41,40,500,90000\n");
+    expect(noColumn.code).toBe(1);
+    expect(noColumn.err).toMatch(/Brak wymaganej kolumny: rotacja_proc/);
+  });
+
+  it("rejects thousands separators and a dot in ; files instead of reading 90.000 as 90", async () => {
+    const semi = "firma;klimat;n;fte;placa_roczna;rotacja_proc";
+    for (const bad of ["90.000", "1.234,5", "90 000", "90,000,5"]) {
+      const res = await run(`${semi}\nfirma_001;41;40;500;"${bad}";16\n`);
+      expect(res.code).toBe(1);
+      expect(res.err).toMatch(/placa_roczna: „.*” nie jest liczbą/);
+    }
+    expect(parseNumber("90.000", ";")).toBeNaN();
+    expect(parseNumber("90000", ";")).toBe(90000);
+    expect(parseNumber("12,5", ";")).toBe(12.5);
+    expect(parseNumber("90,000", ",")).toBeNaN();
+    expect(parseNumber("90 000", ",")).toBeNaN();
+    expect(parseNumber("12.5", ",")).toBe(12.5);
   });
 
   it("compares two measurements and lists skipped firms with a reason", async () => {
@@ -167,9 +184,39 @@ describe("FNP batch (wsad)", () => {
     expect(res.err).toMatch(/pominięta firma_002: .*poniżej progu/);
     expect(res.err).toMatch(/pominięta firma_004: 1 pomiar/);
     expect(res.err).toMatch(/nie dowód efektu programu/);
-    const noCol = await run("firma,klimat,n,fte,placa_roczna\nfirma_001,41,40,500,90000\n", ["--porownaj"]);
+    const noCol = await run("firma,klimat,n,fte,placa_roczna,rotacja_proc\nfirma_001,41,40,500,90000,16\n", ["--porownaj"]);
     expect(noCol.code).toBe(1);
     expect(noCol.err).toMatch(/wymaga kolumny pomiar/);
+  });
+
+  it("--porownaj rejects labels that do not sort unambiguously", async () => {
+    for (const [a, b] of [["przed", "po"], ["9", "10"], ["2026-9", "2026-10"], ["2026-13", "2027-01"], ["2026-02-30", "2026-03-01"]]) {
+      const res = await run(`${HEADER}\nfirma_001,${a},41,40,500,90000,16,\nfirma_001,${b},52,40,500,90000,16,\n`, ["--porownaj"]);
+      expect(res.code).toBe(1);
+      expect(res.out).toBe("");
+      expect(res.err).toMatch(/nie jest datą ISO/);
+    }
+    const mixed = await run(`${HEADER}\nfirma_001,2026-10,41,40,500,90000,16,\nfirma_001,2026-10-15,52,40,500,90000,16,\n`, ["--porownaj"]);
+    expect(mixed.code).toBe(1);
+    expect(mixed.err).toMatch(/mieszają RRRR-MM i RRRR-MM-DD/);
+  });
+
+  it("--porownaj orders ISO labels by date and kolejnosc numerically", async () => {
+    // Rows given in reverse order: the earlier date is still "before".
+    const iso = parseOut((await run(`${HEADER}\nfirma_001,2026-10,52,40,500,90000,16,\nfirma_001,2026-09,41,40,500,90000,16,\n`, ["--porownaj"])).out);
+    expect([iso[0].pomiar_przed, iso[0].pomiar_po]).toEqual(["2026-09", "2026-10"]);
+    expect(iso[0].klimat_zmiana).toBe("11.0");
+    expect(Number(iso[0].kwota_zmiana_zl)).toBeLessThan(0);
+    const head = "firma,pomiar,kolejnosc,klimat,n,fte,placa_roczna,rotacja_proc";
+    const ord = parseOut((await run(`${head}\nfirma_001,po,10,52,40,500,90000,16\nfirma_001,przed,9,41,40,500,90000,16\n`, ["--porownaj"])).out);
+    expect([ord[0].pomiar_przed, ord[0].pomiar_po]).toEqual(["przed", "po"]);
+    expect(ord[0].klimat_zmiana).toBe("11.0");
+    const dup = await run(`${head}\nfirma_001,a,1,52,40,500,90000,16\nfirma_001,b,1,41,40,500,90000,16\n`, ["--porownaj"]);
+    expect(dup.code).toBe(1);
+    expect(dup.err).toMatch(/powtórzona wartość w kolumnie kolejnosc/);
+    const blank = await run(`${head}\nfirma_001,a,,52,40,500,90000,16\nfirma_001,b,2,41,40,500,90000,16\n`, ["--porownaj"]);
+    expect(blank.code).toBe(1);
+    expect(blank.err).toMatch(/brak wartości w kolumnie kolejnosc/);
   });
 
   it("uses no em-dash and no forbidden claims in user-facing text", () => {

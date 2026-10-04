@@ -10,36 +10,21 @@ function createMulberry32(seed) {
   };
 }
 
-// FNV-1a 32-bit hash of a stable serialisation of the cost-driving inputs.
-// Used as deterministic seed when caller does not supply one - so that the
-// same firm parameters always yield the same MC bands. Without this, the same
-// PDF report regenerated for the same client would show different P10/P90
-// run-to-run (P4 audit blocker #1).
-function paramHash(params) {
-  if (!params) return 0;
-  const key = [
-    params.employees ?? 0,
-    Math.round(params.revenue ?? 0),
-    params.safety ?? 0,
-    params.hierarchyLevels ?? 0,
-    Math.round(params.avgSalary ?? 0),
-    params.autonomy ?? 0,
-  ].join('|');
-  let h = 2166136261 >>> 0;
-  for (let i = 0; i < key.length; i++) {
-    h ^= key.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
+// One fixed seed for every scenario (common random numbers). The seed used
+// to be a hash of the inputs, so two neighbouring scenarios drew different
+// shocks: the band was not monotone (P10 rose while the base fell on 40 of
+// 200 half-point climate steps) and changing revenue by 1 zł moved P10 by
+// 18k. With the same draws for every scenario, the band moves with the
+// deterministic components. An explicit `seed` still overrides it. The value
+// equals the seed the FNP calculator has always passed, so FNP is unchanged.
+export const MC_SEED_DEFAULT = 202636;
 
-function normalizeSeed(seed, params) {
+function normalizeSeed(seed) {
   if (seed != null) {
     const n = Number(seed);
     if (Number.isFinite(n)) return Math.trunc(n) >>> 0;
   }
-  const fromParams = paramHash(params);
-  return fromParams || (Date.now() >>> 0);
+  return MC_SEED_DEFAULT;
 }
 
 function _randn(nextRand) {
@@ -49,8 +34,10 @@ function _randn(nextRand) {
   return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
 }
 
-// Per-module coefficient of variation (sigma/mu) used to draw each module's
-// value from a lognormal around its point estimate in the Monte Carlo pass.
+// Per-module dispersion used to draw each module's value from a lognormal
+// around its point estimate: factor = exp(σ × z − σ² / 2). The values are
+// log-scale standard deviations σ, not coefficients of variation of the
+// amounts (the name MODULE_CV is historical).
 // These are STRUCTURAL PRIORS, not empirically fitted dispersions: there is no
 // firm-level panel to estimate module-wise variance from. They sit on a
 // AUTHOR'S EXTENSION confidence ladder. It is not fitted to SHRM, Gallup or a
@@ -112,7 +99,7 @@ function bootstrapPercentileCI(totals, percentile, R, nextRand) {
 export function computeCostsMC(params, N = MC_N_DEFAULT, { rho = MC_RHO_DEFAULT, seed, bootstrapR = 200 } = {}) {
   const base = computeCosts(params);
   const rhoClamped = Math.max(0, Math.min(1, rho));
-  const normalizedSeed = normalizeSeed(seed, params);
+  const normalizedSeed = normalizeSeed(seed);
   const nextRand = createMulberry32(normalizedSeed);
 
   if (base.totalTax <= 0) return { p10: 0, p50: 0, p90: 0, rho: rhoClamped, N, seed: normalizedSeed, ci: null };

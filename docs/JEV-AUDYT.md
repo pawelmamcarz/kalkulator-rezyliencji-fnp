@@ -14,7 +14,7 @@ Ten skrypt nie zastępuje:
 
 - testów kontraktu w `src/fnp.test.js` i `src/fnpAudit.test.js`,
 - kontroli wzorów w `src/logic.test.js`,
-- ręcznego audytu tabel Ipsos albo definicji GUS 14,8%.
+- ręcznego audytu tabel Ipsos.
 
 Zielony audyt Jev oznacza tylko, że model decyzyjny uznał teksty za zgodne z zadanymi pytaniami i progami. To nadal prior aplikacyjny, nie dowód empiryczny.
 

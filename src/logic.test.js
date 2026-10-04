@@ -2,23 +2,28 @@ import { describe, it, expect } from 'vitest';
 import {
   sigmoid, getMetricValue, alphaFromSafety, alphaDown,
   hierarchyInfoLoss, asymmetricFiltering, silenceDecomposition,
-  computeCosts, computeCostsMC, solveAllocation, solveInterventionMix,
+  computeCosts, computeCostsMC, solveInterventionMix,
   buildInterventionGroups,
   buildInterventionProfile,
   computeFullModelAnalysis, REPORTING_CHANNELS,
-  applySafetyLift, interventionCost, PERSISTENCE_SCENARIOS, npvMultiplierScenarios,
+  applySafetyLift, MC_SEED_DEFAULT, HIERARCHY_DEPTH_MAX, TURNOVER_CLIMATE_WEIGHT,
   METRICS, INTERVENTIONS, INTERVENTION_GROUPS, DEFAULT_PROBLEM_DIST, CALIBRATION_MODES,
   estimateLevels, K_SIGMOID_DEFAULT_MULT, LEADER_SILENCE_FREQ_MULT,
 } from './logic.js';
+import { sensitivityReport } from './logic/sensitivity.js';
 // The public FNP bundle must stay without HiGHS/WASM, so the barrel does not
 // re-export the solver; tests import it directly.
 import { solveInterventionMixHighs, buildInterventionMilp } from './logic/highsOptimizer.js';
-import { sensitivityReport } from './logic/sensitivity.js';
 import {
-  MODULE_INTERACTIONS, MODULE_INTERACTIONS_LEGACY, SILENCE_WEIGHTS, PL_TURNOVER_RATE_GUS,
-  OVERLAP_CORRECTIONS,
+  MODULE_INTERACTIONS, MODULE_INTERACTIONS_LEGACY, SILENCE_WEIGHTS,
+  OVERLAP_CORRECTIONS, MODULE_MATURITY,
 } from './logic/constants.js';
-import { silenceWeightMultiplier, climateChurnRate, resolveSafety } from './logic/modules.js';
+import {
+  silenceWeightMultipliers, silenceMixWeight, climateChurnRate, resolveSafety,
+  turnoverClimateShare, validateOverrides,
+} from './logic/modules.js';
+import { finiteOrNull } from './logic/numbers.js';
+import { estimateLevelsExact } from './logic/williamson.js';
 import { normalizeFullModelParams } from './logic/analysis.js';
 import { computeRiskProfile } from './logic/risk.js';
 import { optimalSpan, optimalSpanExact } from './logic/williamson.js';
@@ -383,29 +388,6 @@ describe('E2. HiGHS MILP portfolio solver', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════
-// SECTION F - solveAllocation
-// ═══════════════════════════════════════════════════════════════
-describe('F. solveAllocation', () => {
-  it('bestDelta within [0, 100-safety]', () => {
-    const r = solveAllocation(MEDIUM_FIRM, 500_000);
-    expect(r.bestDelta).toBeGreaterThanOrEqual(0);
-    expect(r.bestDelta).toBeLessThanOrEqual(100 - MEDIUM_FIRM.safety);
-  });
-  it('reduction ≥ 0', () => {
-    const r = solveAllocation(MEDIUM_FIRM, 500_000);
-    expect(r.reduction).toBeGreaterThanOrEqual(0);
-  });
-  it('budget=0 → bestDelta = 0', () => {
-    const r = solveAllocation(MEDIUM_FIRM, 0);
-    expect(r.bestDelta).toBe(0);
-  });
-  it('bestNet ≥ 0 (solver only commits when profitable)', () => {
-    const r = solveAllocation(MEDIUM_FIRM, 500_000);
-    expect(r.bestNet).toBeGreaterThanOrEqual(0);
-  });
-});
-
-// ═══════════════════════════════════════════════════════════════
 // SECTION G - silenceDecomposition (Van Dyne)
 // ═══════════════════════════════════════════════════════════════
 describe('G. silenceDecomposition', () => {
@@ -561,7 +543,7 @@ describe('H. team segments', () => {
     expect(totalEmp).toBeCloseTo(MEDIUM_FIRM.employees, 0);
   });
 
-  it('solver in segment mode raises the lowest-safety segment first', () => {
+  it('a segment-mode lift raises the lowest-safety segment first', () => {
     const params = {
       ...MEDIUM_FIRM,
       teamSegments: [
@@ -569,23 +551,17 @@ describe('H. team segments', () => {
         { id: 'ok',    label: 'OK',    count: 25, avgSize: 10, safety: 70 },
       ],
     };
-    const r = solveAllocation(params, 5_000_000);
-    expect(r.segmentMode).toBe(true);
-    expect(Array.isArray(r.optimizedSegments)).toBe(true);
-    // The toxic segment must have gained safety (or both at cap); the OK
-    // segment must not have gained more than the toxic one.
-    const toxicBefore = 20;
-    const okBefore = 70;
-    const toxicAfter = r.optimizedSegments.find(s => s.id === 'toxic').safety;
-    const okAfter    = r.optimizedSegments.find(s => s.id === 'ok').safety;
-    expect(toxicAfter).toBeGreaterThanOrEqual(toxicBefore);
-    expect(okAfter).toBeGreaterThanOrEqual(okBefore);
-    const toxicGain = toxicAfter - toxicBefore;
-    const okGain = okAfter - okBefore;
-    // Greedy allocation: toxic team must gain at least as much as OK team
-    expect(toxicGain).toBeGreaterThanOrEqual(okGain);
-    // And if any intervention happened at all, toxic gained something
-    if (r.bestDelta > 0) expect(toxicGain).toBeGreaterThan(0);
+    const lifted = applySafetyLift(params, 10);
+    const expected = computeCosts({
+      ...params,
+      teamSegments: [
+        { id: 'toxic', label: 'Toxic', count: 25, avgSize: 10, safety: 30 },
+        { id: 'ok',    label: 'OK',    count: 25, avgSize: 10, safety: 70 },
+      ],
+    }).totalTax;
+    expect(lifted.newTax).toBeCloseTo(expected, 6);
+    expect(lifted.newSafety).toBeCloseTo(50, 10);
+    expect(lifted.annualSavings).toBeGreaterThan(0);
   });
 
   it('MonteCarlo works with segments (returns ordered quantiles)', () => {
@@ -685,18 +661,6 @@ describe('I. sensitivityReport', () => {
 // silently re-break the same thing on the next refactor.
 // ═══════════════════════════════════════════════════════════════
 describe('I.5 regression locks', () => {
-  it('solveAllocation returns bestDelta > 0 for MEDIUM_FIRM at budget 1M PLN', () => {
-    // Bug fixed in 2026.17.40: interventionCost.baseCost was 1500 PLN/emp/point,
-    // ~28× the catalog-derived 60 PLN/emp/point. Result: solveAllocation
-    // returned bestDelta=0 at every budget for any realistic firm - including
-    // the rozprawa reference firm. Lock baseCost behavior at 150 by asserting
-    // a non-zero solution at MEDIUM_FIRM (500 emp, 100M PLN, BP=50, 1M budget).
-    // If a future change reverts baseCost to a too-high value, this test fails.
-    const r = solveAllocation(MEDIUM_FIRM, 1_000_000);
-    expect(r.bestDelta).toBeGreaterThan(0);
-    expect(r.roiPct).toBeGreaterThan(50); // sanity: NPV > investment
-  });
-
   it('every component carries confidenceTier ∈ {A,B,C}', () => {
     // Persona feedback (data scientist Karolina) praised the per-module
     // confidenceTier as something to keep. Lock that every component has
@@ -765,19 +729,6 @@ describe('I.5 regression locks', () => {
     expect((aggressive - conservative) / base).toBeGreaterThan(0.3);
   });
 
-  it('NPV solver respects params.npv override (CFO-realistic 12%/2y/60% gives lower ROI)', () => {
-    // Persona feedback (CFO Janusz): NPV defaults are too generous.
-    // Verify the override actually flows: aggressive 12% WACC + 2y horizon
-    // + 60% persistence should give a strictly lower NPV multiplier and
-    // therefore a strictly lower ROI than the calibrated defaults.
-    const params = baseParams({ employees: 2000, revenue: 500_000_000, avgSalary: 120_000, leaders: 100, safety: 41, hierarchyLevels: 5 });
-    const baseRun = solveAllocation(params, 1_000_000);
-    const cfoRun = solveAllocation({ ...params, npv: { discount: 0.12, horizon: 2, persistence: 0.6 } }, 1_000_000);
-    expect(cfoRun.npvMultiplier).toBeLessThan(baseRun.npvMultiplier);
-    if (baseRun.bestDelta > 0 && cfoRun.bestDelta > 0) {
-      expect(cfoRun.npvReduction).toBeLessThan(baseRun.npvReduction);
-    }
-  });
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -849,19 +800,19 @@ describe('K. Model invariants', () => {
     expect(tax).toBe(0);
   });
 
-  it('MC determinism: same params → same P10/P90 across re-runs (seed pinned to paramHash)', () => {
-    // Sprint 1 F7 fix: when no seed is supplied, normalizeSeed() now hashes
-    // params instead of using Date.now(). Two independent calls with the
-    // same params must therefore yield identical percentiles.
+  it('MC determinism: same params → same P10/P90 across re-runs (fixed default seed)', () => {
+    // Without a seed every scenario uses MC_SEED_DEFAULT (common random
+    // numbers), so two calls with the same params are identical.
     const a = computeCostsMC(REFERENCE, 500, { bootstrapR: 0 });
     const b = computeCostsMC(REFERENCE, 500, { bootstrapR: 0 });
     expect(a.p10).toBe(b.p10);
     expect(a.p50).toBe(b.p50);
     expect(a.p90).toBe(b.p90);
-    expect(a.seed).toBe(b.seed);
+    expect(a.seed).toBe(MC_SEED_DEFAULT);
+    expect(b.seed).toBe(MC_SEED_DEFAULT);
   });
 
-  it('MC seed override: explicit seed overrides paramHash', () => {
+  it('MC seed override: explicit seed overrides the default', () => {
     const a = computeCostsMC(REFERENCE, 500, { seed: 12345, bootstrapR: 0 });
     const b = computeCostsMC(REFERENCE, 500, { seed: 12345, bootstrapR: 0 });
     expect(a.seed).toBe(12345);
@@ -1085,15 +1036,6 @@ describe('M. Grilling 2026-06-09 fixes', () => {
     }
   });
 
-  it('applySafetyLift agrees with solveAllocation at bestDelta (one model, one answer)', () => {
-    const solver = solveAllocation(REFERENCE, 1_000_000);
-    if (solver.bestDelta > 0) {
-      const r = applySafetyLift(REFERENCE, solver.bestDelta);
-      expect(r.annualSavings).toBeCloseTo(solver.reduction, 0);
-      expect(r.newTax).toBeCloseTo(solver.optimizedTax, 0);
-    }
-  });
-
   it('segment no-op: equal segments reproduce the aggregate totalTax', () => {
     // Two identical-safety segments covering the whole firm must cost the
     // same as the aggregate path. Pre-fix, problemDist counts were scaled by
@@ -1107,37 +1049,9 @@ describe('M. Grilling 2026-06-09 fixes', () => {
         { id: 'b', label: 'B', count: 25, avgSize: 10, safety: REFERENCE.safety },
       ],
     }).totalTax;
-    // Same 2% tolerance as the single-segment drift test in section H: the
-    // residual comes from per-segment composition (module floors, leader
-    // rounding), not from headcount scaling.
-    expect(Math.abs(seg - agg) / agg).toBeLessThan(0.02);
-  });
-
-  it('segment-mode solveAllocation prices the lift on the lifted headcount, not the whole firm', () => {
-    // One small toxic team (10% of headcount): the cost of +delta applied to
-    // that team must be far below the whole-firm price for the same delta,
-    // so the segment-mode ROI must beat the aggregate-mode ROI.
-    const segParams = {
-      ...REFERENCE,
-      teamSegments: [
-        { id: 'toxic', label: 'Toxic', count: 5, avgSize: 10, safety: 15 },
-        { id: 'rest', label: 'Rest', count: 45, avgSize: 10, safety: 55 },
-      ],
-    };
-    const seg = solveAllocation(segParams, 1_000_000);
-    expect(seg.bestDelta).toBeGreaterThan(0);
-    // investmentCost for bestDelta points applied to ~50 employees must be
-    // well under the whole-firm price of the same delta.
-    const wholeFirmPrice = interventionCost(REFERENCE.employees, seg.bestDelta, seg.baselineSafety);
-    expect(seg.investmentCost).toBeLessThan(wholeFirmPrice * 0.5);
-  });
-
-  it('persistence scenarios include the stress case and stay ordered', () => {
-    expect(PERSISTENCE_SCENARIOS.stress).toBe(0.40);
-    const m = npvMultiplierScenarios({});
-    expect(m.stress).toBeLessThan(m.conservative);
-    expect(m.conservative).toBeLessThan(m.base);
-    expect(m.base).toBeLessThan(m.optimistic);
+    // Exact since segments keep fractional headcount and leaders and use the
+    // firm's depth and governance size (engine audit 2026-10-04).
+    expect(seg).toBeCloseTo(agg, 4);
   });
 
   it('MC correlation contract: factor loading rho gives pairwise correlation ~rho^2', () => {
@@ -1186,9 +1100,12 @@ describe('N. scopeMode freeze', () => {
 
   // Engine audit 2026-10 (logic fixes, no coefficient changes):
   //   conservative 7_128_134 -> 6_564_933, full 13_550_750 -> 12_722_125.
+  // Engine audit 2026-10-04 (continuous depth capped at HIERARCHY_DEPTH_MAX,
+  // scope-group silence-weight normalisation, no interaction cutoff):
+  //   conservative 6_564_933 -> 6_288_691, full 12_722_125 -> 12_305_372.
   it('conservative headline snapshot for the reference firm', () => {
     const cons = computeCosts({ ...REFERENCE, scopeMode: 'conservative' });
-    expect(cons.totalTax).toBeCloseTo(6_564_933, -1);
+    expect(cons.totalTax).toBeCloseTo(6_288_691, -1);
   });
 
   it('scope identity: conservative + beta + experimental == full, in both modes', () => {
@@ -1197,17 +1114,15 @@ describe('N. scopeMode freeze', () => {
     expect(cons.totalTaxFull).toBeCloseTo(full.totalTax, 2);
     expect(cons.totalTax + cons.betaPotential + cons.experimentalPotential)
       .toBeCloseTo(cons.totalTaxFull, 2);
-    expect(full.totalTax).toBeCloseTo(12_722_125, -1);
+    expect(full.totalTax).toBeCloseTo(12_305_372, -1);
   });
 
-  it('conservative scope propagates into MC, solver and applySafetyLift', () => {
+  it('conservative scope propagates into MC and applySafetyLift', () => {
     const consParams = { ...REFERENCE, scopeMode: 'conservative' };
     const cons = computeCosts(consParams);
     const mc = computeCostsMC(consParams, 500, { bootstrapR: 0 });
     // MC median must track the conservative headline, not the full sum
     expect(mc.p50).toBeLessThan(cons.totalTaxFull * 0.8);
-    const solver = solveAllocation(consParams, 1_000_000);
-    expect(solver.currentTax).toBeCloseTo(cons.totalTax, 2);
     const lift = applySafetyLift(consParams, 5);
     expect(lift.baseTax).toBeCloseTo(cons.totalTax, 2);
   });
@@ -1249,7 +1164,6 @@ describe('O. full-model reporting adapter', () => {
   });
 });
 
-// ── Hero worked example ───────────────────────────────────────────────
 // The hero worked example is UI of the Silence Tax app and is tested there.
 
 // ── FNP-compatible opt-in engine paths (upstreamed from the FNP calculator) ──
@@ -1277,7 +1191,9 @@ describe('J. FNP-compatible engine paths', () => {
     const none = comp(computeCosts(p), 'turnover');
     expect(comp(computeCosts({ ...p, overrides: {} }), 'turnover')).toBe(none);
     expect(comp(computeCosts({ ...p, overrides: { TURNOVER_DECLARED: undefined } }), 'turnover')).toBe(none);
-    expect(comp(computeCosts({ ...p, overrides: { TURNOVER_DECLARED: NaN } }), 'turnover')).toBe(none);
+    // A NaN or null declaration is an error, not "absent" (engine audit 2026-10-04).
+    expect(() => computeCosts({ ...p, overrides: { TURNOVER_DECLARED: NaN } })).toThrow(RangeError);
+    expect(() => computeCosts({ ...p, overrides: { TURNOVER_DECLARED: null } })).toThrow(RangeError);
   });
 
   it('TURNOVER_DECLARED changes turnover and is capped by the declared rate', () => {
@@ -1293,6 +1209,9 @@ describe('J. FNP-compatible engine paths', () => {
     expect(low).toBeLessThan(high);
     const perFteCap = 0.05 * p.avgSalary * 0.75 * p.employees * 3;
     expect(low).toBeLessThanOrEqual(perFteCap);
+    // A higher declared rate always raises the amount (no flat region).
+    const higher = comp(computeCosts({ ...p, overrides: { TURNOVER_DECLARED: 0.9 } }), 'turnover');
+    expect(higher).toBeGreaterThan(high);
   });
 
   it('MODULE_INTERACTIONS override is honoured', () => {
@@ -1302,7 +1221,8 @@ describe('J. FNP-compatible engine paths', () => {
     expect(off.interactionEffects ?? []).toHaveLength(0);
     // destructiveFear -> burnout is still a default row; turnover has none.
     expect(comp(off, 'burnout')).toBeLessThan(comp(base, 'burnout'));
-    expect(comp(off, 'turnover')).toBe(comp(base, 'turnover'));
+    const pre = (r, id) => comp(r, id) / r.components.find(c => c.id === id).silenceMultiplier;
+    expect(pre(off, 'turnover')).toBeCloseTo(pre(base, 'turnover'), 6);
     const custom = computeCosts({
       ...p,
       overrides: { MODULE_INTERACTIONS: [{ fromMetric: 'burnoutRate', toId: 'turnover', w: 1.0 }] },
@@ -1330,27 +1250,44 @@ describe('P. engine audit 2026-10', () => {
   });
   const comp = (r, id) => r.components.find(c => c.id === id).value;
 
-  describe('silence-type weights are normalised', () => {
-    it('multiplier is exactly 1 at an equal silence mix for every module', () => {
-      const equal = { defensive: 1 / 3, acquiescent: 1 / 3, prosocial: 1 / 3 };
-      for (const w of Object.values(SILENCE_WEIGHTS)) {
-        expect(silenceWeightMultiplier(w, equal)).toBeCloseTo(1, 12);
+  describe('silence-type weights only redistribute cost', () => {
+    it('cost-weighted mean multiplier is exactly 1 for the weighted modules across the climate range', () => {
+      for (let s = 0; s <= 100; s += 2.5) {
+        const r = computeCosts({ ...REFERENCE, safety: s });
+        const mults = r.components.map((c) => c.silenceMultiplier);
+        const pre = r.components.map((c, i) => c.value / mults[i]);
+        const preTotal = pre.reduce((a, b) => a + b, 0);
+        if (preTotal === 0) continue;
+        const weightedMean = pre.reduce((sum, v, i) => sum + v * mults[i], 0) / preTotal;
+        expect(weightedMean).toBeCloseTo(1, 12);
       }
+      // The helper itself, on arbitrary values and shares.
+      const comps = Object.keys(SILENCE_WEIGHTS).map((id, i) => ({ id, value: 1000 * (i + 1) }));
+      const shares = { defensive: 0.5, acquiescent: 0.3, prosocial: 0.2 };
+      const m = silenceWeightMultipliers(comps, shares);
+      const sum = comps.reduce((acc, c) => acc + c.value, 0);
+      expect(comps.reduce((acc, c) => acc + c.value * m[c.id], 0)).toBeCloseTo(sum, 6);
     });
 
-    it('default divides each module by its equal-mix mean weight (legacy path = false)', () => {
-      const def = computeCosts(REFERENCE);
-      const legacy = computeCosts({ ...REFERENCE, overrides: { SILENCE_WEIGHTS_NORMALIZED: false } });
-      for (const [id, w] of Object.entries(SILENCE_WEIGHTS)) {
-        const mean = (w.def + w.acq + w.pro) / 3;
-        expect(comp(def, id) * mean).toBeCloseTo(comp(legacy, id), 4);
+    it('removing the weights leaves the full sum and the conservative headline unchanged', () => {
+      const saved = Object.fromEntries(Object.entries(SILENCE_WEIGHTS).map(([id, w]) => [id, { ...w }]));
+      const run = () => [0, 20, 41, 70, 95].map((s) => {
+        const full = computeCosts({ ...REFERENCE, safety: s });
+        const cons = computeCosts({ ...REFERENCE, safety: s, scopeMode: 'conservative' });
+        return [full.totalTax, cons.totalTax, cons.totalTaxFull];
+      });
+      const weighted = run();
+      try {
+        for (const id of Object.keys(SILENCE_WEIGHTS)) SILENCE_WEIGHTS[id] = { def: 1, acq: 1, pro: 1 };
+        const flat = run();
+        weighted.forEach((row, i) => row.forEach((v, j) => expect(v).toBeCloseTo(flat[i][j], 4)));
+      } finally {
+        for (const id of Object.keys(saved)) SILENCE_WEIGHTS[id] = saved[id];
       }
-    });
-
-    it('SILENCE_WEIGHTS_NORMALIZED: true (FNP) is identical to the default', () => {
-      const def = computeCosts(REFERENCE);
-      const fnp = computeCosts({ ...REFERENCE, overrides: { SILENCE_WEIGHTS_NORMALIZED: true } });
-      expect(fnp.totalTax).toBe(def.totalTax);
+      // But they do move cost between modules.
+      const r = computeCosts(REFERENCE);
+      expect(new Set(r.components.map((c) => c.silenceMultiplier.toFixed(6))).size).toBeGreaterThan(1);
+      expect(silenceMixWeight(SILENCE_WEIGHTS.burnout, { defensive: 1 / 3, acquiescent: 1 / 3, prosocial: 1 / 3 })).toBeCloseTo(1.1, 12);
     });
   });
 
@@ -1374,19 +1311,10 @@ describe('P. engine audit 2026-10', () => {
       const withBlame = computeCosts({ ...REFERENCE, overrides: { MODULE_INTERACTIONS: legacyOnlyBlame } });
       const def = computeCosts(REFERENCE);
       expect(comp(withBlame, 'errors')).toBeGreaterThan(comp(def, 'errors'));
-      expect(comp(withBlame, 'turnover')).toBe(comp(def, 'turnover'));
-    });
-
-    it('legacy overrides reproduce the pre-audit full snapshot where the span fix is inactive', () => {
-      // At s = 41 with span 7 the continuous span optimum is >= 7, so the
-      // span-cost fix is inactive and the two legacy switches restore the
-      // pre-audit value exactly.
-      expect(optimalSpanExact(41)).toBeGreaterThanOrEqual(7);
-      const legacy = computeCosts({
-        ...REFERENCE,
-        overrides: { MODULE_INTERACTIONS: MODULE_INTERACTIONS_LEGACY, SILENCE_WEIGHTS_NORMALIZED: false },
-      });
-      expect(legacy.totalTax).toBeCloseTo(13_550_750, -1);
+      // Before the silence-type weights (which rescale all modules together)
+      // the turnover module is untouched.
+      const pre = (r, id) => comp(r, id) / r.components.find(c => c.id === id).silenceMultiplier;
+      expect(pre(withBlame, 'turnover')).toBeCloseTo(pre(def, 'turnover'), 6);
     });
   });
 
@@ -1505,11 +1433,288 @@ describe('P. engine audit 2026-10', () => {
       expect(partial.totalTax).toBeCloseTo(def.totalTax, 6);
     });
 
-    it('turnover uses the model churn rate, which stays below the 14.8% reference', () => {
+    it('undeclared turnover uses the model churn rate, with no national reference', () => {
       expect(climateChurnRate(41)).toBeGreaterThan(0.10);
       expect(climateChurnRate(41)).toBeLessThan(0.11);
-      for (let s = 0; s <= 100; s += 5) expect(climateChurnRate(s)).toBeLessThan(PL_TURNOVER_RATE_GUS);
+      for (let s = 5; s <= 100; s += 5) expect(climateChurnRate(s)).toBeLessThanOrEqual(climateChurnRate(s - 5));
     });
 
+  });
+});
+
+// ── Q. Engine audit 2026-10-04 ──────────────────────────────────────────
+describe('Q. engine audit 2026-10-04', () => {
+  const REFERENCE = baseParams({
+    employees: 500, revenue: 100_000_000, avgSalary: 90_000, leaders: 60,
+    hierarchyLevels: 5, safety: 41,
+  });
+  const comp = (r, id) => r.components.find(c => c.id === id).value;
+  const pre = (r, id) => comp(r, id) / r.components.find(c => c.id === id).silenceMultiplier;
+
+  describe('declared turnover: a share of the firm\'s own exits', () => {
+    const declared = (rate, extra = {}) => ({ ...REFERENCE, ...extra, overrides: { ...(extra.overrides || {}), TURNOVER_DECLARED: rate } });
+
+    it('is proportional to the declared rate before the silence weights and strictly increasing after', () => {
+      const unit = pre(computeCosts(declared(0.01)), 'turnover');
+      let previous = -1;
+      for (let pct = 0; pct <= 100; pct += 0.5) {
+        const r = computeCosts(declared(pct / 100));
+        expect(pre(r, 'turnover') || 0).toBeCloseTo(unit * pct, 4);
+        expect(comp(r, 'turnover')).toBeGreaterThan(previous);
+        previous = comp(r, 'turnover');
+      }
+    });
+
+    it('is zero at declared 0 and at climate 100, with no Hirschman remnant', () => {
+      expect(comp(computeCosts(declared(0)), 'turnover')).toBe(0);
+      for (const rate of [0.05, 0.16, 1]) expect(comp(computeCosts(declared(rate, { safety: 100 })), 'turnover')).toBe(0);
+      expect(turnoverClimateShare(100)).toBe(0);
+    });
+
+    it('equals leavers × weight × share × 0.75 × pay × (1 + H × voice block), bounded by all declared leavers', () => {
+      const r = computeCosts(declared(0.16, { overrides: { HIRSCHMAN_EXIT_AMPLIFIER: 0 } }));
+      const leavers = REFERENCE.employees * 0.16 * TURNOVER_CLIMATE_WEIGHT * turnoverClimateShare(41);
+      const auto = 1 + 0.08 * r.mechanismDimension.automaticShare;
+      expect(pre(r, 'turnover') / auto).toBeCloseTo(leavers * 0.75 * REFERENCE.avgSalary, 4);
+      const withH = computeCosts(declared(0.16));
+      // The amplifier multiplies only the climate share: ratio <= 1 + H.
+      expect(pre(withH, 'turnover') / pre(r, 'turnover')).toBeLessThanOrEqual(1.15 + 1e-12);
+      expect(pre(withH, 'turnover') / auto).toBeLessThanOrEqual(REFERENCE.employees * 0.16 * 0.75 * REFERENCE.avgSalary * 1.15);
+    });
+
+    it('is continuous in climate (no kink) on a fine grid', () => {
+      let maxStep = 0;
+      for (let s = 0; s < 100; s += 0.25) {
+        const a = comp(computeCosts(declared(0.16, { safety: s })), 'turnover');
+        const b = comp(computeCosts(declared(0.16, { safety: s + 0.25 })), 'turnover');
+        maxStep = Math.max(maxStep, Math.abs(a - b));
+      }
+      expect(maxStep).toBeLessThan(0.01 * comp(computeCosts(declared(0.16, { safety: 0 })), 'turnover'));
+    });
+
+    it('TURNOVER_CLIMATE_WEIGHT scales the amount and is validated', () => {
+      const half = pre(computeCosts(declared(0.16)), 'turnover');
+      const full = pre(computeCosts({ ...REFERENCE, overrides: { TURNOVER_DECLARED: 0.16, TURNOVER_CLIMATE_WEIGHT: 1 } }), 'turnover');
+      expect(full / half).toBeCloseTo(2, 10);
+      expect(() => computeCosts({ ...REFERENCE, overrides: { TURNOVER_DECLARED: 0.16, TURNOVER_CLIMATE_WEIGHT: 1.5 } })).toThrow(RangeError);
+    });
+  });
+
+  describe('input coercion', () => {
+    it('whitespace, booleans and arrays are not numbers', () => {
+      for (const bad of [' ', '\t', true, false, [41], {}, '41%', 'Infinity', '0x10']) {
+        expect(finiteOrNull(bad)).toBeNull();
+        expect(() => computeCosts({ ...REFERENCE, safety: bad })).toThrow(RangeError);
+        expect(normalizeFullModelParams({ ...REFERENCE, safety: bad }).safety).toBeNull();
+        expect(computeRiskProfile({ safety: bad, safetySource: 'estimate' }).safety).toBeNull();
+      }
+      expect(finiteOrNull(' 41.5 ')).toBe(41.5);
+      expect(finiteOrNull('1e3')).toBe(1000);
+      const r = computeFullModelAnalysis({ ...REFERENCE, safety: ' ', safetySource: 'estimate' }, { iterations: 50 });
+      expect(r.valuation.total).toBeNull();
+      expect(r.valuation.missingInputs).toEqual(['safety']);
+    });
+
+    it('a missing revenue, headcount or salary means no result, not a default', () => {
+      for (const key of ['revenue', 'employees', 'avgSalary']) {
+        for (const bad of [undefined, '', ' ', 'abc', true]) {
+          const r = computeFullModelAnalysis({ ...REFERENCE, [key]: bad, safetySource: 'estimate' }, { iterations: 50 });
+          expect(r.costs).toBeNull();
+          expect(r.valuation.total).toBeNull();
+          expect(r.valuation.missingInputs).toContain(key);
+        }
+        expect(() => computeCosts({ ...REFERENCE, [key]: undefined })).toThrow(RangeError);
+      }
+    });
+  });
+
+  describe('overrides and structure validation', () => {
+    it('rejects null, NaN, strings, out-of-range values and unknown keys', () => {
+      for (const bad of [null, NaN, '0.4', -1, 0, Infinity]) {
+        expect(() => computeCosts({ ...REFERENCE, overrides: { K_SIGMOID_MULT: bad } })).toThrow(RangeError);
+      }
+      expect(() => computeCosts({ ...REFERENCE, overrides: { OVERLAP_GLOBAL: NaN } })).toThrow(RangeError);
+      expect(() => computeCosts({ ...REFERENCE, overrides: { SILENCE_WEIGHTS_NORMALIZED: false } })).toThrow(/Unknown override/);
+      expect(() => computeCosts({ ...REFERENCE, overrides: { OVERLAP_CORRECTIONS: { nope: 1 } } })).toThrow(RangeError);
+      expect(() => computeCosts({ ...REFERENCE, overrides: { MODULE_INTERACTIONS: [{ fromMetric: 'x', toId: 'burnout', w: 1 }] } })).toThrow(RangeError);
+      expect(() => validateOverrides([])).toThrow(TypeError);
+      // undefined counts as not given; valid values pass.
+      expect(computeCosts({ ...REFERENCE, overrides: { K_SIGMOID_MULT: undefined } }).totalTax).toBe(computeCosts(REFERENCE).totalTax);
+      expect(() => computeCosts({ ...REFERENCE, overrides: CALIBRATION_MODES.aggressive.overrides })).not.toThrow();
+    });
+
+    it('rejects a hierarchy depth below 1 and non-numeric structure inputs', () => {
+      for (const bad of [0.01, 0.5, -2, 'abc', true]) {
+        expect(() => computeCosts({ ...REFERENCE, hierarchyLevels: bad })).toThrow(RangeError);
+      }
+      for (const bad of [-1, 'abc']) expect(() => computeCosts({ ...REFERENCE, spanOfControl: bad })).toThrow(RangeError);
+      // 0 and empty keep meaning "not provided".
+      expect(computeCosts({ ...REFERENCE, hierarchyLevels: 0 }).totalTax).toBe(computeCosts({ ...REFERENCE, hierarchyLevels: '' }).totalTax);
+    });
+  });
+
+  describe('continuity and monotonicity', () => {
+    it('total is continuous in headcount and span (no integer depth steps)', () => {
+      const p = { ...REFERENCE, hierarchyLevels: 0 };
+      const at = (employees) => computeCosts({ ...p, employees, leaders: employees * 0.12 }).totalTax;
+      // 400 -> 401 FTE moved the total by +4.4% with the rounded-up depth.
+      expect(Math.abs(at(401) / at(400) - 1)).toBeLessThan(0.005);
+      let maxRel = 0;
+      for (let e = 50; e < 5000; e += 7) maxRel = Math.max(maxRel, Math.abs(at(e + 1) / at(e) - 1));
+      expect(maxRel).toBeLessThan(0.025);
+      let maxSpanRel = 0;
+      for (let span = 3; span < 15; span += 0.05) {
+        const a = computeCosts({ ...p, spanOfControl: span }).totalTax;
+        const b = computeCosts({ ...p, spanOfControl: span + 0.05 }).totalTax;
+        maxSpanRel = Math.max(maxSpanRel, Math.abs(b / a - 1));
+      }
+      expect(maxSpanRel).toBeLessThan(0.01);
+      expect(estimateLevelsExact(401, 7)).not.toBe(Math.ceil(estimateLevelsExact(401, 7)));
+    });
+
+    it('total is continuous in climate (no interaction cutoff step)', () => {
+      let maxStep = 0;
+      for (let s = 0; s < 100; s += 0.05) {
+        const a = computeCosts({ ...REFERENCE, safety: s }).totalTax;
+        const b = computeCosts({ ...REFERENCE, safety: s + 0.05 }).totalTax;
+        maxStep = Math.max(maxStep, Math.abs(a - b));
+      }
+      expect(maxStep).toBeLessThan(0.002 * computeCosts({ ...REFERENCE, safety: 0 }).totalTax);
+    });
+
+    it('the band is monotone in climate on a half-point grid (common random numbers)', () => {
+      const p = { revenue: 500_000_000, employees: 2000, avgSalary: 120_000, safetySource: 'estimate' };
+      let prev = null;
+      for (let s = 0; s <= 100; s += 0.5) {
+        const t = computeFullModelAnalysis({ ...p, safety: s }, { iterations: 400 }).valuation.total;
+        if (prev) {
+          expect(t.base).toBeLessThanOrEqual(prev.base + 1e-6);
+          expect(t.low).toBeLessThanOrEqual(prev.low + 1e-6);
+          expect(t.high).toBeLessThanOrEqual(prev.high + 1e-6);
+        }
+        prev = t;
+      }
+    });
+
+    it('the band is monotone in headcount and revenue on a grid', () => {
+      let prev = null;
+      for (let e = 50; e <= 5000; e += 50) {
+        const t = computeFullModelAnalysis({ revenue: 500_000_000, employees: e, avgSalary: 120_000, safety: 50, safetySource: 'estimate' }, { iterations: 400 }).valuation.total;
+        if (prev) {
+          expect(t.base).toBeGreaterThan(prev.base);
+          expect(t.low).toBeGreaterThan(prev.low);
+          expect(t.high).toBeGreaterThan(prev.high);
+        }
+        prev = t;
+      }
+      const a = computeFullModelAnalysis({ revenue: 500_000_000, employees: 2000, avgSalary: 120_000, safety: 50, safetySource: 'estimate' }, { iterations: 400 }).valuation.total;
+      const b = computeFullModelAnalysis({ revenue: 500_000_001, employees: 2000, avgSalary: 120_000, safety: 50, safetySource: 'estimate' }, { iterations: 400 }).valuation.total;
+      // 1 zł more revenue used to move P10 by about 18k (seed hashed from inputs).
+      expect(Math.abs(b.low - a.low)).toBeLessThan(1);
+    });
+  });
+
+  describe('team segments', () => {
+    it('identical segments reproduce the aggregate exactly, also for tiny firms', () => {
+      for (const employees of [2, 10, 500]) {
+        const p = { ...REFERENCE, employees, leaders: Math.max(1, employees / 10), hierarchyLevels: 0 };
+        const agg = computeCosts(p);
+        const seg = computeCosts({ ...p, teamSegments: [1, 2, 3].map((i) => ({ id: `s${i}`, count: 1, avgSize: 10, safety: p.safety })) });
+        expect(seg.totalTax).toBeCloseTo(agg.totalTax, 6);
+        for (const c of agg.components) expect(comp(seg, c.id)).toBeCloseTo(c.value, 6);
+      }
+    });
+
+    it('segment headcount, revenue share and leaders sum to the firm', () => {
+      const p = { ...REFERENCE, employees: 10, leaders: 3, revenue: 7_000_000 };
+      const r = computeCosts({ ...p, teamSegments: [
+        { id: 'a', count: 1, avgSize: 3, safety: 20 },
+        { id: 'b', count: 1, avgSize: 3, safety: 50 },
+        { id: 'c', count: 1, avgSize: 3, safety: 80 },
+      ] });
+      const sum = (key) => r.segmentResults.reduce((acc, seg) => acc + seg[key], 0);
+      expect(sum('employees')).toBeCloseTo(10, 10);
+      expect(sum('revenue')).toBeCloseTo(7_000_000, 4);
+      expect(sum('leaders')).toBeCloseTo(3, 10);
+    });
+  });
+
+  describe('planner helpers normalise safety', () => {
+    it('a string safety is a number, not concatenated', () => {
+      const asNumber = applySafetyLift(REFERENCE, 5);
+      const asString = applySafetyLift({ ...REFERENCE, safety: '41' }, 5);
+      expect(asString.newTax).toBe(asNumber.newTax);
+      expect(asString.newSafety).toBe(46);
+      const seg = { ...REFERENCE, teamSegments: [{ id: 'a', count: 10, avgSize: 10, safety: '30' }, { id: 'b', count: 40, avgSize: 10, safety: 60 }] };
+      const lift = applySafetyLift(seg, 10);
+      expect(lift.newSafety).toBeCloseTo((40 * 100 + 60 * 400) / 500, 10);
+    });
+
+    it('a missing safety throws, with or without a supplied baseline', () => {
+      expect(() => applySafetyLift({ ...REFERENCE, safety: null }, 5)).toThrow(RangeError);
+      const baseline = computeCosts(REFERENCE);
+      expect(() => buildInterventionProfile({ ...REFERENCE, safety: null }, 100_000, baseline)).toThrow(RangeError);
+      expect(() => applySafetyLift({ ...REFERENCE, teamSegments: [{ id: 'a', count: 10, avgSize: 10 }] }, 5)).toThrow(RangeError);
+    });
+  });
+
+  describe('reporting channels are scope-aware', () => {
+    it('in conservative scope base sums to the headline and excluded to the rest', () => {
+      const r = computeFullModelAnalysis({ ...REFERENCE, scopeMode: 'conservative', safetySource: 'estimate' }, { iterations: 50 });
+      const sum = (key) => r.valuation.channels.reduce((acc, ch) => acc + ch[key], 0);
+      expect(sum('base')).toBeCloseTo(r.costs.totalTax, 6);
+      expect(sum('excluded')).toBeCloseTo(r.costs.totalTaxFull - r.costs.totalTax, 6);
+      expect(sum('full')).toBeCloseTo(r.costs.totalTaxFull, 6);
+      const byId = Object.fromEntries(r.valuation.channels.map((ch) => [ch.id, ch]));
+      expect(byId.contribution.base).toBe(0);
+      expect(byId.contribution.inHeadline).toBe(false);
+      expect(byId.continuity.inHeadline).toBe(true);
+      const full = computeFullModelAnalysis({ ...REFERENCE, safetySource: 'estimate' }, { iterations: 50 });
+      for (const ch of full.valuation.channels) {
+        expect(ch.excluded).toBe(0);
+        expect(ch.base).toBe(ch.full);
+      }
+    });
+  });
+
+  describe('hierarchy depth bound', () => {
+    it(`the hierarchy module does not fall with depth up to HIERARCHY_DEPTH_MAX (${HIERARCHY_DEPTH_MAX}) at any climate`, () => {
+      // Revenue-heavy firm (bottom-up part dominates, it peaks first) and a
+      // payroll-heavy firm (top-down part dominates).
+      for (const firm of [{ revenue: 2e9, employees: 50, avgSalary: 50_000 }, { revenue: 1e6, employees: 5000, avgSalary: 300_000 }]) {
+        for (let s = 0; s < 100; s += 5) {
+          let prev = -1;
+          for (let L = 1; L <= HIERARCHY_DEPTH_MAX; L += 0.1) {
+            const v = comp(computeCosts({ ...REFERENCE, ...firm, safety: s, hierarchyLevels: L, overrides: { MODULE_INTERACTIONS: [] } }), 'hierarchy')
+              / computeCosts({ ...REFERENCE, ...firm, safety: s, hierarchyLevels: L, overrides: { MODULE_INTERACTIONS: [] } }).components.find(c => c.id === 'hierarchy').silenceMultiplier;
+            expect(v).toBeGreaterThanOrEqual(prev - 1e-6);
+            prev = v;
+          }
+        }
+      }
+    });
+
+    it('a deeper tree is costed at the bound and flagged', () => {
+      const atBound = computeCosts({ ...REFERENCE, hierarchyLevels: HIERARCHY_DEPTH_MAX });
+      const deeper = computeCosts({ ...REFERENCE, hierarchyLevels: 12 });
+      expect(deeper.totalTax).toBe(atBound.totalTax);
+      expect(deeper.hierarchyAnalytics.levelsCapped).toBe(true);
+      expect(deeper.hierarchyAnalytics.levelsRequested).toBe(12);
+      expect(deeper.hierarchyAnalytics.levels).toBe(HIERARCHY_DEPTH_MAX);
+      expect(atBound.hierarchyAnalytics.levelsCapped).toBe(false);
+    });
+  });
+
+  describe('interaction severity uses the module metric path', () => {
+    it('recent trauma raises the severity of fear metrics in the interactions', () => {
+      const calm = computeCosts({ ...REFERENCE, safety: 30 });
+      const trauma = computeCosts({ ...REFERENCE, safety: 30, recentTrauma: 1 });
+      const sev = (r) => Number(r.interactionEffects.find((e) => e.from === 'destructiveFear' && e.to === 'burnout').sev);
+      expect(sev(trauma)).toBeGreaterThan(sev(calm));
+    });
+  });
+
+  it('module maturity still puts exactly errors, turnover and burnout in the conservative headline', () => {
+    expect(Object.entries(MODULE_MATURITY).filter(([, m]) => m === 'validated').map(([id]) => id).sort()).toEqual(['burnout', 'errors', 'turnover']);
   });
 });

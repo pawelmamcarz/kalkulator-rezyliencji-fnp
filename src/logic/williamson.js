@@ -44,9 +44,11 @@ export function directiveDistortion(levels, safety) {
   return 1 - Math.pow(ad, levels);
 }
 
-// Continuous span optimum e / (-ln α), clamped to [3, 50]. The cost path uses
-// this value: rounding it first made the span-cost module jump in steps of
-// several hundred thousand złoty per 0.5 PS point at each integer crossing.
+// Continuous span optimum e / (-ln α), clamped to [3, 50] (AUTHOR'S
+// EXTENSION: the clamp keeps the optimum in a plausible management range).
+// The cost path uses this value: rounding it first made the span-cost module
+// jump in steps of several hundred thousand złoty per 0.5 PS point at each
+// integer crossing.
 export function optimalSpanExact(safety) {
   const alpha = alphaFromSafety(safety);
   const negLnAlpha = -Math.log(alpha);
@@ -72,11 +74,20 @@ export function governancePenalty(employees, levels) {
   return sizeEffect * depthEffect * scalePenalty;
 }
 
-export function estimateLevels(employees, spanOfControl) {
-  if (employees <= 1) return 1;
+// Continuous hierarchy depth of a full tree with `employees` people and the
+// given span: log_s(employees × (s − 1) + 1) − 1, at least 1. The cost path
+// uses this value. Rounding it up first (the former Math.ceil) made totals
+// jump with headcount: 400 → 401 FTE moved the Silence Tax total by +4.4%.
+export function estimateLevelsExact(employees, spanOfControl) {
+  if (!(employees > 1)) return 1;
   const s = spanOfControl;
   // s <= 1 would make Math.log(s) <= 0 and divide by zero (NaN) or invert the
   // depth. A span of 1 or less is degenerate (no fan-out), so the tree is flat.
   if (!(s > 1)) return 1;
-  return Math.max(1, Math.ceil(Math.log(employees * (s - 1) + 1) / Math.log(s) - 1));
+  return Math.max(1, Math.log(employees * (s - 1) + 1) / Math.log(s) - 1);
+}
+
+// Whole number of levels, for display only.
+export function estimateLevels(employees, spanOfControl) {
+  return Math.round(estimateLevelsExact(employees, spanOfControl));
 }

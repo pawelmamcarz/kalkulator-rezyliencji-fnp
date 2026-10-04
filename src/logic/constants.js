@@ -18,19 +18,19 @@ export const METRICS = {
 // Endpoint values above are attributed to the private Ipsos/FNP report and
 // remain PRIVATE-SOURCE PENDING until its tables are audited. Every `k` and
 // `mid` value is an AUTHOR'S EXTENSION. Do not describe the curves as fitted.
-export const METRIC_ENDPOINT_STATUS = "private-source-pending";
-export const METRIC_SHAPE_STATUS = "author-prior";
+// Not every endpoint is a report figure: the `src` notes mark some high ends
+// as the author's estimates (burnoutRate "est. 8% high"), and snitchPerc's
+// `src` ("5% vs 41% neg") does not match its parameters (0.55 and 0.10).
 
 // AUTHOR'S EXTENSION - Kahneman (2011) motivates the direction and existence
 // of each bias, not these magnitudes; the numeric values are the author's
 // operationalization, not figures from the book.
 export const LOSS_AVERSION_SHIFT = 4;
+// WYSIATI_PREMIUM: a constant author multiplier (1 + 0.20) on the bottom-up
+// hierarchy cost. It is not a measured bias: Kahneman's WYSIATI only motivates
+// the direction (decision makers act on the filtered signal they see).
 export const WYSIATI_PREMIUM = 0.20;
 export const AVAILABILITY_MAX_BOOST = 0.20;
-// OVERCONFIDENCE_GAP - UI warning only, never read by the computation path
-// (computeCosts, computeCostsMC, sensitivityReport). Surfaces Edmondson (2019)
-// finding that leaders self-rate PS ~10–15 pts higher than their employees.
-export const OVERCONFIDENCE_GAP = 12;
 // PEAK_END_PREMIUM - DISABLED. The peak-end rule (Kahneman, Fredrickson,
 // Schreiber & Redelmeier 1993, Psychological Science 4(6):401-405)
 // describes retrospective MEMORY of experience, not cost summation. Applying
@@ -38,15 +38,19 @@ export const OVERCONFIDENCE_GAP = 12;
 // accounting. Removed from the cost path. Kept as `0` so historical override
 // inputs do not break, but the value never moves the headline.
 export const PEAK_END_PREMIUM = 0;
-// AUTHOR'S EXTENSION - status quo bias is Kahneman/Samuelson-Zeckhauser
-// theory; the 0.15 friction value is the author's estimate.
-export const STATUS_QUO_FRICTION = 0.15;
-
 // AUTHOR'S EXTENSION block: each constant below operationalizes a classic
 // framework (Hirschman 1970, Jensen & Meckling 1976, Argyris 1977, Nonaka &
 // Takeuchi 1995). The source texts establish the mechanism, NOT these
 // numbers - the magnitudes are the author's calibration estimates.
 export const HIRSCHMAN_EXIT_AMPLIFIER = 0.15;
+// Turnover with a declared rate (overrides.TURNOVER_DECLARED, the FNP path):
+// cost = employees × declared × TURNOVER_CLIMATE_WEIGHT × share(s) × salary
+// × 0.75 × (1 + H × voiceBlock), where share(s) = 1 − churn(100) / churn(s) is
+// the part of the model's own climate churn curve that is above its s = 100
+// value. AUTHOR'S EXTENSION: the weight 0.5 says that the model attributes to
+// climate at most half of that share of the firm's own exits. Override via
+// overrides.TURNOVER_CLIMATE_WEIGHT (0–1).
+export const TURNOVER_CLIMATE_WEIGHT = 0.5;
 export const AGENCY_MONITORING_HIGH = 0.08;
 export const AGENCY_MONITORING_LOW = 0.02;
 export const AGENCY_BONDING_RATE = 0.01;
@@ -144,6 +148,18 @@ export const CALIBRATION_MODES = {
 //   agencyOverhead  × 0.50  - monitoring/bonding already in `governance` + α^n
 // Applied multiplicatively in _rawModules so excess() (subtraction of the
 // safety=100 baseline) cancels the correction factor consistently.
+// ── Hierarchy depth used in the cost path (validity range) ──
+// The hierarchy module (alpha^n information loss minus its s = 100 value) is
+// not monotone in depth: at deep trees both the at-s and the s = 100 runs
+// saturate and the excess falls. Determined numerically over climate 0–99.5
+// (step 0.5) and depth 1–40 (step 0.01): the bottom-up part stops increasing
+// at depth 5.77 (at climate 0, later at higher climate) and the top-down part
+// at 8.09. HIERARCHY_DEPTH_MAX is the last whole level before the module can
+// stop increasing; deeper declared or estimated trees are costed at this
+// depth. Not a finding about real organizations; it is the range in which the
+// author's formula behaves as intended.
+export const HIERARCHY_DEPTH_MAX = 5;
+
 export const OVERLAP_CORRECTIONS = {
   errors:          1.00,
   innovation:      1.00,
@@ -183,23 +199,25 @@ export const AUTONOMY_PASSIVITY_DAMPER = 0.25;
 // inspired axis (clarity of voice channel + pro-social orientation).
 export const VOICE_QUALITY_FLOOR = 0.50;
 
-// ── Sigmoid steepness default (AUTHOR'S EXTENSION, face-validity choice) ──
+// ── Sigmoid steepness default (AUTHOR'S EXTENSION, author's choice) ──
 // Origin, stated plainly: there are no observations at intermediate PS levels
 // from which `k` could be fitted (rozprawa §4.1.4 calls it an imposed
-// structural prior). The value 0.4 was chosen BY THE AUTHOR so that the model's
-// own totals land near target percentages of revenue taken from the
-// dissertation scenarios (at the time: s=41 about 13–14%, s=15 about 24–28%;
-// the unflattened k gave about 25% at s=41). The value was therefore selected
-// against the output it produces. Consequences:
+// structural prior). The value 0.4 is the author's choice, originally set so
+// that the model's totals landed near target percentages of revenue from the
+// dissertation scenarios (s=41 about 13–14%, s=15 about 24–28%). The corrected
+// engine no longer reproduces those targets (see docs/MODEL_SPEC_CURRENT.md
+// for the current values of the named reference firm), and the value was not
+// re-tuned to restore them. Consequences:
 //   - the resulting totals and percentages of revenue are a consequence of
 //     this choice, NOT a result, finding or validation of the model;
-//   - agreement between model totals and those dissertation percentages is
-//     circular and must not be cited as evidence;
 //   - ±25% perturbation (sensitivityReport) shows how much the headline
-//     depends on this single prior.
+//     depends on this single prior;
+//   - validation is meant to replace it with an estimate.
 // The multiplier scales only the 12 METRICS curves. The Williamson,
 // governance, Argyris, Nonaka and agency curves use fixed sigmoid shapes and
-// do not respond to it. Per-metric k stays in METRICS (0.06–0.12).
+// do not respond to it. Per-metric k stays in METRICS (0.06–0.12). Below 1
+// it flattens the curves, so they do not reach the METRICS end values inside
+// the 0–100 scale (FNP uses 0.30, CALIBRATION_MODES.conservative).
 export const K_SIGMOID_DEFAULT_MULT = 0.4;
 
 // ── Leader silence frequency multiplier (CALIBRATION) ──
@@ -218,22 +236,6 @@ export const K_SIGMOID_DEFAULT_MULT = 0.4;
 // 1.31 epizodu/lider/rok - 4× za dużo wobec scenariusza rozprawy.
 // Zmiana wpływa proporcjonalnie na wszystkie scenariusze (s=15 i s=85 też).
 export const LEADER_SILENCE_FREQ_MULT = 0.6;
-
-export const TCE_FRAMEWORK = {
-  errors:      { concept: "monitoring", tceLabel: "Monitoring & quality assurance cost", theories: ["Williamson 1967", "Reason 1990"] },
-  innovation:  { concept: "quasi-rents", tceLabel: "Lost quasi-rents from unexploited knowledge", theories: ["Williamson 1975", "Argyris 1977"] },
-  turnover:    { concept: "asset-specificity", tceLabel: "Transaction-specific human capital loss", theories: ["Williamson 1975", "Hirschman 1970"] },
-  burnout:     { concept: "bounded-rationality", tceLabel: "Bounded rationality amplified by stress", theories: ["Williamson 1975", "Kahneman 2011"] },
-  passivity:   { concept: "shirking", tceLabel: "Shirking under incomplete contracts", theories: ["Williamson 1975", "Jensen & Meckling 1976"] },
-  help:        { concept: "knowledge-specificity", tceLabel: "Knowledge as specific asset - blocked transfer", theories: ["Williamson 1975", "Nonaka 1995"] },
-  leader:      { concept: "strategic-opportunism", tceLabel: "Strategic opportunism & agency problem", theories: ["Williamson 1996", "Jensen & Meckling 1976"] },
-  procedures:  { concept: "governance", tceLabel: "Governance gap - formal vs relational", theories: ["Williamson 1996", "North 1990"] },
-  hierarchy:   { concept: "information-impactedness", tceLabel: "Williamson-inspired α^n hierarchy heuristic", theories: ["Williamson 1967"] },
-  governance:  { concept: "selective-intervention", tceLabel: "Selective intervention puzzle + agency costs", theories: ["Williamson 1996", "Jensen & Meckling 1976"] },
-  learningDeficit:   { concept: "adaptation-failure", tceLabel: "Organizational learning blocked", theories: ["Argyris 1977", "Nonaka 1995"] },
-  knowledgeLoss:     { concept: "knowledge-specificity", tceLabel: "SECI spiral blocked - tacit knowledge trapped", theories: ["Nonaka 1995", "Williamson 1975"] },
-  agencyOverhead:    { concept: "agency-costs", tceLabel: "Principal-agent monitoring + bonding costs", theories: ["Jensen & Meckling 1976", "Williamson 1996"] },
-};
 
 export const FEAR_METRICS = new Set(["blameRate", "errorFear", "snitchPerc", "destructiveFear"]);
 
@@ -278,7 +280,10 @@ export const ANALYTICS_ONLY_WHEN_EXCLUDED = new Set(["hierarchy"]);
 //     withheld effort is already in `innovation`.
 //   helpComfort → knowledgeLoss: OVERLAP_CORRECTIONS.knowledgeLoss (0.70)
 //     states that the SECI block is already in `help` (helpComfort).
-// The weights of the remaining rows are author priors, not estimates.
+// The four remaining rows are author priors that add climate-dependent
+// multipliers (1 + w × severity) to their target modules; the weights are
+// not estimates. Severity uses the same metric path as the modules (K
+// multiplier, fear-metric shift and recent-trauma boost).
 export const MODULE_INTERACTIONS = Object.freeze([
   { fromMetric: "destructiveFear",  toId: "burnout",     w: 0.15 },
   { fromMetric: "errorFear",        toId: "compliance",  w: 0.10 },
@@ -299,19 +304,11 @@ export const MODULE_INTERACTIONS_LEGACY = Object.freeze([
   { fromMetric: "destructiveFear",  toId: "agencyOverhead",  w: 0.15 },
 ]);
 
-export const PL_DISTRIBUTION = [
-  { level: "Bardzo niski", levelEn: "Very low",  pct: 14, color: "#dc2626", safetyMid: 15 },
-  { level: "Niski",        levelEn: "Low",        pct: 17, color: "#ea580c", safetyMid: 30 },
-  { level: "Obniżony",     levelEn: "Below avg",  pct: 40, color: "#d97706", safetyMid: 45 },
-  { level: "Umiarkowany",  levelEn: "Moderate",   pct: 15, color: "#65a30d", safetyMid: 65 },
-  { level: "Wysoki",       levelEn: "High",        pct: 14, color: "#16a34a", safetyMid: 85 },
-];
-
 // PL_AVG_SAFETY anchored to Ipsos 2026 raw sample mean (rozprawa §4.1.2),
-// a figure (like PL_DISTRIBUTION) absent from the public Ipsos x FNP
-// materials and pending a table-level audit of the full report.
-// NOT computed from PL_DISTRIBUTION weighted means. Weighted mean of the
-// 5-bin distribution above gives ~47, but the raw sample mean (n=1000)
+// a figure absent from the public Ipsos x FNP materials and pending a
+// table-level audit of the full report. NOT computed from the 5-bin
+// distribution weighted means (the former PL_DISTRIBUTION constant, removed
+// as unused). Its weighted mean gives ~47, but the raw sample mean (n=1000)
 // is 41 - the ~6pt gap comes from bin midpoint discretization on a
 // right-skewed distribution. Dissertation uses 41 as the calibration
 // anchor (s₀ for sigmoid midpoints, scenario 1 plausibility check),
@@ -341,82 +338,8 @@ export const HERO_EXAMPLE_PARAMS = Object.freeze({
   safetySource: "estimate",
 });
 
-// ── Poland-specific benchmarks ──
-// Reference turnover value of UNKNOWN ORIGIN, attributed to GUS in earlier
-// versions, NOT confirmed. "Popyt na pracę w 2023 roku" (GUS, 13.06.2024) has
-// no turnover rate; its only "14,8" is 14.8 thousand vacancies in one section.
-// GUS publishes hiring and separation rates (separations = all exits, not only
-// voluntary): 2023 hires 20.3%, separations 19.7%; 2024 hires 19.3%,
-// separations 18.7% (seen as the national comparison in GUS regional releases,
-// US Szczecin 16.09.2024 and 16.09.2025). Never present 14.8% as a GUS figure.
-// The ST cost engine does NOT read this constant. Its turnover module counts
-// excess churn over the model's own s = 100 churn, from the teamStability
-// curve: churn(s) = (1 - teamStability(s)) × 0.4 - 0.015, which is about 10.5%
-// at s = 41 and never reaches 14.8% at any climate (default k). Turnover cost
-// is therefore NOT "excess above the national average". The constant is only
-// consumed by callers that use the opt-in TURNOVER_DECLARED path (FNP).
-export const PL_TURNOVER_RATE_GUS = 0.148;
-// US total turnover 19% (incl. 8% involuntary) from the SHRM Human Capital
-// Benchmarking Report as reported in 2016 (HR Dive, 2016-08-04); not a 2024
-// figure. SHRM puts replacement cost at 50-200% of annual salary; the engine's
-// 0.75 x salary replacement cost (modules.js) is an author prior.
-export const US_TURNOVER_RATE_SHRM = 0.19;
-
 export const PLN_EUR_RATE = 4.25;
 export const PLN_USD_RATE = 4.0;
-
-export const PROBLEM_CATEGORIES = [
-  {
-    id: "trivial",
-    label: "Błahy",
-    labelEn: "Trivial",
-    color: "#65a30d",
-    defaultCost: 500,
-    lateMultiplier: 1.5,
-    heinrichRatio: 600,
-    detectionWithoutVoice: 3,
-    reasonType: "active-slip",
-    description: "Drobne pomyłki, literówki, małe opóźnienia"
-  },
-  {
-    id: "medium",
-    label: "Średni",
-    labelEn: "Medium",
-    color: "#d97706",
-    defaultCost: 5_000,
-    lateMultiplier: 2.5,
-    heinrichRatio: 30,
-    detectionWithoutVoice: 5,
-    reasonType: "active-mistake",
-    description: "Błędy procesowe, reklamacje, konflikty w zespole"
-  },
-  {
-    id: "major",
-    label: "Większy",
-    labelEn: "Major",
-    color: "#ea580c",
-    defaultCost: 50_000,
-    lateMultiplier: 3.5,
-    heinrichRatio: 10,
-    detectionWithoutVoice: 7,
-    reasonType: "latent-condition",
-    description: "Utrata klienta, awaria systemu, odejście kluczowej osoby"
-  },
-  {
-    id: "critical",
-    label: "Bardzo poważny",
-    labelEn: "Critical",
-    color: "#dc2626",
-    defaultCost: 250_000,
-    lateMultiplier: 5.0,
-    heinrichRatio: 1,
-    detectionWithoutVoice: 9,
-    reasonType: "latent-organizational",
-    description: "Kara regulacyjna, skandal, utrata kontraktu strategicznego"
-  },
-];
-
-export const DEFAULT_CONCEALABILITY = { trivial: 0.6, medium: 0.3, major: 0.15, critical: 0.05 };
 
 export const DEFAULT_PROBLEM_DIST = [
   { id: "trivial",  count: 8,   cost: 500,     lateMultiplier: 1.5, concealability: 0.6 },
@@ -425,14 +348,14 @@ export const DEFAULT_PROBLEM_DIST = [
   { id: "critical", count: 0.1, cost: 250_000,  lateMultiplier: 5.0, concealability: 0.05 },
 ];
 
-// Silence-type weights (AUTHOR'S EXTENSION). modules.js divides the
-// share-weighted weight by the equal-mix mean (def + acq + pro) / 3, so at an
-// equal mix of the three silence types the multiplier is exactly 1 and the
-// weights only redistribute cost according to the modelled silence mix.
-// Without that normalisation they acted as a constant per-module multiplier
-// (e.g. burnout about +10–14% at every climate). overrides
-// .SILENCE_WEIGHTS_NORMALIZED = false restores the legacy behaviour only for
-// reproducing earlier numbers.
+// Silence-type weights (AUTHOR'S EXTENSION). For each module the weight is
+// the share-weighted mix over the modelled silence types. modules.js then
+// rescales the weighted modules by a common factor so that their
+// cost-weighted mean multiplier is exactly 1 at every climate: the weights
+// only move cost between modules and leave the sum unchanged. The factor is
+// computed separately for the headline modules and for the modules excluded
+// by scope ('full' scope: one group of all 13), so neither the headline nor
+// the full sum is raised or lowered by the weights.
 export const SILENCE_WEIGHTS = {
   errors:     { def: 1.20, acq: 0.90, pro: 0.80 },
   innovation: { def: 0.90, acq: 1.30, pro: 0.90 },
@@ -976,10 +899,3 @@ export const VARIANTS_BY_GROUP = INTERVENTION_GROUPS.reduce((m, g) => {
   m[g.id] = INTERVENTIONS.filter(i => i.groupId === g.id);
   return m;
 }, {});
-
-// Sum of group `impact` (cap=1 per group) - denominator for the report's
-// "X / max" intervention-impact panel.
-export const MAX_GROUP_IMPACT = INTERVENTION_GROUPS.reduce((s, g) => s + g.impact, 0);
-
-export const countryFlag = (country) =>
-  country === "PL" ? "🇵🇱" : country === "global" ? "🌐" : "";

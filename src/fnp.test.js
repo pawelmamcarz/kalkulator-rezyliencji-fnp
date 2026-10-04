@@ -3,11 +3,15 @@ import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  computeCosts, computeFullModelAnalysis, getMetricValue, MODULE_INTERACTIONS,
-  PL_AVG_SAFETY, PL_TURNOVER_RATE_GUS, SILENCE_WEIGHTS,
+  computeCosts, computeFullModelAnalysis, MODULE_INTERACTIONS, PL_AVG_SAFETY, SILENCE_WEIGHTS,
 } from "./logic.js";
+import { MODULE_INTERACTIONS_LEGACY, TURNOVER_CLIMATE_WEIGHT } from "./logic/constants.js";
+import { silenceMixWeight, turnoverClimateShare } from "./logic/modules.js";
 import { CHANNEL_COPY, splitChannel } from "./channels.js";
-import { FNP_MODULE_INTERACTIONS, FNP_PROBLEM_DIST, fnpAnalysisParams } from "./fnpModel.js";
+import {
+  FNP_MODULE_INTERACTIONS, FNP_PROBLEM_DIST, computeFnpAnalysis, computeFnpClimateSensitivity,
+  fnpAnalysisParams, withoutFnpDoubleCounts,
+} from "./fnpModel.js";
 
 const srcDir = path.dirname(fileURLToPath(import.meta.url));
 const sectionsDir = path.join(srcDir, "sections");
@@ -77,116 +81,159 @@ describe("FNP public calculator contract", () => {
     expect(costs.totalTax).toBeCloseTo(value("errors") + value("turnover") + value("burnout"), 6);
     expect(costs.totalTax / FNP_DEFAULTS.revenue).toBeLessThanOrEqual(0.05);
     // Pinned so a silent change of the public example is noticed.
-    expect(Math.round(costs.totalTax)).toBe(3_116_935);
+    // Engine audit 2026-10-04: 3_116_935 -> 3_146_247 (proportional turnover
+    // rule +160_333; silence-type weights normalised within the headline so
+    // they no longer change its sum: -131_021).
+    expect(Math.round(costs.totalTax)).toBe(3_146_247);
   });
 });
 
-describe("FNP declared turnover is only a ceiling", () => {
+describe("FNP declared turnover: a share of the firm's own exits", () => {
   const input = {
     revenue: 100_000_000,
     employees: 500,
     avgSalary: 90_000,
     safety: PL_AVG_SAFETY,
   };
-  const turnoverAt = (turnoverPct, extra = {}) =>
-    computeCosts(fnpAnalysisParams({ ...input, turnoverPct, ...extra })).components
-      .find((c) => c.id === "turnover").value;
-
-  // Modelled churn rate in the engine: half of the climate excess on top of
-  // the s = 100 churn (src/logic/modules.js), with the FNP steepness.
-  const churnAt = (safety, k) => Math.max(0, (1 - getMetricValue("teamStability", safety, k)) * 0.4 - 0.015);
+  const costsAt = (turnoverPct, extra = {}) => computeCosts(fnpAnalysisParams({ ...input, turnoverPct, ...extra }));
+  const turnoverAt = (turnoverPct, extra = {}) => costsAt(turnoverPct, extra).components.find((c) => c.id === "turnover").value;
   const k = fnpAnalysisParams({ ...input, turnoverPct: 16 }).overrides.K_SIGMOID_MULT;
-  const modelChurn = 0.5 * (churnAt(PL_AVG_SAFETY, k) - churnAt(100, k)) + churnAt(100, k);
 
-  it("is monotone non-decreasing over 0–100% and flat above the modelled churn", () => {
-    expect(modelChurn).toBeGreaterThan(0);
-    expect(modelChurn).toBeLessThan(PL_TURNOVER_RATE_GUS);
-    const ceiling = turnoverAt(100);
-    let previous = -Infinity;
-    for (let pct = 0; pct <= 100; pct += 0.5) {
-      const value = turnoverAt(pct);
-      expect(value).toBeGreaterThanOrEqual(previous - 1e-6);
-      if (pct / 100 >= modelChurn) expect(value).toBeCloseTo(ceiling, 6);
+  it("is proportional to and strictly increasing in the declared rate, with no kink", () => {
+    // Before the silence-type weights the module is exactly proportional.
+    // The weights redistribute over all modules with one common factor, so
+    // the shown amount deviates from proportional by at most about 3% (at climate 41 and
+    // declared 100%: 2.5%); it stays strictly increasing and smooth.
+    const turnover = (pct) => costsAt(pct).components.find((c) => c.id === "turnover");
+    const preWeight = (pct) => turnover(pct).value / turnover(pct).silenceMultiplier;
+    const perPoint = preWeight(1);
+    expect(perPoint).toBeGreaterThan(0);
+    let previous = 0;
+    let maxStep = 0;
+    for (let pct = 0.25; pct <= 100; pct += 0.25) {
+      expect(preWeight(pct) / (perPoint * pct)).toBeCloseTo(1, 10);
+      const value = turnover(pct).value;
+      expect(value).toBeGreaterThan(previous);
+      expect(value / (turnoverAt(1) * pct)).toBeLessThan(1.035);
+      maxStep = Math.max(maxStep, value - previous);
       previous = value;
     }
+    // No kink: on a 0.25-point grid every step is close to the average step.
+    expect(maxStep).toBeLessThan(1.1 * (turnoverAt(100) / 400));
+  });
+
+  it("is zero at declared 0 and at climate 100", () => {
     expect(turnoverAt(0)).toBe(0);
-    // Just below the modelled churn the declaration still binds.
-    expect(turnoverAt(modelChurn * 100 - 0.5)).toBeLessThan(ceiling - 1);
+    for (const pct of [3, 16, 100]) expect(turnoverAt(pct, { safety: 100 })).toBe(0);
   });
 
-  it("declarations of 16, 30 and 100% give the same turnover amount (no excess-over-reference claim)", () => {
-    const at16 = turnoverAt(16);
-    expect(at16).toBeGreaterThan(0);
-    expect(turnoverAt(30)).toBeCloseTo(at16, 6);
-    expect(turnoverAt(100)).toBeCloseTo(at16, 6);
-    // Same with the Hirschman amplifier explicitly at its FNP value.
-    const hirschman = fnpAnalysisParams({ ...input, turnoverPct: 16 }).overrides.HIRSCHMAN_EXIT_AMPLIFIER;
-    expect(hirschman).toBe(0.10);
-    const pinned = { overrides: { HIRSCHMAN_EXIT_AMPLIFIER: hirschman } };
-    expect(turnoverAt(100, pinned)).toBeCloseTo(turnoverAt(16, pinned), 6);
+  it("never exceeds the cost of replacing every declared leaver times the downstream multipliers", () => {
+    for (const safety of [0, 10, 41, 70, 99]) {
+      for (const pct of [3, 16, 40, 100]) {
+        const costs = costsAt(pct, { safety });
+        const value = costs.components.find((c) => c.id === "turnover").value;
+        const p = fnpAnalysisParams({ ...input, turnoverPct: pct, safety });
+        const silence = costs.silenceShares;
+        const raw = silenceMixWeight(SILENCE_WEIGHTS.turnover, silence);
+        // Hirschman <= 1 + H, silence weight scaled by at most the ratio of
+        // the largest to the smallest mix weight, automatic silence <= 1 + penalty.
+        const mixes = Object.values(SILENCE_WEIGHTS).map((w) => silenceMixWeight(w, silence));
+        const bound = input.employees * (pct / 100) * input.avgSalary * 0.75
+          * (1 + p.overrides.HIRSCHMAN_EXIT_AMPLIFIER)
+          * (raw / Math.min(...mixes))
+          * (1 + p.overrides.AUTOMATIC_SILENCE_PENALTY);
+        expect(value).toBeLessThanOrEqual(bound);
+      }
+    }
   });
 
-  it("a declaration lowers the amount but cannot add exits beyond it", () => {
-    const high = turnoverAt(16);
-    const low = turnoverAt(3);
-    expect(low).toBeLessThan(high);
-    // With 3% declared, no more than 3% of FTE can be billed as exits, even
-    // with the voice-blocking amplifier and silence weights on top.
-    const payroll = input.employees * input.avgSalary;
-    expect(low).toBeLessThan(payroll * 0.03 * 0.75);
-    expect(low).toBeLessThan(high * 0.15);
+  it("applies the voice-blocking amplifier only to the climate share of exits", () => {
+    const none = { overrides: { HIRSCHMAN_EXIT_AMPLIFIER: 0 } };
+    const withH = turnoverAt(16);
+    const withoutH = turnoverAt(16, none);
+    expect(withH).toBeGreaterThan(withoutH);
+    // Without the amplifier the amount is leavers × weight × share × 0.75 × pay,
+    // up to the silence-type and automatic-silence multipliers, which are the
+    // same in both runs: the ratio is the amplifier alone.
+    const share = turnoverClimateShare(PL_AVG_SAFETY, k);
+    const leavers = input.employees * 0.16 * TURNOVER_CLIMATE_WEIGHT * share;
+    expect(withoutH / (leavers * 0.75 * input.avgSalary)).toBeGreaterThan(0.8);
+    expect(withH / withoutH).toBeLessThanOrEqual(1 + 0.10 + 1e-12);
   });
 
-  it.each([undefined, null, ""])("blank turnover %j equals declaring the 14.8% reference", (blank) => {
-    const reference = computeFullModelAnalysis(fnpAnalysisParams({ ...input, turnoverPct: PL_TURNOVER_RATE_GUS * 100 }), { iterations: 50, seed: 1 });
+  it("the share attributed to climate is about 29% at climate 41 and zero at 100", () => {
+    expect(turnoverClimateShare(41, k)).toBeGreaterThan(0.28);
+    expect(turnoverClimateShare(41, k)).toBeLessThan(0.30);
+    expect(turnoverClimateShare(100, k)).toBe(0);
+  });
+
+  it.each([undefined, null, "", " ", "\t"])("blank turnover %j throws a Polish TypeError", (blank) => {
     const params = { ...input, turnoverPct: blank };
     if (blank === undefined) delete params.turnoverPct;
-    const result = computeFullModelAnalysis(fnpAnalysisParams(params), { iterations: 50, seed: 1 });
-    expect(result.costs.totalTax).toBe(reference.costs.totalTax);
-    expect(result.costs.components.map((c) => c.value)).toEqual(reference.costs.components.map((c) => c.value));
-    expect(result.mc.p10).toBe(reference.mc.p10);
-    expect(result.mc.p90).toBe(reference.mc.p90);
+    expect(() => fnpAnalysisParams(params)).toThrow(TypeError);
+    expect(() => fnpAnalysisParams(params)).toThrow(/Rotacja \(turnoverPct\) jest wymagana/);
   });
 
-  it.each([undefined, null, "", NaN, "abc", "41%"])("blank or non-numeric climate %j throws", (safety) => {
+  it.each([undefined, null, "", " ", "\t", NaN, "abc", "41%", true, false, [41], {}])("blank or non-numeric climate %j throws", (safety) => {
     expect(() => fnpAnalysisParams({ ...input, turnoverPct: 16, safety })).toThrow(TypeError);
   });
 
-  it.each([NaN, "abc", "16%", Infinity])("non-numeric turnover %j throws", (turnoverPct) => {
+  it.each([NaN, "abc", "16%", Infinity, true, [16]])("non-numeric turnover %j throws", (turnoverPct) => {
     expect(() => fnpAnalysisParams({ ...input, turnoverPct })).toThrow(TypeError);
+  });
+
+  it.each([[-1, 16], [101, 16], [41, -0.1], [41, 100.5]])("out-of-range climate %j / turnover %j throws instead of clamping", (safety, turnoverPct) => {
+    expect(() => fnpAnalysisParams({ ...input, safety, turnoverPct })).toThrow(RangeError);
+  });
+
+  it("accepts trimmed numeric strings", () => {
+    const a = computeCosts(fnpAnalysisParams({ ...input, safety: " 41 ", turnoverPct: "16" })).totalTax;
+    expect(a).toBe(computeCosts(fnpAnalysisParams({ ...input, turnoverPct: 16 })).totalTax);
+  });
+
+  it("no longer reads the old PL_AVG_TURNOVER override (unknown overrides are rejected)", () => {
+    expect(() => fnpAnalysisParams({ ...input, turnoverPct: 16, overrides: { PL_AVG_TURNOVER: 0.2 } }))
+      .not.toThrow();
+    expect(() => computeCosts(fnpAnalysisParams({ ...input, turnoverPct: 16, overrides: { PL_AVG_TURNOVER: 0.2 } })))
+      .toThrow(/Unknown override: PL_AVG_TURNOVER/);
+  });
+});
+
+describe("FNP climate sensitivity", () => {
+  const input = { revenue: 100_000_000, employees: 500, avgSalary: 90_000, turnoverPct: 16, safety: 41 };
+
+  it("equals the engine headline at climate ±10 for the same inputs", () => {
+    const s = computeFnpClimateSensitivity(input);
+    expect(s.step).toBe(10);
+    expect(s.lower.safety).toBe(31);
+    expect(s.higher.safety).toBe(51);
+    expect(s.lower.total).toBe(computeFnpAnalysis({ ...input, safety: 31 }).costs.totalTax);
+    expect(s.higher.total).toBe(computeFnpAnalysis({ ...input, safety: 51 }).costs.totalTax);
+    expect(s.lower.total).toBeGreaterThan(computeFnpAnalysis(input).costs.totalTax);
+  });
+
+  it("leaves out a side that would leave the 0–100 scale", () => {
+    expect(computeFnpClimateSensitivity({ ...input, safety: 95 }).higher).toBeNull();
+    expect(computeFnpClimateSensitivity({ ...input, safety: 95 }).lower.safety).toBe(85);
+    expect(computeFnpClimateSensitivity({ ...input, safety: 4 }).lower).toBeNull();
+    expect(computeFnpClimateSensitivity({ ...input, safety: 10 }).lower.safety).toBe(0);
   });
 });
 
 describe("FNP interactions and silence weights", () => {
-  it("drops blameRate → errors and burnoutRate → turnover, keeps the rest", () => {
+  it("the FNP filter drops blameRate → errors and burnoutRate → turnover, keeps the rest", () => {
     const has = (rows, from, to) => rows.some((r) => r.fromMetric === from && r.toId === to);
-    // The shared engine dropped both double counts by default; FNP keeps its
-    // own filter so the headline cannot regain them if the default changes.
-    for (const rows of [MODULE_INTERACTIONS, FNP_MODULE_INTERACTIONS]) {
-      expect(has(rows, "blameRate", "errors")).toBe(false);
-      expect(has(rows, "burnoutRate", "turnover")).toBe(false);
-    }
-    expect(has(FNP_MODULE_INTERACTIONS, "destructiveFear", "burnout")).toBe(true);
+    // Checked against the legacy list, which still has both rows, so the
+    // filter is exercised (the engine default already lacks them).
+    expect(has(MODULE_INTERACTIONS_LEGACY, "blameRate", "errors")).toBe(true);
+    expect(has(MODULE_INTERACTIONS_LEGACY, "burnoutRate", "turnover")).toBe(true);
+    const filtered = withoutFnpDoubleCounts(MODULE_INTERACTIONS_LEGACY);
+    expect(filtered).toHaveLength(MODULE_INTERACTIONS_LEGACY.length - 2);
+    expect(has(filtered, "blameRate", "errors")).toBe(false);
+    expect(has(filtered, "burnoutRate", "turnover")).toBe(false);
+    expect(has(filtered, "destructiveFear", "burnout")).toBe(true);
+    expect(FNP_MODULE_INTERACTIONS).toEqual(withoutFnpDoubleCounts(MODULE_INTERACTIONS));
     expect(FNP_DEFAULTS.overrides.MODULE_INTERACTIONS).toBe(FNP_MODULE_INTERACTIONS);
-  });
-
-  it("normalised silence weights give multiplier 1 for an equal mix of silence types", () => {
-    expect(FNP_DEFAULTS.overrides.SILENCE_WEIGHTS_NORMALIZED).toBe(true);
-    const normalised = computeCosts(FNP_DEFAULTS);
-    const raw = computeCosts({ ...FNP_DEFAULTS, overrides: { ...FNP_DEFAULTS.overrides, SILENCE_WEIGHTS_NORMALIZED: false } });
-    for (const id of ["errors", "turnover", "burnout"]) {
-      const w = SILENCE_WEIGHTS[id];
-      const equalMix = (w.def + w.acq + w.pro) / 3;
-      // Normalisation divides the weighted multiplier by its equal-mix value,
-      // so the raw / normalised ratio is that value and the normalised
-      // multiplier of an equal mix is exactly 1.
-      const value = (costs) => costs.components.find((c) => c.id === id).value;
-      expect(value(normalised)).toBeGreaterThan(0);
-      const engineNorm = value(raw) / value(normalised);
-      expect(engineNorm).toBeCloseTo(equalMix, 10);
-      const equalMixMultiplier = (w.def / 3 + w.acq / 3 + w.pro / 3) / engineNorm;
-      expect(equalMixMultiplier).toBeCloseTo(1, 10);
-    }
   });
 });
 
@@ -212,10 +259,12 @@ describe("FNP × Ipsos context section copy", () => {
     expect(context).toMatch(/Ile kosztuje milczenie\?/);
   });
 
-  it("says the figures are context, not converted to złote and not a calibration base", () => {
+  it("says which figures feed the curves, that they are unchecked, and that amounts are not calibrated", () => {
     expect(context).toMatch(/kontekst/i);
-    expect(context).toMatch(/nie przelicza[^.]*na złote/);
-    expect(context).toMatch(/nie jest na nich skalibrowany/);
+    expect(context).toMatch(/wartości końcowe krzywych modelu \(stabilność zespołu 59% i 85%, wypalenie 51%\)/);
+    expect(context).toMatch(/nie sprawdzono/);
+    expect(context).toMatch(/nie są skalibrowane/);
+    expect(context).not.toMatch(/nie przelicza/);
   });
 
   it("contains no money amounts, ROI or return claims", () => {

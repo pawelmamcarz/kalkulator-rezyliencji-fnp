@@ -1,12 +1,9 @@
-import { fmtCurrencyCompact as fmt } from "../logic/format.js";
 import LedgerSectionHeading from "../components/LedgerSectionHeading.jsx";
 import { CHANNEL_COPY, splitChannel } from "../channels.js";
+import { money, share as percent, sensitivitySentence } from "../format.js";
 
-const percent = (value) => new Intl.NumberFormat("pl-PL", { style: "percent", maximumFractionDigits: 1 }).format(value);
-
-export default function Result({ valuation, params }) {
+export default function Result({ valuation, params, sensitivity }) {
   const total = valuation?.total;
-  const money = (value) => fmt(value, "PLN", "pl");
   const profit = params.revenue - params.costs;
   const channels = (valuation?.channels || []).map((channel) => ({ id: channel.id, copy: CHANNEL_COPY[channel.id], split: splitChannel(channel) }));
   const inSum = channels.filter((channel) => channel.split.inSum);
@@ -19,6 +16,7 @@ export default function Result({ valuation, params }) {
           <p className="micro">Roczny scenariusz kosztów</p>
           <p style={{ fontFamily: "var(--mono)", fontSize: "clamp(30px, 5vw, 48px)", fontWeight: 700, lineHeight: 1.2 }}>{money(total.base)}</p>
           <p style={{ fontFamily: "var(--mono)", marginTop: 6 }}>Zakres: od {money(total.low)} do {money(total.high)}</p>
+          {sensitivitySentence(sensitivity) && <p id="wrazliwosc" style={{ marginTop: 6 }}>{sensitivitySentence(sensitivity)}</p>}
           <p style={{ marginTop: 10 }}>
             {params.revenue > 0 ? `To ${percent(total.base / params.revenue)} rocznych przychodów.` : "Przychody wynoszą 0 zł, więc nie liczymy udziału w przychodach."}
             {profit > 0 && params.revenue > 0 && ` To także ${percent(total.base / profit)} różnicy między przychodami a kosztami (${money(profit)}).`}

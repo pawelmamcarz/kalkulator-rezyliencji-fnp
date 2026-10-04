@@ -1,11 +1,12 @@
-import { fmtCurrencyCompact as fmt } from "../logic.js";
 import useMediaQuery, { MOBILE_QUERY } from "../hooks/useMediaQuery.js";
 import { CHANNEL_COPY, splitChannel } from "../channels.js";
+import { TURNOVER_CLIMATE_WEIGHT } from "../logic/constants.js";
+import { fnpTurnoverClimateShare } from "../fnpModel.js";
+import { money, plNumber, share } from "../format.js";
 
 export default function Channels({ valuation, params }) {
   const isMobile = useMediaQuery(MOBILE_QUERY);
   const channels = valuation?.channels || [];
-  const money = (n) => fmt(n, "PLN", "pl");
 
   return (
     <section id="obszary" aria-labelledby="obszary-title">
@@ -39,9 +40,9 @@ export default function Channels({ valuation, params }) {
                   {copy?.image}
                 </p>
                 <p style={{ fontFamily: "var(--serif)", lineHeight: 1.5, color: "var(--l-ink-2)" }}>{copy?.body}</p>
-                {channel.id === "continuity" && (
+                {channel.id === "continuity" && valuation && (
                   <p className="micro" style={{ marginTop: 8 }}>
-                    Zadeklarowana rotacja: {params.turnoverPct}%. Model bierze połowę dodatkowych odejść wynikających z klimatu, a deklaracja jest tylko górnym limitem: niższa zmniejsza kwotę, wyższa jej nie zwiększa. Rotacji powyżej punktu odniesienia nie przypisujemy milczeniu. Szczegóły opisujemy niżej, w założeniach autora.
+                    Zadeklarowana rotacja: {plNumber(params.turnoverPct)}%. Model przypisuje klimatowi część odejść z Twojej firmy: przy klimacie {params.safety}/100 jest to {share(fnpTurnoverClimateShare(params.safety))} według krzywej modelu, a do kwoty wlicza tę część z wagą {plNumber(TURNOVER_CLIMATE_WEIGHT)}. Kwota rośnie proporcjonalnie do zadeklarowanej rotacji, a przy klimacie 100/100 wynosi zero. Szczegóły opisujemy niżej, w założeniach autora.
                   </p>
                 )}
               </div>

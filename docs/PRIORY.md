@@ -1,6 +1,6 @@
 # Priory FNP: instrukcja dla analityka
 
-Stan opisu: 3 października 2026 r. Wartości sprawdzaj względem wersji kodu, z której wykonujesz analizę.
+Stan opisu: 4 października 2026 r. Wartości sprawdzaj względem wersji kodu, z której wykonujesz analizę.
 
 Prior oznacza tutaj założenie startowe autora. Nie oznacza rozkładu wyestymowanego metodą bayesowską. Kalkulator tworzy **scenariusz skali** przy zadanych warunkach. Nie wycenia księgowej straty, nie prognozuje skutków interwencji ani zwrotu z inwestycji.
 
@@ -10,45 +10,71 @@ Badania uzasadniają rozpatrywanie zależności między klimatem, milczeniem i z
 
 Limit 5% przychodu dla firmy przykładowej jest kontrolą projektu. Nie jest wynikiem badania ani ogranicznikiem wszystkich wyników: przy innym stosunku płac do przychodu procent może być wyższy. Nie należy dostrajać współczynników do oczekiwanej kwoty.
 
-Końce krzywych w `METRICS` mają status `private-source-pending`: w silniku przypisano je do Ipsos × FNP, ale audyt tabel nie jest zakończony. Środki i stromości są autorskie. Otwarty kod umożliwia sprawdzenie rachunku, nie dowodzi prawdziwości założeń. Wewnętrzna etykieta `validated` określa zakres sumy; nie oznacza empirycznie zwalidowanej kwoty.
+Końce krzywych w `METRICS` mają status `private-source-pending`: większość przypisano w silniku do Ipsos × FNP, ale audyt tabel nie jest zakończony. Nie wszystkie są liczbami z raportu: według pól `src` w `src/logic/constants.js` część wartości dla wysokiego klimatu to szacunki autora (np. `burnoutRate` „est. 8% high”), a opis `snitchPerc` („5% vs 41% neg”) nie zgadza się z jego parametrami (0,55 i 0,10). Środki i stromości są autorskie. Przy mnożniku FNP krzywe nie osiągają tych końców (tabela niżej). Otwarty kod umożliwia sprawdzenie rachunku, nie dowodzi prawdziwości założeń. Wewnętrzna etykieta `validated` określa zakres sumy; nie oznacza empirycznie zwalidowanej kwoty.
 
 ## Ścieżka obliczenia
 
 1. Publiczny formularz zbiera przychód i koszty roczne, FTE, średnią płacę brutto, rotację oraz klimat. W API `avgSalary` to **roczna** płaca brutto na FTE; `turnoverPct: 16` oznacza 16%, a `safety: 41` to szacunek własny 41/100, nie pomiar.
-2. `fnpAnalysisParams` nakłada ostrożne priory, rozkład zdarzeń FNP, powiązania FNP, znormalizowane wagi rodzajów milczenia i deklarowaną rotację. Pusta rotacja (`undefined`, `null`, `""`) oznacza stopę odniesienia 14,8%, dokładnie jak jej deklaracja. Pusty lub nieliczbowy klimat oraz nieliczbowa, niepusta rotacja kończą się błędem `TypeError`; brak danych nie staje się klimatem 0 ani rotacją 0%. `computeFnpAnalysis` wykonuje analizę ze stałym ziarnem losowania.
+2. `fnpAnalysisParams` nakłada ostrożne priory, rozkład zdarzeń FNP, powiązania FNP, deklarowaną rotację i domyślną liczbę liderów (10% FTE, jak w adapterze silnika). Rotacja jest wymagana: pusta (`undefined`, `null`, `""`, same spacje) kończy się błędem `TypeError` z polskim komunikatem; nie ma stopy domyślnej. Tak samo pusty lub nieliczbowy klimat (także `true`, `[41]`, `" "`). Klimat lub rotacja spoza 0–100 kończą się błędem `RangeError`, bez przycinania. Liczby można podać jako liczby albo napisy z cyframi (`" 41 "`). `computeFnpAnalysis` wykonuje analizę ze stałym ziarnem losowania (`MC_SEED_DEFAULT`, to samo co domyślne ziarno silnika).
 3. Model oblicza koszt danego obszaru przy zadanym klimacie oraz przy 100/100, z tymi samymi pozostałymi parametrami. Odejmuje drugi od pierwszego i zeruje ujemną różnicę. Punkt 100 jest odniesieniem matematycznym, nie organizacją bez problemów.
-4. Stosuje korekty nakładania kosztów, powiązań między wskaźnikami i rodzajów milczenia. Suma publiczna zawiera tylko `errors`, `turnover`, `burnout`.
+4. Stosuje korekty nakładania kosztów, powiązań między wskaźnikami i rodzajów milczenia. Suma publiczna zawiera tylko `errors`, `turnover`, `burnout`. Wagi rodzajów milczenia są skalowane osobno w obrębie tych trzech obszarów i w obrębie pozostałych, więc nie zmieniają ani sumy publicznej, ani pełnej; przesuwają tylko koszt między obszarami.
 5. Losowanie mnożników tych trzech kosztów daje P10–P90. To rozrzut przyjętego scenariusza, nie przedział ufności przyczynowej straty firmy.
 
-Przychód jest mianownikiem procentu sumy publicznej. Koszty działalności służą marży w interfejsie, nie wyznaczają kwoty modelu. `totalTaxFull` i pełne kwoty kanałów zawierają również obszary wyłączone: nie używaj ich jako sumy publicznej. Odczytuj `costs.totalTax` oraz komponenty z `inHeadline: true`.
+Przychód jest mianownikiem procentu sumy publicznej. Koszty działalności służą marży w interfejsie, nie wyznaczają kwoty modelu. `totalTaxFull` oraz pole `full` kanałów zawierają również obszary wyłączone: nie używaj ich jako sumy publicznej. Odczytuj `costs.totalTax`, komponenty z `inHeadline: true` albo pole `base` kanałów (kwota w sumie; `excluded` to kwota poza sumą).
 
 ## Parametry mające wpływ na sumę
 
 | Założenie | FNP | Powód przyjęcia i podstawa zmiany |
 | --- | --- | --- |
-| `K_SIGMOID_MULT` | 0,30 | Łagodniejsza reakcja wskaźników na jeden punkt szacunku klimatu. Pochodzenie: wybór autora według wiarygodności rzędu wielkości (face validity), nie pomiar. Komentarz w `constants.js` mówi wprost, że domyślny mnożnik silnika spłaszczono do 0,4, aby sumy zbliżyły się do wartości z rozprawy autora; wariant ostrożny obniża go o kolejne 25%, do 0,30. Do oszacowania potrzebne są porównywalne obserwacje klimatu i zachowania w wielu zespołach i okresach, także pośrodku skali. |
+| `K_SIGMOID_MULT` | 0,30 | Łagodniejsza reakcja wskaźników na jeden punkt szacunku klimatu. Pochodzenie: wybór autora, nie pomiar. Domyślny mnożnik silnika (0,4) ustalono kiedyś tak, aby sumy zbliżyły się do docelowych wartości z rozprawy autora; poprawiony silnik tych wartości już nie odtwarza i mnożnika nie dostrajano ponownie. Wariant ostrożny obniża go o kolejne 25%, do 0,30. Mnożnik działa tylko na 12 krzywych `METRICS`, nie na krzywe Williamsona, governance, Argyrisa, Nonaki i agencji. Przy 0,30 krzywe nie osiągają końców z `METRICS` (tabela niżej). Do oszacowania potrzebne są porównywalne obserwacje klimatu i zachowania w wielu zespołach i okresach, także pośrodku skali; walidacja ma zastąpić ten wybór oszacowaniem. |
 | Przesunięcie środków krzywych lęku | +4 punkty | Autorska reprezentacja asymetrii reakcji. Badania o uprzedzeniach poznawczych nie wyznaczają tej liczby. Brak nazwanego override. |
 | Sygnał rotacji z klimatu | `max(0, (1 − stabilność) × 0,4 − 0,015)` | Autorska konwersja wskaźnika stabilności na stopę. Współczynniki 0,4 i 0,015 nie są oszacowane na danych firmy; brak nazwanych overrides. |
-| Rotacja z deklaracją | `min(deklaracja, 0,5 × nadwyżka sygnału klimatu + stopa przy 100/100)` | Model bierze połowę nadwyżki sygnału klimatu ponad wariant 100/100. Deklarowana stopa jest wyłącznie górnym limitem: niższa zmniejsza kwotę, wyższa od modelowej stopy jej nie zmienia. Rotacji powyżej odniesienia nie przypisujemy milczeniu. Waga 0,5 jest autorska, bez nazwanego override. Deklaracja nie dowodzi przyczyny odejść. |
-| `PL_TURNOVER_RATE_GUS` | 0,148 | Jedynie wartość domyślna dla pustej deklaracji rotacji (w API i w narzędziu wsadowym; formularz wymaga wpisania stopy). Silnik nie miesza już deklaracji z tym punktem, a override `PL_AVG_TURNOVER` nie jest czytany. Pochodzenie wartości jest nieustalone: wcześniejsze wersje przypisywały ją GUS, czego nie potwierdzono (nazwa stałej jest historyczna). Przed zmianą uzgodnij definicję odejść, mianownik, rok i populację. |
-| Koszt zastąpienia | 0,75 rocznej płacy | Umowny ekwiwalent dziewięciu miesięcznych płac, prior autora. SHRM podaje szeroki zakres 50–200% rocznego wynagrodzenia, zależnie od stanowiska; hasło „6–9 miesięcy pensji” nie pochodzi z publikacji SHRM. Zastąpić może go udokumentowany koszt obsadzenia i wdrożenia stanowiska podzielony przez płacę roczną. Brak nazwanego override. |
+| Udział odejść przypisany klimatowi | `share(s) = 1 − churn(100) / churn(s)` | Część modelowej rotacji ponad jej poziom przy 100/100, z tej samej krzywej stabilności i tego samego mnożnika `K`. Przy klimacie 41 wynosi około 29%, przy 10 około 39%, przy 70 około 17%, przy 100 zero (liczy to `fnpTurnoverClimateShare`). Nie jest zmierzonym odsetkiem odejść z powodu klimatu. |
+| Rotacja z deklaracją | `FTE × deklaracja × 0,5 × share(s) × 0,75 × płaca × (1 + H × blokada głosu)` | Model przypisuje klimatowi część zadeklarowanych odejść firmy. Waga `TURNOVER_CLIMATE_WEIGHT` = 0,5 jest autorska (override `TURNOVER_CLIMATE_WEIGHT`, 0–1). Kwota przed wagami milczenia jest proporcjonalna do deklaracji, ściśle rosnąca, równa zero przy deklaracji 0 i przy klimacie 100. Nie przekracza kosztu zastąpienia wszystkich zadeklarowanych odejść pomnożonego przez dalsze mnożniki. Silnik nie używa żadnej krajowej wartości odniesienia. Deklaracja nie dowodzi przyczyny odejść. |
+| Koszt zastąpienia | 0,75 rocznej płacy | Umowny ekwiwalent dziewięciu miesięcznych płac, prior autora. Badania z opisaną metodą podają medianę około jednej piątej rocznej płacy dla typowego stanowiska (Boushey i Glynn 2012, Center for American Progress: mediana około 21%), wyższą dla specjalistów i kadry kierowniczej. Zakres SHRM 50–200% nie ma opublikowanej metody; hasło „6–9 miesięcy pensji” nie pochodzi z publikacji SHRM. 0,75 jest więc powyżej udokumentowanej mediany i pozostaje założeniem autora, które w diagnozie zastępuje udokumentowany koszt obsadzenia i wdrożenia stanowiska w firmie, podzielony przez płacę roczną. Brak nazwanego override; decyzja o wartości należy do właściciela modelu. |
 | `HIRSCHMAN_EXIT_AMPLIFIER` | 0,10 | Autorskie wzmocnienie kosztu rotacji przy blokowaniu głosu. Teoria uzasadnia mechanizm, nie wielkość. Sprawdzaj oddzielnie od kosztu zastąpienia. |
 | Koszt wypalenia | płace × `b × (1 + 0,5 × b) × 0,25` | `b` to modelowy wskaźnik, nie rozpoznanie zdrowia pracowników. 0,5 i 0,25 są autorskie, bez nazwanych overrides. Nie interpretuj 0,25 jako zmierzonej utraty produktywności. |
 | `OVERLAP_CORRECTIONS.burnout` | 0,75 | Pozostawia 75% kosztu wypalenia przed dalszymi korektami. Założenie ogranicza nakładanie z rotacją, nie stanowi statystycznej dekorelacji. Dane o rozłącznych kosztach absencji, zastępstw i zakłóceń mogą zastąpić ten prior. |
-| Powiązania z wypaleniem | `destructiveFear → burnout: 0,15` | Autorskie wzmocnienie względem znormalizowanego nasilenia wskaźnika. FNP usuwa `burnoutRate → turnover` (te same osoby byłyby liczone w rotacji i wypaleniu) oraz `blameRate → errors` (obwinianie już zwiększa modelową skłonność do ukrywania błędów), aby ograniczyć powtórne naliczanie. Wspólny silnik bez overrides nadal ma oba powiązania. |
-| `SILENCE_WEIGHTS_NORMALIZED` | `true` w FNP | Wagi rodzajów milczenia są dzielone przez ich średnią przy równym udziale trzech rodzajów, więc przy takim udziale mnożnik wynosi 1. Wagi przesuwają koszt zależnie od modelowego składu milczenia, zamiast działać jak stały mnożnik (bez normalizacji wypalenie dostawało w przykładzie ukryte +13,9%). Wspólny silnik domyślnie nie normalizuje. |
+| Powiązania z wypaleniem | `destructiveFear → burnout: 0,15` | Autorskie wzmocnienie względem znormalizowanego nasilenia wskaźnika. FNP odfiltrowuje `burnoutRate → turnover` (te same osoby byłyby liczone w rotacji i wypaleniu) oraz `blameRate → errors` (obwinianie już zwiększa modelową skłonność do ukrywania błędów). Wspólny silnik również nie ma ich na domyślnej liście; filtr FNP chroni przed ich powrotem. Nasilenie liczy się tą samą ścieżką co moduły (mnożnik `K`, przesunięcie lęku, korekta niedawnej traumy), bez progu odcięcia. |
+| Wagi rodzajów milczenia | wspólny czynnik w grupie | Dla każdego obszaru waga to średnia wag trzech rodzajów milczenia ważona modelowym składem milczenia. Silnik mnoży wagi przez wspólny czynnik, tak aby średni mnożnik ważony kosztem wynosił dokładnie 1, osobno dla obszarów w sumie i poza nią. Suma publiczna nie zmienia się więc od wag; zmienia się tylko podział na trzy obszary. Dawny przełącznik `SILENCE_WEIGHTS_NORMALIZED` usunięto. |
 | `AUTOMATIC_SILENCE_PENALTY` | 0,04 | Mnożnik kosztu wynosi `1 + 0,04 × automaticShare`. Wyłączenie oznacza współczynnik 0, czyli mnożnik 1. Potrzebne byłyby powtarzane obserwacje utrwalenia milczenia i jego skutków, aby oszacować wielkość. |
 | Autonomia | 0,5 | Stałe domyślne założenie, używane m.in. w podziale milczenia. Publiczny formularz jej nie mierzy. |
 
-W rotacji model wylicza również koszt odniesienia przy 100/100, z tą samą deklaracją firmy. Gdy deklaracja przekracza modelową stopę (dla firmy przykładowej przy klimacie 41 około 8,8%), w obu wariantach limit nie działa i zostaje połowa nadwyżki sygnału klimatu: deklaracje 9%, 16%, 30% i 100% dają tę samą kwotę rotacji. Niższa deklaracja obcina wariant przy danym klimacie bardziej niż wariant 100/100, więc kwota spada; przy 0% wynosi zero. Mała dodatnia kwota przy deklaracji poniżej stopy 100/100 pochodzi ze wzmocnienia `HIRSCHMAN_EXIT_AMPLIFIER`, które przy klimacie 100 jest słabsze. Wcześniejsza wersja dodawała połowę nadwyżki deklaracji ponad 14,8%, ale ten składnik niemal znosił się z wariantem 100/100, który używa tej samej deklaracji; usunięto go, a deklaracja jest tylko limitem. Nie interpretuj kwoty jako liczby odejść spowodowanych milczeniem.
+W rotacji wariant odniesienia przy 100/100 ma udział `share(100) = 0`, więc odjęcie go nic nie zmienia i nie zostaje żadna resztka wzmocnienia `HIRSCHMAN_EXIT_AMPLIFIER`. Dla firmy przykładowej (klimat 41, rotacja 16%) model przypisuje klimatowi 0,5 × 29,3% × 16% ≈ 2,3% etatów rocznie. Wcześniejsze wersje traktowały deklarację tylko jako górny limit, więc każda deklaracja powyżej około 9% dawała tę samą kwotę; ta reguła została zastąpiona. Nie interpretuj kwoty jako liczby odejść spowodowanych milczeniem.
 
-Wagi rodzajów milczenia też są priorami. Dla błędów wynoszą 1,20 / 0,90 / 0,80, dla rotacji 1,00 / 1,20 / 0,80, dla wypalenia 1,10 / 1,30 / 0,90, odpowiednio dla milczenia obronnego, rezygnacyjnego i prospołecznego. Są uśredniane udziałami z autorskich krzywych w `silenceDecomposition`. W FNP średnią ważoną dzieli się przez średnią trzech wag (0,967 dla błędów, 1,00 dla rotacji, 1,10 dla wypalenia), więc wagi zmieniają kwotę tylko przez skład milczenia. Wartości wag nie są zmierzonym składem milczenia w firmie i nie mają nazwanego override; override `SILENCE_WEIGHTS_NORMALIZED` włącza lub wyłącza jedynie normalizację.
+Kwota rotacji dla firmy przykładowej (500 FTE, płaca 90 000 zł), w złotych, po wszystkich korektach. Wagi milczenia przesuwają koszt między trzema obszarami sumy, dlatego przy wysokiej deklaracji kwota rośnie odrobinę szybciej niż proporcjonalnie (do około 3% przy 100%):
 
-### Pochodzenie 14,8%: nieustalone
+| Rotacja | klimat 10 | klimat 41 | klimat 70 |
+| ---: | ---: | ---: | ---: |
+| 0% | 0 | 0 | 0 |
+| 3% | 209 001 | 153 561 | 84 557 |
+| 8% | 559 224 | 411 122 | 226 365 |
+| 10% | 699 875 | 514 613 | 283 326 |
+| 16% | 1 123 405 | 826 341 | 454 809 |
+| 25% | 1 762 209 | 1 296 608 | 713 235 |
+| 40% | 2 833 322 | 2 084 999 | 1 145 841 |
+| 100% | 7 154 978 | 5 262 802 | 2 885 072 |
 
-14,8% to wartość odniesienia o nieznanym pochodzeniu. Wcześniejsze wersje przypisywały ją GUS i publikacji „Popyt na pracę w 2023 roku”; tego nie potwierdzono. Publikacja nie podaje stopy rotacji, a jedyne „14,8” w jej tekście to 14,8 tys. wolnych miejsc pracy w sekcji Handel. [Opis publikacji GUS](https://stat.gov.pl/obszary-tematyczne/rynek-pracy/popyt-na-prace/popyt-na-prace-w-2023-roku%2C1%2C19.html).
+Wagi rodzajów milczenia też są priorami. Dla błędów wynoszą 1,20 / 0,90 / 0,80, dla rotacji 1,00 / 1,20 / 0,80, dla wypalenia 1,10 / 1,30 / 0,90, odpowiednio dla milczenia obronnego, rezygnacyjnego i prospołecznego. Są uśredniane udziałami z autorskich krzywych w `silenceDecomposition`, a potem mnożone przez wspólny czynnik, który zachowuje sumę trzech obszarów. Wartości wag nie są zmierzonym składem milczenia w firmie i nie mają nazwanego override.
 
-GUS publikuje współczynniki przyjęć i zwolnień. Dla kraju: w 2023 r. przyjęcia 20,3%, zwolnienia 19,7%; w 2024 r. przyjęcia 19,3%, zwolnienia 18,7%. Wartości krajowe widzieliśmy jako porównanie w informacjach regionalnych GUS. Współczynnik zwolnień obejmuje wszystkie odejścia, nie tylko dobrowolne, więc nie jest prostym zamiennikiem rotacji deklarowanej w firmie. W modelu 14,8% pozostaje wyłącznie wartością domyślną przy pustej deklaracji. [GUS Szczecin, 2023 r., s. 2](https://szczecin.stat.gov.pl/download/gfx/szczecin/pl/defaultaktualnosci/744/4/9/1/zatrudnienie_wynagrodzenia_za_2023.pdf); [GUS Szczecin, 2024 r., s. 2](https://szczecin.stat.gov.pl/download/gfx/szczecin/pl/defaultaktualnosci/744/4/10/1/zatrudnienie_wynagrodzenia_za_2024_r..pdf).
+### Zakres krzywych przy mnożniku 0,30
+
+Przy `K_SIGMOID_MULT` = 0,30 model korzysta tylko ze środkowej części każdej krzywej i w skali 0–100 nie osiąga końców zapisanych w `METRICS`. Wskaźniki używane w sumie publicznej (wartości policzone silnikiem, `getMetricValue` przy klimacie 0 i 100):
+
+| Wskaźnik | Koniec w `METRICS` (niski / wysoki klimat) | Osiągany zakres przy 0,30 (klimat 0 → 100) | Opis `src` |
+| --- | --- | --- | --- |
+| `teamStability` | 0,59 / 0,85 | 0,655 → 0,780 | 59% vs 85% |
+| `burnoutRate` | 0,51 / 0,08 | 0,394 → 0,212 | 51% low, est. 8% high (górny koniec szacowany) |
+| `errorFear` | 0,72 / 0,05 | 0,604 → 0,178 | 42% ogół, 72% low |
+| `blameRate` | 0,72 / 0,02 | 0,618 → 0,116 | 72% vs 2% |
+| `ideaSilence` | 0,52 / 0,10 | 0,430 → 0,183 | 52% vs 10% |
+| `destructiveFear` | 0,74 / 0,19 | 0,649 → 0,276 | 74% vs 19% |
+
+Żadnej z tych wartości nie zmieniono. Nawet gdyby końce zostały potwierdzone w tabelach Ipsos × FNP, przy tym mnożniku model nie odtwarza ich na krańcach skali.
+
+### Brak krajowego punktu odniesienia
+
+Wcześniejsza wersja używała punktu odniesienia rotacji 14,8% o niepotwierdzonym pochodzeniu; model nie używa już żadnej krajowej wartości odniesienia, a stała `PL_TURNOVER_RATE_GUS` została usunięta z silnika.
 
 ### Rozkład błędów FNP
 
@@ -67,7 +93,7 @@ Przy aktualizacji ustal wspólne definicje kategorii. Częstość licz jako zdar
 
 ### Rozrzut P10–P90
 
-Domyślnie model wykonuje 2000 losowań. Współczynniki w kodzie nazwano `MODULE_CV`, ale we wzorze `exp(σ × z − σ² / 2)` pełnią rolę **odchylenia w skali logarytmicznej**: σ = 0,35 dla błędów oraz 0,25 dla rotacji i wypalenia. Nie należy przedstawiać ich jako dokładnego współczynnika zmienności kwot.
+Domyślnie model wykonuje 2000 losowań, zawsze z tym samym ziarnem (wspólne liczby losowe), więc pasmo przesuwa się razem z kwotą bazową. Współczynniki w kodzie nazwano `MODULE_CV`, ale we wzorze `exp(σ × z − σ² / 2)` pełnią rolę **odchylenia w skali logarytmicznej**: σ = 0,35 dla błędów oraz 0,25 dla rotacji i wypalenia. Nie należy przedstawiać ich jako dokładnego współczynnika zmienności kwot.
 
 `rho = 0,5` jest wagą wspólnego szoku. Korelacja normalnych szoków przed potęgowaniem wynosi `rho² = 0,25`, a nie 0,5. Pasmo nie losuje oceny klimatu, końców krzywych, błędów danych wejściowych ani wszystkich możliwych struktur modelu. Rozrzut jest priorem, nie wynikiem estymacji na panelu firm. Stałe ziarno stabilizuje porównania scenariuszy; nie zwiększa wiarygodności empirycznej.
 
@@ -83,13 +109,13 @@ Przeniesienie pojęcia na kalkulator jest interpretacją autora. Klimat, ukrywan
 
 ## Jak wykonać analizę bez zmieniania wspólnego silnika
 
-`fnpAnalysisParams` łączy domyślne ustawienia FNP z `params.overrides`, a potem zawsze nakłada `TURNOVER_DECLARED` wynikający z `turnoverPct` (przy pustym polu 14,8%). Podawaj deklarację przez `turnoverPct`; nie próbuj zmieniać jej równocześnie w dwóch miejscach. Rozkład zdarzeń podawaj jako `problemDist`, poza obiektem `overrides`.
+`fnpAnalysisParams` łączy domyślne ustawienia FNP z `params.overrides`, a potem zawsze nakłada `TURNOVER_DECLARED` wynikający z `turnoverPct`. Podawaj deklarację przez `turnoverPct`; nie próbuj zmieniać jej równocześnie w dwóch miejscach. Rozkład zdarzeń podawaj jako `problemDist`, poza obiektem `overrides`.
 
-Obecnie obsługiwane overrides przydatne w sumie publicznej to `K_SIGMOID_MULT`, `HIRSCHMAN_EXIT_AMPLIFIER`, `AUTOMATIC_SILENCE_PENALTY`, `SILENCE_WEIGHTS_NORMALIZED`, `OVERLAP_CORRECTIONS`, `OVERLAP_GLOBAL` i `MODULE_INTERACTIONS`. `PL_AVG_TURNOVER` nie jest już czytany przez silnik; stopę odniesienia zmienia się przez deklarację `turnoverPct`. Przekazując własne `MODULE_INTERACTIONS`, zacznij od `FNP_MODULE_INTERACTIONS` z `fnpModel.js`, inaczej wrócą usunięte powiązania. Silnik nie zgłasza błędu dla nieznanej nazwy, ale jej nie stosuje. Nie wymyślaj np. `BURNOUT_COST_RATE`. Stałe bez override wymagają osobnej, opisanej zmiany formuły, najlepiej w źródłowym silniku Silence Tax, a potem przeniesienia poprawki do FNP.
+Obsługiwane overrides przydatne w sumie publicznej to `K_SIGMOID_MULT`, `HIRSCHMAN_EXIT_AMPLIFIER`, `TURNOVER_CLIMATE_WEIGHT`, `AUTOMATIC_SILENCE_PENALTY`, `OVERLAP_CORRECTIONS`, `OVERLAP_GLOBAL` i `MODULE_INTERACTIONS`. Silnik sprawdza każdy override: wartość musi być skończoną liczbą w dozwolonym zakresie (np. `K_SIGMOID_MULT` w (0, 5], wagi i stopy w [0, 1]); `null`, `NaN`, napis, wartość spoza zakresu albo nieznana nazwa (np. dawne `PL_AVG_TURNOVER` czy `SILENCE_WEIGHTS_NORMALIZED`) kończą się błędem. `undefined` oznacza „nie podano”. Przekazując własne `MODULE_INTERACTIONS`, zacznij od `FNP_MODULE_INTERACTIONS` z `fnpModel.js`, inaczej wrócą usunięte powiązania. Stałe bez override wymagają osobnej, opisanej zmiany formuły, najlepiej w źródłowym silniku Silence Tax, a potem przeniesienia poprawki do FNP.
 
-Gdy zmieniasz mapę `OVERLAP_CORRECTIONS`, kopiuj pozostałe wartości. Przekazanie samego `{ burnout: 0.6 }` usuwa inne korekty z przekazanej mapy. Nie modyfikuj importowanych obiektów w miejscu. Dla scenariusza firmy kopiuj `FNP_PROBLEM_DIST`; nie zmieniaj `DEFAULT_PROBLEM_DIST` wspólnego silnika.
+Częściowa mapa `OVERLAP_CORRECTIONS` zmienia tylko wymienione obszary, pozostałe zachowują wartości domyślne. Nie modyfikuj importowanych obiektów w miejscu. Dla scenariusza firmy kopiuj `FNP_PROBLEM_DIST`; nie zmieniaj `DEFAULT_PROBLEM_DIST` wspólnego silnika.
 
-API analityczne nie waliduje wszystkich niestandardowych priory. Przed obliczeniem sprawdź skończoność wartości: częstości i koszty muszą być nieujemne, podatność na ukrycie mieścić się w 0–1, a mnożnik kosztu późnego wynosić co najmniej 1. Zerowa podatność jest obsługiwana, oznacza brak ukrywania. Nie używaj normalizacji silnika jako walidatora: np. `employees: 0` zastępuje ona 1, a `autonomy: 0` wartością 0,5. Publiczny formularz odrzuca FTE poniżej 1 i nie udostępnia pola autonomii. Badanie skrajnej autonomii wymaga najpierw korekty tej normalizacji w silniku źródłowym.
+API nie waliduje wszystkich niestandardowych rozkładów zdarzeń. Przed obliczeniem sprawdź skończoność wartości: częstości i koszty muszą być nieujemne, podatność na ukrycie mieścić się w 0–1, a mnożnik kosztu późnego wynosić co najmniej 1. Zerowa podatność jest obsługiwana, oznacza brak ukrywania. Adapter silnika zastępuje `employees: 0` wartością 1; autonomię 0 zachowuje (pusta autonomia oznacza 0,5). Publiczny formularz odrzuca FTE poniżej 1 i nie udostępnia pola autonomii.
 
 Poniższy przykład uruchom w katalogu repozytorium. Pokazuje jedną zmianę naraz. Wartości alternatywne są wyłącznie ilustracją wrażliwości, nie rekomendacją kalibracji.
 
@@ -102,16 +128,16 @@ const input = {
   revenue: 100_000_000,
   employees: 500,
   avgSalary: 90_000, // Roczna płaca brutto na FTE.
-  turnoverPct: 16, // Górny limit odejść; 9–100 daje tu tę samą kwotę rotacji.
+  turnoverPct: 16, // Wymagana; kwota rotacji rośnie proporcjonalnie do niej.
   safety: 41, // Szacunek własny 0–100; puste pole kończy się błędem.
   scopeMode: 'conservative',
   safetySource: 'estimate',
 };
 const scenarios = [
-  ['FNP', {}], // Ok. 3 116 935 zł, 3,12% przychodu (wersja kodu z 3.10.2026).
-  ['Bez deklaracji rotacji (= 14,8%)', { turnoverPct: undefined }],
-  ['Wagi milczenia bez normalizacji', {
-    overrides: { SILENCE_WEIGHTS_NORMALIZED: false },
+  ['FNP', {}], // Ok. 3 146 247 zł, 3,15% przychodu (wersja kodu z 4.10.2026).
+  ['Rotacja 8% zamiast 16%', { turnoverPct: 8 }],
+  ['Cały udział klimatu w rotacji (waga 1)', {
+    overrides: { TURNOVER_CLIMATE_WEIGHT: 1 },
   }],
   ['Bez korekty milczenia automatycznego', {
     overrides: { AUTOMATIC_SILENCE_PENALTY: 0 },

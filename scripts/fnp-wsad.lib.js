@@ -6,8 +6,9 @@ import { INPUT_FIELDS } from "../src/inputs.js";
 // and measurement. Output is a scenario of scale per firm, not a valuation,
 // forecast or programme effect. Offline only, never in the public bundle.
 // Formulas and constants stay in src/; this file only parses, validates and
-// formats. Missing inputs are never filled in here; the model itself treats
-// a blank turnover as the 14.8% reference (see computeRow).
+// formats. Missing inputs are never filled in: every row needs a declared
+// turnover, because the model attributes to climate a share of the firm's
+// own exits (no national reference rate).
 
 export const DEFAULT_MIN_N = 15;
 
@@ -18,12 +19,12 @@ export const SCALES = {
   likert5: { min: 1, max: 5, toPercent: (x) => ((x - 1) / 4) * 100 },
 };
 
-export const REQUIRED_COLUMNS = ["firma", "klimat", "n", "fte", "placa_roczna"];
-export const OPTIONAL_COLUMNS = ["pomiar", "rotacja_proc", "przychod"];
+export const REQUIRED_COLUMNS = ["firma", "klimat", "n", "fte", "placa_roczna", "rotacja_proc"];
+export const OPTIONAL_COLUMNS = ["pomiar", "kolejnosc", "przychod"];
 
 export const OUTPUT_COLUMNS = [
   "firma", "pomiar", "klimat_0_100", "n", "fte", "status", "kwota_zl", "proc_przychodu",
-  "p10_zl", "p90_zl", "bledy_zl", "rotacja_zl", "wypalenie_zl", "rotacja_zrodlo", "wersja",
+  "p10_zl", "p90_zl", "bledy_zl", "rotacja_zl", "wypalenie_zl", "wersja",
 ];
 
 export const COMPARE_COLUMNS = [
@@ -110,12 +111,32 @@ export function parseCsv(input) {
   return { sep, records };
 }
 
-// Strict number: optional minus, digits, optional fraction. Decimal comma is
-// accepted only for ; files, where it cannot collide with the separator.
+// Strict number: optional minus, plain digits, optional single decimal mark.
+// No thousands grouping of any kind ("90.000", "1.234,5", "90 000", "90,000"
+// are rejected, never read as 90 or 90.0). The decimal mark is a comma in ;
+// files and a dot in , files; a dot in a ; file is an error, because there it
+// is usually a thousands separator.
 export function parseNumber(raw, sep) {
-  const s = sep === ";" ? raw.replace(",", ".") : raw;
-  if (!/^-?\d+(\.\d+)?$/.test(s)) return NaN;
-  return Number(s);
+  const pattern = sep === ";" ? /^-?\d+(,\d+)?$/ : /^-?\d+(\.\d+)?$/;
+  if (!pattern.test(raw)) return NaN;
+  return Number(sep === ";" ? raw.replace(",", ".") : raw);
+}
+
+// Measurement labels for --porownaj must sort unambiguously: ISO YYYY-MM or
+// YYYY-MM-DD (a real calendar date). "przed"/"po", "9"/"10" or "2026-9" are
+// rejected, because text order would silently swap before and after.
+const ISO_MONTH = /^(\d{4})-(\d{2})$/;
+const ISO_DAY = /^(\d{4})-(\d{2})-(\d{2})$/;
+export function isoLabelKind(label) {
+  const day = ISO_DAY.exec(label);
+  if (day) {
+    const [, y, m, d] = day.map(Number);
+    const date = new Date(Date.UTC(y, m - 1, d));
+    return date.getUTCFullYear() === y && date.getUTCMonth() === m - 1 && date.getUTCDate() === d ? "day" : null;
+  }
+  const month = ISO_MONTH.exec(label);
+  if (month && Number(month[2]) >= 1 && Number(month[2]) <= 12) return "month";
+  return null;
 }
 
 export function parseArgs(argv) {
@@ -208,7 +229,12 @@ export function validateRows(text, { skala = "procent", porownaj = false } = {})
     const n = num("n", { required: true, min: 0, max: Number.MAX_SAFE_INTEGER, integer: true });
     const fte = num("fte", { required: true, ...LIMITS.employees });
     const placa = num("placa_roczna", { required: true, ...LIMITS.avgSalary });
-    const rotacja = num("rotacja_proc", { required: false, ...LIMITS.turnoverPct });
+    const rotacja = num("rotacja_proc", { required: true, ...LIMITS.turnoverPct });
+    const hasOrder = header.includes("kolejnosc");
+    const kolejnosc = hasOrder ? num("kolejnosc", { required: porownaj, min: -Infinity, max: Infinity }) : undefined;
+    if (porownaj && !hasOrder && pomiar && !isoLabelKind(pomiar)) {
+      rowErrors.push(`pomiar: „${pomiar}” nie jest datą ISO RRRR-MM ani RRRR-MM-DD; w trybie --porownaj podaj taką etykietę albo kolumnę kolejnosc`);
+    }
     const przychod = num("przychod", { required: false, ...LIMITS.revenue });
     const key = `${firma}\u0000${pomiar}`;
     if (firma && seen.has(key)) rowErrors.push(`powtórzona para firma/pomiar (pierwszy raz w linii ${seen.get(key)})`);
@@ -217,26 +243,46 @@ export function validateRows(text, { skala = "procent", porownaj = false } = {})
       errors.push(`${where} (${firma || "bez kodu"}): ${rowErrors.join("; ")}.`);
       continue;
     }
-    rows.push({ line, firma, pomiar, safety, n, fte, placa, rotacja, przychod });
+    rows.push({ line, firma, pomiar, kolejnosc, safety, n, fte, placa, rotacja, przychod });
   }
+  if (porownaj && !errors.length) errors.push(...orderErrors(rows, header.includes("kolejnosc")));
   return { rows, errors, ignored };
 }
 
-// Runs the current public model. Optional inputs are passed only when given:
-// no turnover means the reference rate 14.8%, exactly as if it had been
-// declared (fnpModel.js); no revenue means the engine's revenue 0, which does
-// not enter the three headline areas.
+// Per firm, the order of measurements must be unambiguous: distinct
+// kolejnosc values, or ISO labels of one kind (all months or all days).
+function orderErrors(rows, byColumn) {
+  const errors = [];
+  const byFirm = new Map();
+  for (const r of rows) {
+    if (!byFirm.has(r.firma)) byFirm.set(r.firma, []);
+    byFirm.get(r.firma).push(r);
+  }
+  for (const [firma, list] of byFirm) {
+    if (byColumn) {
+      const keys = list.map((r) => r.kolejnosc);
+      if (new Set(keys).size !== keys.length) errors.push(`Firma ${firma}: powtórzona wartość w kolumnie kolejnosc, kolejność pomiarów jest niejednoznaczna.`);
+    } else if (new Set(list.map((r) => isoLabelKind(r.pomiar))).size > 1) {
+      errors.push(`Firma ${firma}: etykiety pomiar mieszają RRRR-MM i RRRR-MM-DD, kolejność jest niejednoznaczna.`);
+    }
+  }
+  return errors;
+}
+
+// Runs the current public model. A missing revenue is passed as 0: revenue
+// is only the percent denominator and does not enter the three headline
+// areas, so the amounts do not change and the percent stays empty.
 export function computeRow(row, { minN = DEFAULT_MIN_N } = {}) {
-  const base = { ...row, rotacjaZrodlo: row.rotacja === undefined ? "odniesienie" : "deklaracja" };
+  const base = { ...row };
   if (row.n < minN) return { ...base, status: STATUS_BELOW_N };
   const params = {
     employees: row.fte,
     avgSalary: row.placa,
     safety: row.safety,
+    turnoverPct: row.rotacja,
+    revenue: row.przychod ?? 0,
     scopeMode: "conservative",
     safetySource: "survey",
-    ...(row.rotacja !== undefined ? { turnoverPct: row.rotacja } : {}),
-    ...(row.przychod !== undefined ? { revenue: row.przychod } : {}),
   };
   const result = computeFnpAnalysis(params);
   const headline = Object.fromEntries(result.costs.components.filter((c) => c.inHeadline).map((c) => [c.id, c.value]));
@@ -276,7 +322,7 @@ export function formatRows(results, version) {
       ok ? money(r.total) : "", pct,
       ok ? money(r.p10) : "", ok ? money(r.p90) : "",
       ok ? money(r.errors) : "", ok ? money(r.turnover) : "", ok ? money(r.burnout) : "",
-      r.rotacjaZrodlo, version,
+      version,
     ]));
   }
   return `${lines.join("\n")}\n`;
@@ -300,7 +346,10 @@ export function compareResults(results) {
       skipped.push({ firma, reason: `${list.length} pomiar(y), potrzebne dokładnie 2` });
       continue;
     }
-    const [before, after] = [...list].sort((a, b) => (a.pomiar < b.pomiar ? -1 : a.pomiar > b.pomiar ? 1 : 0));
+    // Order by kolejnosc when given, else by the validated ISO label (for
+    // labels of one ISO kind, text order is calendar order).
+    const key = (r) => (r.kolejnosc !== undefined ? r.kolejnosc : r.pomiar);
+    const [before, after] = [...list].sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));
     const below = [before, after].filter((r) => r.status !== STATUS_OK);
     if (below.length) {
       skipped.push({ firma, reason: `pomiar ${below.map((r) => `${r.pomiar} (n=${r.n})`).join(", ")} poniżej progu respondentów` });
