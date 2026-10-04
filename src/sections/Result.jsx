@@ -11,10 +11,10 @@ export default function Result({ valuation, params, sensitivity }) {
   return (
     <section id="wynik" style={{ padding: "28px 0" }}>
       <LedgerSectionHeading num="Krok 2" title="Wynik" />
-      <div role="status" aria-live="polite" aria-atomic="true" style={{ padding: "18px 0", borderBottom: "1px solid var(--l-rule)" }}>
+      <div style={{ padding: "18px 0", borderBottom: "1px solid var(--l-rule)" }}>
         {total ? <>
           <p className="micro">Roczny scenariusz kosztów</p>
-          <p style={{ fontFamily: "var(--mono)", fontSize: "clamp(30px, 5vw, 48px)", fontWeight: 700, lineHeight: 1.2 }}>{money(total.base)}</p>
+          <p id="wynik-kwota" style={{ fontFamily: "var(--mono)", fontSize: "clamp(30px, 5vw, 48px)", fontWeight: 700, lineHeight: 1.2, fontVariantNumeric: "tabular-nums" }}>{money(total.base)}</p>
           <p style={{ fontFamily: "var(--mono)", marginTop: 6 }}>Zakres: od {money(total.low)} do {money(total.high)}</p>
           {sensitivitySentence(sensitivity) && <p id="wrazliwosc" style={{ marginTop: 6 }}>{sensitivitySentence(sensitivity)}</p>}
           <p style={{ marginTop: 10 }}>

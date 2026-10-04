@@ -7,6 +7,10 @@ import Invitation from "./sections/Invitation.jsx";
 import { DEFAULT_PARAMS } from "./inputs.js";
 import { computeFnpAnalysis, computeFnpClimateSensitivity } from "./fnpModel.js";
 import { money, share } from "./format.js";
+import { readFileSync } from "node:fs";
+import ClimateStops from "./components/ClimateStops.jsx";
+import LiveBar from "./components/LiveBar.jsx";
+import { CLIMATE_ANCHORS } from "./channels.js";
 
 // Server-rendered page structure: short main flow, full methodology kept in a
 // collapsed <details> for crawlers and visitors without JS.
@@ -99,3 +103,47 @@ describe("result block", () => {
   });
 });
 
+
+describe("climate control and live result", () => {
+  it("labels the slider with the question and keeps the own-estimate line next to it", () => {
+    expect(html).toMatch(/<label for="safety"[^>]*>Jak bezpiecznie jest u Was zgłosić problem albo przyznać się do błędu\?<\/label>/);
+    expect(html).toMatch(/id="climate-help"[^>]*>To szacunek własny, nie pomiar\./);
+    expect(html).toMatch(/id="safety"[^>]*aria-describedby="climate-help climate-anchor"/);
+  });
+
+  it("has no scroll-only result button, keeps the reset button", () => {
+    expect(html).not.toContain("Zobacz wynik");
+    expect(html).not.toMatch(/class="fnp-btn"[^>]*href="#wynik"|href="#wynik"[^>]*class="fnp-btn"/);
+    expect(html).toContain("Przywróć przykład");
+  });
+
+  it("each sentence is a button that sets its anchor value; the current one is pressed", () => {
+    const buttons = (safety, onPick = () => {}) => ClimateStops({ safety, onPick }).props.children;
+    const picked = [];
+    for (const button of buttons(41, (v) => picked.push(v))) button.props.onClick();
+    expect(picked).toEqual(CLIMATE_ANCHORS.map((a) => a.at));
+    for (const { at } of CLIMATE_ANCHORS) {
+      const pressed = buttons(at).filter((b) => b.props["aria-pressed"]).map((b) => b.key);
+      expect(pressed).toEqual([String(at)]);
+    }
+    expect(buttons(41).filter((b) => b.props["aria-pressed"]).map((b) => b.key)).toEqual(["35"]);
+    expect(html).toMatch(/<button type="button" class="climate-stop on" aria-pressed="true">/);
+    expect(html.match(/class="climate-stop( on)?"/g)).toHaveLength(5);
+  });
+
+  it("number fields show grouped digits and the numeric keypad", () => {
+    expect(html).toMatch(/id="revenue"[^>]*inputMode="numeric"|inputMode="numeric"[^>]*id="revenue"/i);
+    expect(html).toMatch(/id="revenue"[^>]*value="100\u00a0000\u00a0000"|value="100\u00a0000\u00a0000"[^>]*id="revenue"/);
+    expect(html).toMatch(/id="turnoverPct"[^>]*inputMode="decimal"|inputMode="decimal"[^>]*id="turnoverPct"/i);
+  });
+
+  it("the fixed bar is not rendered when inputs are invalid and is hidden in print", () => {
+    expect(renderToString(createElement(LiveBar, { total: null, safety: 41 }))).not.toContain("live-bar");
+    const valid = renderToString(createElement(LiveBar, { total: { base: 3.15e6, low: 2.39e6, high: 3.96e6 }, safety: 41 }));
+    expect(valid).toContain('class="live-bar"');
+    expect(valid).toContain('aria-hidden="true"');
+    const css = readFileSync(new URL("./index.css", import.meta.url), "utf8");
+    const printBlocks = css.match(/@media print\s*{[^@]*}/g).join("\n");
+    expect(printBlocks).toMatch(/\.live-bar\s*{\s*display:\s*none/);
+  });
+});
