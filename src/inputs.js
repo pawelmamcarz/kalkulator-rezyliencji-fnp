@@ -1,3 +1,5 @@
+import { finiteOrNull, isBlankInput } from "./logic/numbers.js";
+
 export const DEFAULT_PARAMS = {
   companyName: "", revenue: 100_000_000, costs: 92_000_000,
   employees: 500, avgSalary: 90_000, turnoverPct: 16, safety: 41,
@@ -9,13 +11,15 @@ export const INPUT_FIELDS = [
   { key: "costs", label: "Koszty roczne", min: 0, max: 1e13, unit: "zł", hint: "Ten sam rok. Służą tylko do porównania z marżą." },
   { key: "employees", label: "Liczba etatów", min: 1, max: 5_000_000, unit: "etatów", hint: "Średnio w roku. Dwa pół etatu to jeden etat." },
   { key: "avgSalary", label: "Roczna płaca brutto na etat", min: 0, max: 10_000_000, unit: "zł", hint: "Średnio, z premiami, bez składek pracodawcy." },
-  { key: "turnoverPct", label: "Rotacja roczna", min: 0, max: 100, unit: "%", hint: "Ile osób na 100 zatrudnionych odeszło w ciągu roku." },
+  { key: "turnoverPct", label: "Rotacja roczna", min: 0, max: 100, unit: "%", hint: "Ile osób na 100 zatrudnionych odeszło w ciągu roku. Kwota rotacji rośnie proporcjonalnie do tej liczby." },
 ];
 
+// Only finite numbers or trimmed numeric strings count; whitespace is blank,
+// and booleans or arrays are not numbers (Number(" ") === 0, Number(true) === 1).
 export function inputError(value, { min, max }) {
-  if (value === "" || value == null) return "Uzupełnij pole, aby obliczyć wynik.";
-  const number = Number(value);
-  if (!Number.isFinite(number)) return "Wpisz skończoną liczbę.";
+  if (isBlankInput(value)) return "Uzupełnij pole, aby obliczyć wynik.";
+  const number = finiteOrNull(value);
+  if (number === null) return "Wpisz skończoną liczbę.";
   if (number < min || number > max) return `Wpisz liczbę od ${min.toLocaleString("pl-PL")} do ${max.toLocaleString("pl-PL")}.`;
   return "";
 }

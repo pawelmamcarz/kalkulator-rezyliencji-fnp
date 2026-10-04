@@ -18,8 +18,9 @@ import {
 //
 // `K_SIGMOID_MULT` is a global multiplier on every METRIC's sigmoid steepness
 // `k` - the only way to perturb the sigmoid shape parameter without mutating
-// the shared METRICS table. Baseline = K_SIGMOID_DEFAULT_MULT, a face-validity
-// scenario prior; ±25% perturbation reports local numerical sensitivity.
+// the shared METRICS table. Baseline = K_SIGMOID_DEFAULT_MULT, an author's
+// choice (see constants.js); ±25% perturbation reports local numerical
+// sensitivity.
 // MC_RHO is *not* in PERTURBABLE because `computeCosts` (the function that
 // `sensitivityReport` perturbs below) is the deterministic point-estimate path
 // - ρ has no effect there. ρ shapes the *Monte Carlo distribution* (P10–P90
@@ -32,7 +33,7 @@ import {
 const PERTURBABLE = [
   { key: "K_SIGMOID_MULT",            value: K_SIGMOID_DEFAULT_MULT,    tier: "C", label: "k sigmoidy (stromość krzywych METRICS)",  source: "AUTHOR: structural scenario prior" },
   { key: "OVERLAP_GLOBAL",            value: 1.0,                       tier: "C", label: "Globalna skala korekt overlap",     source: "AUTHOR (audit DK-5: ekspercka redukcja 15.4% → 13.1%)" },
-  { key: "WYSIATI_PREMIUM",           value: WYSIATI_PREMIUM,           tier: "B", label: "WYSIATI premium",                   source: "Kahneman 2011 (kontekstowa)" },
+  { key: "WYSIATI_PREMIUM",           value: WYSIATI_PREMIUM,           tier: "B", label: "WYSIATI premium (stały mnożnik autora na koszt hierarchii oddolnej)", source: "AUTHOR: constant multiplier, not a measured bias (Kahneman 2011 motivates the direction only)" },
   { key: "HIRSCHMAN_EXIT_AMPLIFIER",  value: HIRSCHMAN_EXIT_AMPLIFIER,  tier: "B", label: "Hirschman exit amplifier",          source: "AUTHOR: Hirschman-inspired prior" },
   { key: "ARGYRIS_REVENUE_IMPACT",    value: ARGYRIS_REVENUE_IMPACT,    tier: "C", label: "Argyris double-loop deficit",       source: "AUTHOR" },
   { key: "NONAKA_SALARY_IMPACT",      value: NONAKA_SALARY_IMPACT,      tier: "C", label: "Nonaka SECI block",                 source: "AUTHOR" },
@@ -41,47 +42,6 @@ const PERTURBABLE = [
   { key: "AUTOMATIC_SILENCE_PENALTY", value: AUTOMATIC_SILENCE_PENALTY, tier: "C", label: "Adamska automatic silence penalty", source: "AUTHOR (Adamska 2016)" },
   { key: "AGENCY_MONITORING_HIGH",    value: AGENCY_MONITORING_HIGH,    tier: "B", label: "Jensen-Meckling monitoring (high)", source: "AUTHOR: Jensen-Meckling-inspired prior" },
 ];
-
-// Persistence x discount -> NPV grid for the printed ST-13 annex.
-//
-// This is the "trwałość × dyskonto" table promised by CLAUDE.md's description
-// of this file. It is a PURE presentation-layer derivation: it re-uses exactly
-// the 3-year cumulative-NPV recurrence that SectionPitch draws (upfront cost at
-// Y0, then annualSavings decayed by persistence^(y-1) and discounted by
-// (1+disc)^y), so the printed annex cannot disagree with the on-screen Pitch at
-// the baseline cell (persistence 0.70, discount 0.08). Baseline persistence and
-// discount are marked so the Filing can highlight the row/column that matches
-// the headline pitch. Adds NOTHING to any existing displayed number - it is a
-// pure addition consumed only by the (print-only) FilingSummary annex.
-export const NPV_GRID_PERSISTENCES = [0.55, 0.7, 0.85];
-export const NPV_GRID_DISCOUNTS = [0.06, 0.08, 0.1];
-export const NPV_GRID_BASELINE = { persistence: 0.7, discount: 0.08 };
-
-export function npvSensitivityGrid({
-  annualSavings = 0,
-  upfrontCost = 0,
-  persistences = NPV_GRID_PERSISTENCES,
-  discounts = NPV_GRID_DISCOUNTS,
-  horizon = 3,
-} = {}) {
-  const npv = (persistence, disc) => {
-    let cum = -upfrontCost;
-    for (let y = 1; y <= horizon; y++) {
-      cum += (annualSavings * Math.pow(persistence, y - 1)) / Math.pow(1 + disc, y);
-    }
-    return cum;
-  };
-  const grid = persistences.map((p) => discounts.map((d) => npv(p, d)));
-  return {
-    persistences,
-    discounts,
-    horizon,
-    grid,
-    baseline: NPV_GRID_BASELINE,
-    annualSavings,
-    upfrontCost,
-  };
-}
 
 export function sensitivityReport(params, { delta = 0.25 } = {}) {
   // Perturb around the caller's active scenario. The base and every

@@ -12,11 +12,11 @@ const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..
 const HELP = `Użycie: npm run fnp:wsad -- <plik.csv> [--skala procent|likert7|likert5] [--min-n ${DEFAULT_MIN_N}] [--out wynik.csv] [--porownaj]
 
 Liczy scenariusz skali publicznego modelu FNP dla każdej firmy i pomiaru.
-Kolumny: firma, klimat, n, fte, placa_roczna (wymagane); pomiar, rotacja_proc, przychod (opcjonalne).
+Kolumny: firma, klimat, n, fte, placa_roczna, rotacja_proc (wymagane, z wartością w każdym wierszu); pomiar, kolejnosc, przychod (opcjonalne).
 --skala     skala kolumny klimat (domyślnie procent 0–100; likert7 1–7; likert5 1–5)
 --min-n     minimalna liczba ważnych odpowiedzi na firmę (domyślnie ${DEFAULT_MIN_N}); poniżej progu kwoty zostają puste
 --out       zapisz CSV do pliku i skrót do <plik>.sha256; bez tej opcji CSV idzie na stdout
---porownaj  zestaw dwa pomiary tej samej firmy (wymaga kolumny pomiar)
+--porownaj  zestaw dwa pomiary tej samej firmy (wymaga kolumny pomiar z datą RRRR-MM lub RRRR-MM-DD albo liczbowej kolumny kolejnosc)
 Wynik to scenariusz skali, nie wycena księgowa ani dowód efektu programu.`;
 
 export async function main({

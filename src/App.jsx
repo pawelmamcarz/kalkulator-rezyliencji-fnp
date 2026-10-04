@@ -29,13 +29,13 @@ export default function App() {
       <main>
         <Hero />
         <Diagnosis params={params} up={up} errors={errors} reset={reset} />
-        <Result valuation={analysis?.valuation} params={params} />
+        <Result valuation={analysis?.valuation} params={params} sensitivity={analysis?.sensitivity} />
         <NextSteps ready={!!analysis} params={params} up={up} />
         {!conference && <ConferenceBanner />}
         <HowWeCalculate valuation={analysis?.valuation} params={params} />
       </main>
       <Footer />
-      <Invitation params={params} valuation={analysis?.valuation} />
+      <Invitation params={params} valuation={analysis?.valuation} sensitivity={analysis?.sensitivity} />
     </div>
   );
 }

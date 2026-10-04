@@ -1,3 +1,5 @@
+import { finiteOrNull } from "./numbers.js";
+
 const CHANNELS = [
   {
     id: "continuity",
@@ -42,12 +44,6 @@ function riskLevel(safety) {
   return "lower";
 }
 
-function finiteOrNull(value) {
-  if (value === null || value === undefined || value === "") return null;
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-}
-
 export function computeRiskProfile(params = {}) {
   // A missing climate has no level. `Number(x) || 0` reported it as climate 0,
   // the "elevated" band.
@@ -76,6 +72,3 @@ export function computeRiskProfile(params = {}) {
     ],
   };
 }
-
-export const RISK_CHANNELS = CHANNELS;
-export const VALUATION_CHANNEL_IDS = CHANNELS.map((channel) => channel.id);

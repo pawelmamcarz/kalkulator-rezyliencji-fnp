@@ -47,24 +47,39 @@ describe("FNP numerical audit", () => {
     }
   });
 
+  // The silence-type weights redistribute the headline between its three
+  // areas with one common factor (the sum is unchanged), so the shown split
+  // moves together; the pre-weight amounts (value / silenceMultiplier) and
+  // the headline sum keep the simple relations.
+  const preWeight = (analysis, id) => {
+    const row = analysis.costs.components.find((c) => c.id === id);
+    return row.value / row.silenceMultiplier;
+  };
+  const headlineSum = (analysis) => ["errors", "turnover", "burnout"].reduce((sum, id) => sum + preWeight(analysis, id), 0);
+
   it("uses annual pay only for turnover and burnout in the headline", () => {
     const base = analyze();
     const doubled = analyze({ avgSalary: DEFAULT_PARAMS.avgSalary * 2 });
-    expect(component(doubled, "errors")).toBe(component(base, "errors"));
-    expect(component(doubled, "turnover")).toBeCloseTo(component(base, "turnover") * 2, 6);
-    expect(component(doubled, "burnout")).toBeCloseTo(component(base, "burnout") * 2, 6);
+    expect(preWeight(doubled, "errors")).toBeCloseTo(preWeight(base, "errors"), 6);
+    expect(preWeight(doubled, "turnover")).toBeCloseTo(preWeight(base, "turnover") * 2, 6);
+    expect(preWeight(doubled, "burnout")).toBeCloseTo(preWeight(base, "burnout") * 2, 6);
+    // The headline is the pre-weight sum times the automatic-silence factor.
+    const auto = base.costs.totalTax / headlineSum(base);
+    expect(doubled.costs.totalTax / headlineSum(doubled)).toBeCloseTo(auto, 12);
     const zeroPay = analyze({ avgSalary: 0 });
     expect(component(zeroPay, "turnover")).toBe(0);
     expect(component(zeroPay, "burnout")).toBe(0);
-    expect(zeroPay.costs.totalTax).toBe(component(base, "errors"));
+    expect(zeroPay.costs.totalTax).toBeCloseTo(preWeight(base, "errors") * auto, 6);
   });
 
-  it("zero declared turnover removes turnover without changing other headline components", () => {
+  it("zero declared turnover removes turnover without changing the other pre-weight amounts", () => {
     const base = analyze();
     const zeroTurnover = analyze({ turnoverPct: 0 });
     expect(component(zeroTurnover, "turnover")).toBe(0);
-    expect(component(zeroTurnover, "errors")).toBe(component(base, "errors"));
-    expect(component(zeroTurnover, "burnout")).toBe(component(base, "burnout"));
+    expect(preWeight(zeroTurnover, "errors")).toBeCloseTo(preWeight(base, "errors"), 6);
+    expect(preWeight(zeroTurnover, "burnout")).toBeCloseTo(preWeight(base, "burnout"), 6);
+    const auto = base.costs.totalTax / headlineSum(base);
+    expect(zeroTurnover.costs.totalTax).toBeCloseTo((preWeight(base, "errors") + preWeight(base, "burnout")) * auto, 6);
   });
 
   it("never increases the headline as climate improves across every slider step", () => {
@@ -103,6 +118,8 @@ describe("FNP input boundary", () => {
     ["avgSalary", -1], ["turnoverPct", -1], ["turnoverPct", 101],
     ["safety", -1], ["safety", 101], ["revenue", Infinity],
     ["avgSalary", NaN], ["costs", ""], ["turnoverPct", null],
+    ["safety", " "], ["safety", "\t"], ["safety", true], ["safety", [41]], ["turnoverPct", " "],
+    ["turnoverPct", false], ["employees", [500]], ["revenue", "1 000"],
   ])("blocks invalid %s = %s before normalization can silently replace it", (key, value) => {
     expect(validateInputs({ ...DEFAULT_PARAMS, [key]: value })).toHaveProperty(key);
   });

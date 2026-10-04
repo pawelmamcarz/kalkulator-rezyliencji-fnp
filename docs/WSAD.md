@@ -10,17 +10,18 @@ npm run fnp:wsad -- dane.csv --porownaj
 
 ## Plik wejściowy
 
-CSV z nagłówkiem, separator `,` albo `;` (wykrywany z nagłówka). Przecinek dziesiętny tylko w plikach z `;`. Obsługiwane: pola w cudzysłowach, BOM, CRLF, puste linie.
+CSV z nagłówkiem, separator `,` albo `;` (wykrywany z nagłówka). Liczby wpisuj bez separatorów tysięcy: same cyfry, opcjonalny minus i jeden znak dziesiętny. W plikach z `,` znakiem dziesiętnym jest kropka, w plikach z `;` przecinek; kropka w pliku z `;` jest błędem (np. `90.000` nie zostanie odczytane jako 90). `90 000`, `1.234,5` i `90,000` są odrzucane. Obsługiwane: pola w cudzysłowach, BOM, CRLF, puste linie.
 
 | Kolumna | Wymagana | Znaczenie |
 |---|---|---|
 | `firma` | tak | kod firmy, np. firma_017 |
-| `pomiar` | nie (tak przy `--porownaj`) | etykieta pomiaru, np. 2026-10 |
+| `pomiar` | nie (tak przy `--porownaj`) | etykieta pomiaru; przy `--porownaj` bez kolumny `kolejnosc` musi być datą ISO `RRRR-MM` albo `RRRR-MM-DD`, np. 2026-10 |
+| `kolejnosc` | nie | liczba ustalająca kolejność pomiarów w `--porownaj` (mniejsza = wcześniejszy); gdy kolumna jest, wartość jest wymagana w każdym wierszu i nie może się powtarzać w firmie |
 | `klimat` | tak | wynik ankiety w skali z `--skala` |
 | `n` | tak | liczba ważnych odpowiedzi za tym wynikiem |
 | `fte` | tak | etaty, co najmniej 1 |
 | `placa_roczna` | tak | roczna płaca brutto na etat, zł |
-| `rotacja_proc` | nie | zadeklarowana roczna rotacja, 0–100% |
+| `rotacja_proc` | tak, w każdym wierszu | zadeklarowana roczna rotacja, 0–100%; kwota rotacji rośnie proporcjonalnie do niej |
 | `przychod` | nie | przychód roczny, zł; tylko mianownik procentu |
 
 Inne kolumny są pomijane i wypisywane raz na stderr. Limity fte, płacy, rotacji i przychodu są takie same jak w formularzu kalkulatora (`src/inputs.js`).
@@ -30,11 +31,11 @@ Inne kolumny są pomijane i wypisywane raz na stderr. Limity fte, płacy, rotacj
 - `--skala procent|likert7|likert5` (domyślnie procent). likert7: (średnia − 1) / 6 × 100, likert5: (średnia − 1) / 4 × 100. Wynik spoza zakresu skali to błąd.
 - `--min-n` (domyślnie 15). Wiersz z mniejszym n zostaje w wyniku ze statusem `poniżej_progu_n` i pustymi kwotami.
 - `--out plik.csv` zapisuje CSV oraz `plik.csv.sha256`. Bez tej opcji CSV idzie na stdout.
-- `--porownaj` zestawia dokładnie dwa pomiary każdej firmy (kolejność według `pomiar` jako tekstu).
+- `--porownaj` zestawia dokładnie dwa pomiary każdej firmy. Kolejność ustala kolumna `kolejnosc`, a bez niej data ISO w `pomiar`. Etykiety, których nie da się jednoznacznie uporządkować (`przed`/`po`, `9`/`10`, `2026-9`, nieistniejąca data, mieszanie `RRRR-MM` z `RRRR-MM-DD` w jednej firmie), kończą się błędem i niczego nie zapisują: tekstowe sortowanie odwróciłoby znak zmiany.
 
 ## Zasady
 
-- Brak danych nie jest uzupełniany, z jednym jawnym wyjątkiem. Bez `rotacja_proc` model przyjmuje stopę odniesienia 14,8%, dokładnie tak, jakby ją zadeklarowano (`rotacja_zrodlo=odniesienie`); z deklaracją używa podanej stopy (`deklaracja`). Deklarowana rotacja działa wyłącznie jako górny limit modelowych odejść: rotacja powyżej odniesienia nie jest przypisywana milczeniu. Bez `przychod` kolumna `proc_przychodu` jest pusta; kwoty się nie zmieniają, bo przychód nie wchodzi do trzech obszarów w sumie.
+- Brak danych nie jest uzupełniany. `rotacja_proc` jest wymagana w każdym wierszu: model przypisuje klimatowi część zadeklarowanych odejść firmy, więc bez deklaracji nie ma czego liczyć i nie ma stopy domyślnej. Kwota rotacji rośnie proporcjonalnie do deklaracji, a przy klimacie 100/100 wynosi zero. Bez `przychod` kolumna `proc_przychodu` jest pusta; kwoty się nie zmieniają, bo przychód nie wchodzi do trzech obszarów w sumie.
 - Fail closed: jeśli choć jeden wiersz jest błędny, narzędzie wypisuje wszystkie błędy, nic nie zapisuje i kończy się kodem 1.
 - Deterministycznie: ten sam plik daje te same bajty i ten sam SHA-256 (stałe ziarno Monte Carlo z modelu FNP). Skrót zawsze trafia na stderr.
 - `wersja` pochodzi z `.version`. Kwoty w pełnych złotych, klimat z jednym miejscem po przecinku, procent z dwoma.

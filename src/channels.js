@@ -45,13 +45,13 @@ export function climateAnchor(safety) {
   return CLIMATE_ANCHORS[4];
 }
 
+// The engine's channel aggregates are scope-aware: `base` is the in-headline
+// amount and `excluded` the amount left out of the headline. `pending` is the
+// excluded amount without analytics-only modules (hierarchy).
 export function splitChannel(channel) {
   const components = channel.components || [];
-  const headline = components
-    .filter((c) => c.inHeadline)
-    .reduce((sum, c) => sum + c.value, 0);
   const pending = components
-    .filter((c) => !c.inHeadline && !c.analyticsOnly)
+    .filter((c) => c.inHeadline === false && !c.analyticsOnly)
     .reduce((sum, c) => sum + c.value, 0);
-  return { headline, pending, components, inSum: components.some((component) => component.inHeadline) };
+  return { headline: channel.base, pending, components, inSum: Boolean(channel.inHeadline) };
 }
