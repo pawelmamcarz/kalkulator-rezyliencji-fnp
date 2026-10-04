@@ -199,7 +199,7 @@ describe("redesign: sentences first, the disc, the firm line", () => {
     const top = renderToString(createElement(Headline, { valuation: a.valuation, worst }));
     expect(top).toContain("scale(0)");
     expect(top).toContain('class="disc-ring"');
-    expect(text(top)).toContain("Koło to 0% najgorszego przypadku tej firmy.");
+    expect(text(top)).toContain("Koło to 0% kwoty przy najniższej ocenie klimatu.");
     // a small share is still a visible dot
     expect(discScale(discShare(amount(92), worst))).toBeGreaterThan(0.2);
   });
@@ -209,7 +209,7 @@ describe("redesign: sentences first, the disc, the firm line", () => {
     expect(html).toContain(`scale(${Math.sqrt(share)})`);
     expect(text(html).replace(/\s/g, " ")).toContain("3,15 mln zł rocznie, od 2,39 do 3,96 mln zł");
     expect(text(html)).toContain("Przykładowa firma");
-    expect(text(html)).toContain(`Koło to ${Math.round(share * 100)}% najgorszego przypadku tej firmy.`);
+    expect(text(html)).toContain(`Koło to ${Math.round(share * 100)}% kwoty przy najniższej ocenie klimatu.`);
     expect(text(mainFlow)).not.toMatch(/model daje|Przy klimacie o 10/);
   });
 

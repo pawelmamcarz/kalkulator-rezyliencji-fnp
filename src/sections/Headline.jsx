@@ -31,7 +31,7 @@ export default function Headline({ valuation, worst, label = "Przykładowa firma
         <p className="disc-amount num">{amount}{"\u00a0"}{unit}</p>
         <p className="disc-range num">{total.high > 0 ? `rocznie, ${moneyRange(total.low, total.high)}` : "rocznie, przy klimacie 100/100"}</p>
       </div>
-      <p className="disc-notes small num">Koło to {PERCENT.format(share)} najgorszego przypadku tej firmy.</p>
+      <p className="disc-notes small num">Koło to {PERCENT.format(share)} kwoty przy najniższej ocenie klimatu.</p>
     </div>
   );
 }

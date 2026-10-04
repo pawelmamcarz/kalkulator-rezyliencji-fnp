@@ -3,19 +3,19 @@ export const CHANNEL_COPY = {
     title: "Rotacja i utrata wiedzy",
     short: "Rekrutacja i wdrożenie osób na miejsce tych, które odchodzą.",
     image: "Pracownik odchodzi, a zespół potrzebuje czasu na przekazanie obowiązków.",
-    body: "W sumie jest scenariusz dodatkowego kosztu rotacji: zastąpienia i wdrożenia pracowników. Utrata wiedzy nie ma osobnej kwoty. Nie każde odejście wynika z klimatu pracy.",
+    body: "Do wyniku wliczamy szacowany dodatkowy koszt rekrutacji i wdrożenia nowych pracowników. Utrata wiedzy nie ma osobnej kwoty. Nie każde odejście wynika z klimatu pracy.",
   },
   operational: {
     title: "Błędy i compliance",
     short: "Problemy zgłaszane za późno, gdy ich naprawa kosztuje więcej.",
     image: "Problem zostaje zgłoszony dopiero wtedy, gdy trudniej go naprawić.",
-    body: "W sumie jest dodatkowy koszt opóźnionej reakcji na błędy, według przyjętej częstości i kosztów zdarzeń. Ryzyko compliance opisujemy bez oddzielnej wyceny kar.",
+    body: "Do wyniku wliczamy dodatkowy koszt późnego zgłoszenia błędów. Częstość zdarzeń i koszty ich naprawy są założeniami autora. Nie wyceniamy osobno kar za naruszenie przepisów.",
   },
   capacity: {
     title: "Wypalenie i pasywność",
     short: "Mniejsza zdolność do pracy w przeciążonych zespołach.",
-    image: "Praca wymaga coraz więcej wysiłku, a zespół ma mniej zasobów na reagowanie.",
-    body: "W sumie jest scenariusz ograniczonej zdolności do pracy związanej z wypaleniem. Pasywność nie jest doliczana osobno. Kalkulator nie diagnozuje zdrowia pracowników.",
+    image: "Przeciążonym pracownikom brakuje sił na rozwiązywanie kolejnych problemów.",
+    body: "Szacujemy koszt ograniczonej zdolności do pracy związanej z wypaleniem. Pasywności nie doliczamy osobno. Kalkulator nie diagnozuje zdrowia pracowników.",
   },
   contribution: {
     title: "Innowacje i uczenie się",
