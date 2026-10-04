@@ -5,7 +5,7 @@ export default function NextSteps({ ready, params, up }) {
     <section id="dalej" className="b-next block" aria-labelledby="dalej-tytul">
       <h2 id="dalej-tytul">Co dalej</h2>
       <p style={{ marginTop: 8 }}>
-        Liczba pokazuje skalę, ale nie mówi, co zmienić. To sprawdza diagnoza Fundacji Nowe Przestrzenie, a działania dobiera się dopiero po niej.
+        Napisz do Fundacji Nowe Przestrzenie, żeby porozmawiać o diagnozie. Jej wyniki pomogą ustalić, co zmienić.
       </p>
       <div className="next-actions">
         <a className="btn primary" href="mailto:zapraszamy@noweprzestrzenie.pl?subject=Diagnoza%20FNP">Napisz do Fundacji</a>
