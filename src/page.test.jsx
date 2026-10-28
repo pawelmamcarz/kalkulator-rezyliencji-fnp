@@ -222,7 +222,7 @@ describe("redesign: sentences first, the disc, the firm line", () => {
     const broken = { ...DEFAULT_PARAMS, revenue: "" };
     expect(line(broken, validateInputs(broken))).toContain("przychód do poprawy");
     // a climate change alone keeps the example firm
-    expect(line({ ...DEFAULT_PARAMS, safety: 10 }, {})).toMatch(/^Przykładowa firma, Twoja ocena klimatu:/);
+    expect(line({ ...DEFAULT_PARAMS, safety: 10 }, {})).toMatch(/^Przykładowa firma, Twój klimat:/);
   });
 
   it("the data disclosure is closed by default and opens itself on invalid input", () => {
@@ -239,12 +239,12 @@ describe("redesign: sentences first, the disc, the firm line", () => {
 
   it("labels the three states: example, example with own climate, own firm", () => {
     expect(dataLabel(DEFAULT_PARAMS)).toBe("Przykładowa firma");
-    expect(dataLabel({ ...DEFAULT_PARAMS, safety: 10 })).toBe("Przykładowa firma, Twoja ocena klimatu");
+    expect(dataLabel({ ...DEFAULT_PARAMS, safety: 10 })).toBe("Przykładowa firma, Twój klimat");
     expect(dataLabel({ ...DEFAULT_PARAMS, employees: 200 })).toBe("Twoja firma");
     expect(dataLabel({ ...DEFAULT_PARAMS, employees: 200, safety: 10 })).toBe("Twoja firma");
     const a = computeFnpAnalysis({ ...input, safety: 10 });
     const own = text(renderToString(createElement(Headline, { valuation: a.valuation, worst: amount(0), label: dataLabel({ ...DEFAULT_PARAMS, safety: 10 }) })));
-    expect(own).toContain("Przykładowa firma, Twoja ocena klimatu");
+    expect(own).toContain("Przykładowa firma, Twój klimat");
     expect(text(renderToString(createElement(Headline, { valuation: null })))).toContain("Popraw oznaczone pola");
   });
 
