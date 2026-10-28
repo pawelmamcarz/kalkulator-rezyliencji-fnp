@@ -12,7 +12,7 @@ export const isFirmEdited = (params) => differs(params, FIRM_KEYS);
 // visitor's own climate estimate, or the visitor's firm.
 export function dataLabel(params) {
   if (isFirmEdited(params)) return "Twoja firma";
-  return differs(params, ["safety"]) ? "Przykładowa firma, Twój klimat" : "Przykładowa firma";
+  return differs(params, ["safety"]) ? "Przykładowa firma, Twój szacunek klimatu" : "Przykładowa firma";
 }
 
 const shown = (value, format, errors, key) => (errors[key] ? "do poprawy" : format(value));

@@ -34,7 +34,7 @@ Pięć zdań to typograficzna drabina, nie zestaw przycisków radiowych: pełna 
 
 ## Etykieta danych
 
-Nad kwotą i na początku wiersza firmy: „Przykładowa firma” (nic nie zmieniono), „Przykładowa firma, Twój klimat” (zmieniono tylko klimat), „Twoja firma” (zmieniono którekolwiek pole firmy). Logika w `src/firm.js` (`dataLabel`).
+Nad kwotą i na początku wiersza firmy: „Przykładowa firma” (nic nie zmieniono), „Przykładowa firma, Twój szacunek klimatu” (zmieniono tylko klimat), „Twoja firma” (zmieniono którekolwiek pole firmy). Logika w `src/firm.js` (`dataLabel`).
 
 ## Układ
 
