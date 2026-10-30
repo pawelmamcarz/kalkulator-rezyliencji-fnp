@@ -18,7 +18,7 @@ Uprzejmie proszę o:
 7. Definicje grup używanych w raporcie: „niskie” i „wysokie” bezpieczeństwo, „ćwiartka o najniższym bezpieczeństwie”, „tam, gdzie króluje strach”.
 
 **C. Tabele (jeśli istnieją w raporcie lub w zestawieniach Ipsos)**
-8. Numery tabel lub stron, z których pochodzą liczby: 71%, 42%, 56%, 36%, 51%, 59% („nie warto się wychylać”), 85% i 59% (stabilność zespołu), 52% i 10% (pomysły), 72% (ukrywanie błędów w dolnej ćwiartce), 70% (unikanie ryzyka), 21% i 99% (proszenie o pomoc), 39% i 79% (znajomość procedur), 19% i 70%, 74% i 19%, 68% i 73%, średnia 41 oraz rozkład pięciu poziomów 14/17/40/15/14%.
+8. Numery tabel lub stron, z których pochodzą liczby: 71%, 42%, 56%, 36%, 51%, 59% („nie warto się wychylać”), 85% i 59% (stabilność zespołu), 52% i 10% (pomysły), 72% (w raporcie: szukanie winnego w grupie niskiego bezpieczeństwa; brak potwierdzenia dla ukrywania błędów), 70% (unikanie ryzyka), 21% i 99% (proszenie o pomoc), 39% i 79% (znajomość procedur), 19% i 70%, 74% i 19%, 68% i 73%, średnia 41 oraz rozkład pięciu poziomów 14/17/40/15/14%.
 
 **D. Zgoda na użycie pytań**
 9. Informację, czy Fundacja może używać brzmienia wybranych pytań w płatnej ankiecie dla firm i czy wymaga to zgody Ipsos lub prof. Jacka Wasilewskiego.

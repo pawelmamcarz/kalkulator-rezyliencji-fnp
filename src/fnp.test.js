@@ -259,12 +259,12 @@ describe("FNP × Ipsos context section copy", () => {
     expect(context).toMatch(/Ile kosztuje milczenie\?/);
   });
 
-  it("says which figures feed the curves, that they are unchecked, and that amounts are not calibrated", () => {
-    expect(context).toMatch(/kontekst/i);
-    expect(context).toMatch(/wartości końcowe krzywych modelu \(stabilność zespołu 59% i 85%, wypalenie 51%\)/);
-    expect(context).toMatch(/nie sprawdzono/);
+  it("defines the sample and distinguishes reported categories from calibration", () => {
+    expect(context).toMatch(/trzech niższych kategoriach/);
+    expect(context).toMatch(/15% poziom umiarkowany, a 14% wysoki/);
+    expect(context).toMatch(/nie opisuje wszystkich pracujących w Polsce/);
     expect(context).toMatch(/nie są skalibrowane/);
-    expect(context).not.toMatch(/nie przelicza/);
+    expect(context).not.toMatch(/brzmienie pytań sprawdzimy/);
   });
 
   it("contains no money amounts, ROI or return claims", () => {
