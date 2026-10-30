@@ -17,6 +17,7 @@ export default function Diagnosis({ params, up, errors, reset }) {
     <section id="dane" className="b-firm block" aria-labelledby="dane-tytul">
       <h2 id="dane-tytul" className="sr-only">Dane firmy</h2>
       <p className="firm-line num" id="firma">{firmSummary(params, errors)}</p>
+      {errors.surveyScopeConfirmed && params.surveyConfirmed && <p className="field-hint" role="status">Potwierdź zakres badania w sekcji oceny klimatu, aby zobaczyć wynik.</p>}
       <div className="firm-actions">
         {!invalid && (
           <button type="button" className="btn" aria-expanded={expanded} aria-controls={panel} onClick={() => setOpen(!expanded)}>

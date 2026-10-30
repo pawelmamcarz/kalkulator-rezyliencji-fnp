@@ -30,9 +30,9 @@ Version lives in `.version` (`YYYY.WW.BUILD.PATCH`), injected as `__APP_VERSION_
 Output is a **scenario of scale**, not an accounting valuation, forecast, causal estimate, or ROI promise.
 
 - Default: `scopeMode: conservative` + `CALIBRATION_MODES.conservative` + `safetySource: estimate`.
-- Headline money = validated core only (turnover, errors, burnout). Other areas show „poza sumą”, without adding złoty to the total.
-- One climate slider 0–100 with behavioral anchors. No 7-item Likert, no mini-quiz. Copy must say szacunek własny, nie pomiar.
-- Inputs: revenue, costs, headcount, average pay, turnover, climate. Headline uses FTE, salary, climate and the declared turnover, which is required (a blank rate throws; there is no national reference). Turnover = declared rate × 0.5 (`TURNOVER_CLIMATE_WEIGHT`) × the share of exits the model's churn curve attributes to climate (1 − churn(100) / churn(s), about 29% at climate 41), so it scales with the declared rate and is zero at climate 100. Costs are for margin only. Revenue is the percent denominator and must not change any amount.
+- Headline money = the three included model areas (turnover, errors, burnout). The internal maturity label is not empirical validation. Other areas show „poza sumą”, without adding złoty to the total.
+- Offer the quick climate estimate and manual survey-result paths. The 0–100 slider is a self-estimate, not a team survey. Survey inputs require declared scale compatibility; partial or unknown survey scope also requires a matching data-scope declaration. Neither declaration validates the scale or representativeness.
+- Inputs: revenue, costs, headcount, average pay, turnover, climate. Headline uses FTE, salary, climate and declared annual FTE turnover, which is required (a blank rate throws; there is no national reference). The public input accepts 0–100%; annual gross flows above 100% are not supported. Before normalised silence weights, turnover = declared rate × 0.5 (`TURNOVER_CLIMATE_WEIGHT`) × the share of exits the model's churn curve attributes to climate (1 − churn(100) / churn(s), about 29% at climate 41), so that pre-allocation value scales with the declared rate and is zero at climate 100. Normalisation redistributes the total between areas, so final displayed area amounts can shift when another area changes. Costs are for margin only. Revenue is the percent denominator and must not change any amount.
 - Five reporting areas, FNP labels, not the academic channel titles:
   1. Rotacja i utrata wiedzy
   2. Błędy i compliance

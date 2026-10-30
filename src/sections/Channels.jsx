@@ -39,7 +39,7 @@ export default function Channels({ valuation, params }) {
                 <p className="muted">{copy?.body}</p>
                 {channel.id === "continuity" && valuation && (
                   <p className="small muted" style={{ marginTop: 8 }}>
-                    Zadeklarowana rotacja: {plNumber(params.turnoverPct)}%. Model przypisuje klimatowi część odejść z Twojej firmy: przy klimacie {params.safety}/100 jest to {share(fnpTurnoverClimateShare(params.safety))} według krzywej modelu, a do kwoty wlicza tę część z wagą {plNumber(TURNOVER_CLIMATE_WEIGHT)}. Kwota rośnie proporcjonalnie do zadeklarowanej rotacji, a przy klimacie 100/100 wynosi zero. Szczegóły opisujemy niżej, w założeniach autora.
+                    Zadeklarowana rotacja: {plNumber(params.turnoverPct)}%. Model przypisuje klimatowi część odejść z Twojej firmy: przy klimacie {params.safety}/100 jest to {share(fnpTurnoverClimateShare(params.safety))} według krzywej modelu, a do kwoty wlicza tę część z wagą {plNumber(TURNOVER_CLIMATE_WEIGHT)}. W modelu przy klimacie 100/100 kwota wynosi zero. Podział między trzema obszarami jest umowny: normalizacja wag może nieznacznie zmieniać inne składowe, gdy zmienia się rotacja. Szczegóły opisujemy niżej, w założeniach autora.
                   </p>
                 )}
               </div>
@@ -58,7 +58,7 @@ export default function Channels({ valuation, params }) {
         })}
       </div>
       <p className="small muted" style={{ marginTop: 16 }}>
-        {valuation ? "Kwoty w obszarach dotyczą wariantu bazowego. Są zaokrąglane do prezentacji, więc ich widoczna suma może nieznacznie różnić się od zaokrąglonego wyniku." : "Uzupełnij poprawne dane, aby zobaczyć kwoty w pięciu obszarach."}
+        {valuation ? "Kwoty w obszarach dotyczą wariantu bazowego. Są zaokrąglane do prezentacji, więc ich widoczna suma może nieznacznie różnić się od zaokrąglonego wyniku." : "Uzupełnij poprawne dane, aby zobaczyć kwoty w trzech obszarach sumy."}
       </p>
     </section>
   );

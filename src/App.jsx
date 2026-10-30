@@ -38,7 +38,7 @@ export default function App() {
           <Hero survey={params.safetySource === "survey"} />
           <div className="b-disc">
             <h2 className="sr-only">Wynik</h2>
-            <Headline valuation={analysis?.valuation} worst={analysis?.worst} label={dataLabel(params)} surveyPending={params.safetySource === "survey" && Object.keys(errors).some((key) => key.startsWith("survey"))} />
+            <Headline safety={modelParams.safety} valuation={analysis?.valuation} worst={analysis?.worst} label={dataLabel(params)} surveyPending={params.safetySource === "survey" && Object.keys(errors).some((key) => key.startsWith("survey"))} />
           </div>
           <Climate safety={params.safety} params={params} errors={errors} up={up} sensitivity={analysis?.sensitivity} />
           <Diagnosis params={params} up={up} errors={errors} reset={reset} />

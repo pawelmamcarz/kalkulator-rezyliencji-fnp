@@ -1,5 +1,12 @@
 # Priory pieniężne a dowody (luka 15)
 
+> **Archiwum, nie opis bieżącej wersji.** To przegląd według stanu z 4 października 2026 r. Używa historycznych wzorów, numerów linii i kwot: niektóre zmieniły się później. W szczególności R2, R3, R9, R12 i R13 oraz przykład liczbowy należy sprawdzić w aktualnym kodzie; dawnego odniesienia rotacji 14,8% model już nie używa. Aktualny opis: [Priory FNP](../PRIORY.md).
+>
+> **Korekta interpretacji R4.** Przedział 0,05–0,15 rocznej płacy w tabeli jest hipotezą autora do analizy wrażliwości, a nie zakresem kosztu potwierdzonym cytowanymi badaniami. Badania absencji i korelacji nie ustalają tego przelicznika dla polskich firm ani przyczynowej części kosztu. Opis „niezgodne z dostępnymi danymi” w R4 nie jest wystarczająco uzasadnionym rozstrzygnięciem dla obecnego modelu.
+>
+> **Uściślenie R1.** Mediana około 21% w przeglądzie Boushey i Glynn dotyczy 27 amerykańskich studiów przypadków po wykluczeniu lekarzy i kadry kierowniczej; nie jest reprezentatywną medianą dla polskich pracowników. Przegląd Bahn i Sanchez Cumming opisuje 37 przypadków, a główne statystyki w relacji do płacy dotyczą 31 z nich.
+
+
 Stan: 4 października 2026 r. Wersja kodu FNP z 3.10.2026 (`.version` 2026.39.2.1 według briefu). Firma przykładowa: 100 mln zł przychodu, 500 FTE, 90 tys. zł rocznej płacy, rotacja 16%, klimat 41; suma 3 116 935 zł, w tym błędy 1 043 732 zł, rotacja 726 649 zł, wypalenie 1 346 554 zł (obliczone na bieżącym kodzie).
 
 Oznaczenia źródeł: **[P]** widziany dokument pierwotny, **[A]** abstrakt lub rekord bibliograficzny, **[W]** źródło wtórne. Wartości „wyliczone” to moja arytmetyka na liczbach ze źródła, nie liczby opublikowane.

@@ -22,7 +22,7 @@ export default function Invitation({ params, valuation, sensitivity }) {
         <h3>Dane wejściowe</h3>
         <ul style={{ paddingLeft: 18 }}>
           {INPUT_FIELDS.map((field) => <li key={field.key}>{field.label}: {Number(params[field.key]).toLocaleString("pl-PL")} {field.unit}</li>)}
-          <li>{survey ? `Wynik badania: ${params.surveySafety}/100, dotyczy ${scope}; zgodność skali deklaruje użytkownik` : `Klimat organizacji: ${params.safety}/100, szacunek własny`}</li>
+          <li>{survey ? `Wynik badania: ${params.surveySafety}/100, dotyczy ${scope}; zgodność skali deklaruje użytkownik; kalkulator jej nie weryfikuje${["part", "unknown"].includes(params.surveyScope) ? "; zgodność zakresu danych i badanej grupy deklaruje użytkownik" : ""}` : `Klimat organizacji: ${params.safety}/100, szacunek własny`}</li>
         </ul>
         <h3>Obszary</h3>
         <ol style={{ paddingLeft: 18 }}>

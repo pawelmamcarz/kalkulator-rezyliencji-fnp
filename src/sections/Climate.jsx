@@ -16,7 +16,7 @@ export default function Climate({ safety, up, sensitivity, params = {}, errors =
         <label><input type="radio" name="safetySource" checked={survey} onChange={() => up("safetySource", "survey")} /> Mam wynik badania</label>
       </fieldset>
       {survey ? <div className="survey-inputs">
-        <p className="small muted" id="survey-help">Wpisz wynik tylko, jeśli jego skala jest zgodna z oceną klimatu w tym modelu: 0 oznacza najniższe, a 100 najwyższe bezpieczeństwo zgłaszania problemów. Samo przeliczenie procentu nie zapewnia zgodności. Nie importujemy danych z ankiet.</p>
+        <p className="small muted" id="survey-help">Wpisz wynik tylko, jeśli jego skala jest zgodna z oceną klimatu w tym modelu: 0 oznacza najniższe, a 100 najwyższe bezpieczeństwo zgłaszania problemów. Samo przeliczenie procentu ani potwierdzenie poniżej nie dowodzi zgodności. Porównaj pytania, znaczenie wyniku i sposób przeliczenia z oceną zgłaszania problemów w tym modelu. Kalkulator tego nie weryfikuje i nie importuje danych z ankiet.</p>
         <div className="field">
           <label htmlFor="surveySafety">Wynik badania na zgodnej skali 0–100</label>
           <NumberField id="surveySafety" className="num-input" decimal value={params.surveySafety} onValue={(value) => up("surveySafety", value)} aria-describedby="survey-help" />
@@ -28,6 +28,11 @@ export default function Climate({ safety, up, sensitivity, params = {}, errors =
           <label><input type="radio" name="surveyScope" checked={params.surveyScope === "unknown"} onChange={() => up("surveyScope", "unknown")} /> Nie wiem</label>
         </fieldset>
         <p className="small muted">Wynik części organizacji nie opisuje automatycznie całej firmy. Ocena zakresu i reprezentatywności pozostaje po stronie użytkownika.</p>
+        {["part", "unknown"].includes(params.surveyScope) && <>
+          <p className="small muted">Dane o etatach, płacach, rotacji, przychodach i kosztach muszą dotyczyć tej samej grupy co wynik. Jeżeli nie znasz grupy lub nie masz danych dla niej, nie potwierdzaj zgodności.</p>
+          <label className="survey-confirm"><input type="checkbox" required aria-describedby="survey-scope-confirm-help" checked={params.surveyScopeConfirmed === true} onChange={(event) => up("surveyScopeConfirmed", event.target.checked)} /> Potwierdzam, że dane wejściowe dotyczą tej samej badanej grupy.</label>
+          <p id="survey-scope-confirm-help" className="field-hint" role="status">{errors.surveyScopeConfirmed ? "Potwierdź zakres danych, aby zobaczyć wynik." : "Zakres danych potwierdzony przez użytkownika."}</p>
+        </>}
         <label className="survey-confirm"><input type="checkbox" checked={params.surveyConfirmed === true} onChange={(event) => up("surveyConfirmed", event.target.checked)} /> Potwierdzam, że wynik i sposób jego przeliczenia są zgodne z tą skalą.</label>
         <p className="small muted">Wynik finansowy pozostaje scenariuszem zależnym od założeń, nie pomiarem strat.</p>
       </div> : <>

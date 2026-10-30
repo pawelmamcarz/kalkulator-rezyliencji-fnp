@@ -3,7 +3,7 @@ import { finiteOrNull, isBlankInput } from "./logic/numbers.js";
 export const DEFAULT_PARAMS = {
   companyName: "", revenue: 100_000_000, costs: 92_000_000,
   employees: 500, avgSalary: 90_000, turnoverPct: 16, safety: 41,
-  safetySource: "estimate", surveySafety: "", surveyScope: "", surveyConfirmed: false, scopeMode: "conservative", valuationEnabled: true,
+  safetySource: "estimate", surveySafety: "", surveyScope: "", surveyConfirmed: false, surveyScopeConfirmed: false, scopeMode: "conservative", valuationEnabled: true,
 };
 
 export const INPUT_FIELDS = [
@@ -11,7 +11,7 @@ export const INPUT_FIELDS = [
   { key: "costs", label: "Koszty roczne", min: 0, max: 1e13, unit: "zł", hint: "Ten sam rok. Służą tylko do porównania z marżą." },
   { key: "employees", label: "Liczba etatów", min: 1, max: 5_000_000, unit: "etatów", hint: "Średnio w roku. Dwa pół etatu to jeden etat." },
   { key: "avgSalary", label: "Roczna płaca brutto na etat", min: 0, max: 10_000_000, unit: "zł", hint: "Średnio, z premiami, bez składek pracodawcy." },
-  { key: "turnoverPct", label: "Rotacja roczna", min: 0, max: 100, unit: "%", hint: "Ile osób na 100 zatrudnionych odeszło w ciągu roku. Kwota rotacji rośnie proporcjonalnie do tej liczby." },
+  { key: "turnoverPct", label: "Rotacja roczna", min: 0, max: 100, unit: "%", hint: "Suma etatów osób, które odeszły w roku, podzielona przez średnią liczbę etatów i pomnożona przez 100. Kalkulator przyjmuje zakres 0–100%." },
 ];
 
 // Only finite numbers or trimmed numeric strings count; whitespace is blank,
@@ -22,6 +22,18 @@ export function inputError(value, { min, max }) {
   if (number === null) return "Wpisz skończoną liczbę.";
   if (number < min || number > max) return `Wpisz liczbę od ${min.toLocaleString("pl-PL")} do ${max.toLocaleString("pl-PL")}.`;
   return "";
+}
+
+// A scope confirmation applies only to the firm data and surveyed group it
+// was given for. Changing either requires a fresh declaration.
+export function updateParams(previous, key, value) {
+  if (Object.is(previous[key], value)) return previous;
+  const next = { ...previous, [key]: value };
+  if (key === "surveyScope" || key === "safetySource" || key === "surveySafety" || INPUT_FIELDS.some((field) => field.key === key)) {
+    next.surveyScopeConfirmed = false;
+  }
+  if (key === "surveySafety" || key === "safetySource") next.surveyConfirmed = false;
+  return next;
 }
 
 export function scenarioSafety(params) {
@@ -37,6 +49,9 @@ export function validateInputs(params) {
   if (params.safetySource === "survey") {
     if (!["whole", "part", "unknown"].includes(params.surveyScope)) errors.surveyScope = "Wybierz zakres badanej grupy.";
     if (params.surveyConfirmed !== true) errors.surveyConfirmed = "Potwierdź zgodność skali i sposobu jej przeliczenia.";
+    if (["part", "unknown"].includes(params.surveyScope) && params.surveyScopeConfirmed !== true) {
+      errors.surveyScopeConfirmed = "Potwierdź zgodność zakresu danych i badanej grupy.";
+    }
   }
   return errors;
 }
