@@ -207,7 +207,7 @@ describe("source loading and mechanical checks", () => {
     const { state, loaded } = await loadSources({ sources: config.sources, root, readFileImpl: readFile });
     expect(state.priory).toContain("scenariusz skali");
     expect(state.methodology).toContain("Ipsos × FNP");
-    expect(state.limitations).toContain("nie mówimy o kalibracji");
+    expect(state.limitations).toContain("Badanie nie potwierdza krzywych ani kwot kalkulatora");
     expect(loaded.every((source) => source.emDash === false)).toBe(true);
     expect(mechanicalFindings(loaded)).toEqual([]);
   });

@@ -1,6 +1,6 @@
 # Priory FNP: instrukcja dla analityka
 
-Stan opisu: 4 października 2026 r. Wartości sprawdzaj względem wersji kodu, z której wykonujesz analizę.
+Stan opisu: 30 października 2026 r. Wartości sprawdzaj względem wersji kodu, z której wykonujesz analizę.
 
 Prior oznacza tutaj założenie startowe autora. Nie oznacza rozkładu wyestymowanego metodą bayesowską. Kalkulator tworzy **scenariusz skali** przy zadanych warunkach. Nie wycenia księgowej straty, nie prognozuje skutków interwencji ani zwrotu z inwestycji.
 
@@ -10,7 +10,7 @@ Badania uzasadniają rozpatrywanie zależności między klimatem, milczeniem i z
 
 Limit 5% przychodu dla firmy przykładowej jest kontrolą projektu. Nie jest wynikiem badania ani ogranicznikiem wszystkich wyników: przy innym stosunku płac do przychodu procent może być wyższy. Nie należy dostrajać współczynników do oczekiwanej kwoty.
 
-Końce krzywych w `METRICS` mają status `private-source-pending`: większość przypisano w silniku do Ipsos × FNP, ale audyt tabel nie jest zakończony. Nie wszystkie są liczbami z raportu: według pól `src` w `src/logic/constants.js` część wartości dla wysokiego klimatu to szacunki autora (np. `burnoutRate` „est. 8% high”), a opis `snitchPerc` („5% vs 41% neg”) nie zgadza się z jego parametrami (0,55 i 0,10). Środki i stromości są autorskie. Przy mnożniku FNP krzywe nie osiągają tych końców (tabela niżej). Otwarty kod umożliwia sprawdzenie rachunku, nie dowodzi prawdziwości założeń. Wewnętrzna etykieta `validated` określa zakres sumy; nie oznacza empirycznie zwalidowanej kwoty.
+Przejrzeliśmy raport Ipsos × FNP i jego wykresy. Nie otrzymaliśmy pełnych tabel krzyżowych, klucza indeksu ani mikrodanych. Część parametrów METRICS odpowiada liczbom z raportu, inne nie odpowiadają potwierdzonemu pytaniu: 72% dotyczy szukania winnego, nie zmierzonego ukrywania błędów, a 5% i 41% to odpowiedzi „zdecydowanie nie” na pytanie o donosicielstwo, nie wartości parametrów 55% i 10%. Liczby 39% i 79% dotyczą znajomości ścieżki zgłoszenia, nie korzystania z procedur. Szczegóły i numery stron: [audyt raportu](walidacja/audyt-raportu-ipsos-2026.md). Średnia 41/100 nie została potwierdzona. Środki i stromości krzywych oraz kwoty są autorskie. Przy mnożniku FNP krzywe nie osiągają zapisanych asymptot. Samo przepisanie liczby z raportu nie waliduje wartości modelu w grupach ani przeliczenia na pieniądze. Otwarty kod umożliwia sprawdzenie rachunku, nie dowodzi prawdziwości założeń. Wewnętrzna etykieta validated określa zakres sumy; nie oznacza empirycznie zwalidowanej kwoty.
 
 ## Ścieżka obliczenia
 
@@ -65,7 +65,7 @@ Przy `K_SIGMOID_MULT` = 0,30 model korzysta tylko ze środkowej części każdej
 | --- | --- | --- | --- |
 | `teamStability` | 0,59 / 0,85 | 0,655 → 0,780 | 59% vs 85% |
 | `burnoutRate` | 0,51 / 0,08 | 0,394 → 0,212 | 51% low, est. 8% high (górny koniec szacowany) |
-| `errorFear` | 0,72 / 0,05 | 0,604 → 0,178 | 42% ogół, 72% low |
+| `errorFear` | 0,72 / 0,05 | 0,604 → 0,178 | 42% błąd przeciw osobie; 72% szukanie winnego, nie ukrywanie |
 | `blameRate` | 0,72 / 0,02 | 0,618 → 0,116 | 72% vs 2% |
 | `ideaSilence` | 0,52 / 0,10 | 0,430 → 0,183 | 52% vs 10% |
 | `destructiveFear` | 0,74 / 0,19 | 0,649 → 0,276 | 74% vs 19% |

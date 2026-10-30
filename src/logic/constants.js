@@ -2,25 +2,25 @@
 
 export const METRICS = {
   blameRate:      { low: 0.72, high: 0.02, k: 0.12, mid: 45, label: "Kultura obwiniania",           labelEn: "Blame culture",                unit: "%", src: "72% vs 2%" },
-  errorFear:      { low: 0.72, high: 0.05, k: 0.10, mid: 48, label: "Ukrywanie błędów",             labelEn: "Error concealment",            unit: "%", src: "42% ogół, 72% low" },
+  errorFear:      { low: 0.72, high: 0.05, k: 0.10, mid: 48, label: "Ukrywanie błędów",             labelEn: "Error concealment",            unit: "%", src: "42% błąd przeciw osobie; 72% szukanie winnego, nie ukrywanie" },
   teamStability:  { low: 0.59, high: 0.85, k: 0.07, mid: 52, label: "Stabilność zespołu",           labelEn: "Team stability",               unit: "%", src: "59% vs 85%", positive: true },
   helpComfort:    { low: 0.21, high: 0.99, k: 0.08, mid: 52, label: "Komfort proszenia o pomoc",    labelEn: "Comfort asking for help",      unit: "%", src: "21% vs 99%", positive: true },
   burnoutRate:    { low: 0.51, high: 0.08, k: 0.06, mid: 55, label: "Wypalenie zawodowe",           labelEn: "Burnout rate",                 unit: "%", src: "51% low, est. 8% high" },
   ideaSilence:    { low: 0.52, high: 0.10, k: 0.09, mid: 48, label: "Milczenie z pomysłami",        labelEn: "Idea silence",                 unit: "%", src: "52% vs 10%" },
   passivity:      { low: 0.59, high: 0.08, k: 0.07, mid: 50, label: "Bierność ('nie wtrącam się')", labelEn: "Passivity ('not my concern')", unit: "%", src: "59% low" },
-  riskAversion:   { low: 0.70, high: 0.15, k: 0.08, mid: 50, label: "Unikanie ryzyka",             labelEn: "Risk aversion",                unit: "%", src: "56% ogół, 70% low" },
+  riskAversion:   { low: 0.70, high: 0.15, k: 0.08, mid: 50, label: "Unikanie ryzyka",             labelEn: "Risk aversion",                unit: "%", src: "56% ogół; 70% i 15% niepotwierdzone" },
   procedureUse:   { low: 0.39, high: 0.79, k: 0.06, mid: 55, label: "Znajomość procedur",          labelEn: "Procedure knowledge",          unit: "%", src: "39% vs 79%", positive: true },
-  snitchPerc:     { low: 0.55, high: 0.10, k: 0.10, mid: 45, label: "Usprawnienie = donosicielstwo",labelEn: "Improvement = informing",      unit: "%", src: "5% vs 41% neg" },
-  workJoy:        { low: 0.19, high: 0.70, k: 0.07, mid: 52, label: "Pracuje się wspaniale",        labelEn: "Great place to work",          unit: "%", src: "19% vs 70%", positive: true },
+  snitchPerc:     { low: 0.55, high: 0.10, k: 0.10, mid: 45, label: "Usprawnienie = donosicielstwo",labelEn: "Improvement = informing",      unit: "%", src: "5% vs 41% zdecydowanie nie; parametry niepotwierdzone" },
+  workJoy:        { low: 0.19, high: 0.70, k: 0.07, mid: 52, label: "Pracuje się wspaniale lub bardzo dobrze", labelEn: "Great or very good work experience",          unit: "%", src: "19% vs 70%", positive: true },
   destructiveFear:{ low: 0.74, high: 0.19, k: 0.11, mid: 45, label: "Destrukcyjny lęk",            labelEn: "Destructive anxiety",          unit: "%", src: "74% vs 19%" },
 };
 
-// Endpoint values above are attributed to the private Ipsos/FNP report and
-// remain PRIVATE-SOURCE PENDING until its tables are audited. Every `k` and
-// `mid` value is an AUTHOR'S EXTENSION. Do not describe the curves as fitted.
-// Not every endpoint is a report figure: the `src` notes mark some high ends
-// as the author's estimates (burnoutRate "est. 8% high"), and snitchPerc's
-// `src` ("5% vs 41% neg") does not match its parameters (0.55 and 0.10).
+// Ipsos/FNP report reviewed: selected figures correspond to reported group
+// responses, but other mappings are unsupported (notably errorFear and
+// snitchPerc). Full cross-tabs, group definitions and the scoring key are
+// unavailable. Matching a report number to an asymptote does not validate
+// the curve. Every k and mid remains an author's extension. See
+// docs/walidacja/audyt-raportu-ipsos-2026.md.
 
 // AUTHOR'S EXTENSION - Kahneman (2011) motivates the direction and existence
 // of each bias, not these magnitudes; the numeric values are the author's
@@ -304,26 +304,10 @@ export const MODULE_INTERACTIONS_LEGACY = Object.freeze([
   { fromMetric: "destructiveFear",  toId: "agencyOverhead",  w: 0.15 },
 ]);
 
-// PL_AVG_SAFETY anchored to Ipsos 2026 raw sample mean (rozprawa §4.1.2),
-// a figure absent from the public Ipsos x FNP materials and pending a
-// table-level audit of the full report. NOT computed from the 5-bin
-// distribution weighted means (the former PL_DISTRIBUTION constant, removed
-// as unused). Its weighted mean gives ~47, but the raw sample mean (n=1000)
-// is 41 - the ~6pt gap comes from bin midpoint discretization on a
-// right-skewed distribution. Dissertation uses 41 as the calibration
-// anchor (s₀ for sigmoid midpoints, scenario 1 plausibility check),
-// so the UI must match to keep model and academic narrative aligned.
-//
-// External adversarial review (P1, JMS-style methodologist) flagged that
-// using 41 instead of 47 looks like "data convenience" - the inflection
-// point conveniently coincides with the population mean, making 13–14%
-// fall out at PL average. The defence is in autoreferat §5.2 + dyssertation
-// §4.1.2: 41 is the *unbiased* estimator of central tendency for a
-// right-skewed integer-coded scale; 47 is an artefact of bin midpoint
-// arithmetic. NOTE: an earlier version of this comment claimed a
-// `midpointShift` perturbation in sensitivity.js - no such perturbation
-// exists in the code (grilling 2026-06-09); the defence of 41 vs 47 rests
-// on the estimator argument above, not on a sensitivity run.
+// Historical example value retained for compatibility. The report reviewed
+// in 2026 does not establish 41 as a national mean: its scoring key, category
+// boundaries and group means were not provided. Do not present it as a
+// verified population average or use it as evidence of calibration.
 export const PL_AVG_SAFETY = 41;
 
 // Example organization shown in the hero before the visitor declares a

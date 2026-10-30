@@ -1,8 +1,8 @@
 
 const FACTS = [
-  { value: "71%", body: "pracowników polskich zespołów nie czuje pełnego bezpieczeństwa psychologicznego." },
-  { value: "42%", body: "mówi, że błędy bywają wykorzystywane przeciwko pracownikowi." },
-  { value: "85% / 59%", body: "osób deklaruje stabilność zespołu, gdy bezpieczeństwo jest wysokie; gdy panuje strach, 59%." },
+  { value: "71%", body: "badanych znalazło się w trzech niższych kategoriach bezpieczeństwa: bardzo niskiej, niskiej lub obniżonej." },
+  { value: "42%", body: "badanych uważa, że w ich zespole błąd może zostać wykorzystany przeciw osobie, która go popełniła." },
+  { value: "85% / 59%", body: "badanych deklaruje stabilność zespołu odpowiednio w grupie o wysokim i niskim bezpieczeństwie. To nie jest zmierzona stopa rotacji." },
 ];
 
 export default function Context() {
@@ -18,7 +18,7 @@ export default function Context() {
         ))}
       </div>
       <p className="field-hint" style={{ marginTop: 16, }}>
-        Źródło: raport Fundacji Nowe Przestrzenie i Ipsos „Ile kosztuje milczenie? Niewidzialny podatek od braku bezpieczeństwa psychologicznego w polskim biznesie” (2026): badanie CAWI na 1000 osobach pracujących w zespołach co najmniej pięcioosobowych w sektorze prywatnym. Liczby w brzmieniu ze strony raportu i relacji prasowych; brzmienie pytań sprawdzimy w pełnym raporcie. To wyniki badania opinii, pokazane jako polski kontekst. Część liczb z raportu posłużyła jako wartości końcowe krzywych modelu (stabilność zespołu 59% i 85%, wypalenie 51%); tych wartości nie sprawdzono jeszcze w tabelach badania. Kwoty kalkulatora nie są skalibrowane na tym badaniu.
+        Źródło: raport Fundacji Nowe Przestrzenie i Ipsos „Ile kosztuje milczenie?” (2026), strony 7, 12, 14, 16 i 24. Badanie CAWI przeprowadzono w październiku 2025 r. wśród 1000 osób w wieku 18–65 lat, pracujących w zespołach co najmniej pięcioosobowych i z co najmniej średnim wykształceniem technicznym. Próba obejmowała określone rodzaje pracy i wykluczała m.in. administrację państwową; nie opisuje wszystkich pracujących w Polsce. Na wykresie 71% stanowią trzy niższe kategorie, 15% poziom umiarkowany, a 14% wysoki. Kwoty kalkulatora nie są skalibrowane na tym badaniu.
       </p>
     </section>
   );

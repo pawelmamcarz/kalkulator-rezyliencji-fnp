@@ -1,6 +1,6 @@
 # Plan analizy mikrodanych Ipsos × FNP 2026 dla Kalkulatora Rezyliencji FNP
 
-Stan: 4 października 2026 r. Dokument dla psychometry lub analityka Fundacji oraz dla inżyniera, który przygotuje skrypt. Dotyczy luk 12 (końce krzywych), 13 (średnia 41) i 14 (skala klimatu 0–100). Nie zawiera kodu poza pseudokodem.
+Stan planu: 4 października 2026 r. Aktualizacja źródłowa 30 października: przejrzano raport, ale nie uzyskano tabel krzyżowych ani mikrodanych. Poniższe historyczne hipotezy i statusy publiczne należy czytać z [audytem raportu](audyt-raportu-ipsos-2026.md), który je uzupełnia i koryguje. Dokument dla psychometry lub analityka Fundacji oraz dla inżyniera, który przygotuje skrypt. Dotyczy luk 12 (końce krzywych), 13 (średnia 41) i 14 (skala klimatu 0–100). Nie zawiera kodu poza pseudokodem.
 
 Zasada nadrzędna: **najpierw zapisujemy plan i reguły decyzji, potem otwieramy dane**. Wersję tego dokumentu z datą i skrótem SHA-256 trzeba zapisać (OSF, repozytorium lub e-mail do Fundacji z załącznikiem) przed pierwszym uruchomieniem analizy na mikrodanych.
 

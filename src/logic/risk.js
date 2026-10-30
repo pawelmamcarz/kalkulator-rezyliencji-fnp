@@ -68,7 +68,7 @@ export function computeRiskProfile(params = {}) {
     limitations: [
       "Psychological safety is a team-level construct; a company-wide score can hide team variance.",
       "The profile signals exposure. It does not estimate causal effects or financial loss.",
-      "Ipsos/FNP anchors remain pending until the private source report is audited page by page.",
+      "The Ipsos/FNP report was reviewed, but source tables and scale definitions remain unavailable; model curves and costs are not validated.",
     ],
   };
 }

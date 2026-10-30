@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════
 // SILENCE TAX OPTIMIZER - Logic barrel re-export
-// Ipsos/FNP endpoints remain private-source pending; see parameter registry.
+// Ipsos/FNP report figures and unresolved endpoint mappings: see parameter registry and report audit.
 // Modules split into src/logic/* (Path D refactor)
 // ═══════════════════════════════════════════════════════════════
 export * from './logic/constants.js';
