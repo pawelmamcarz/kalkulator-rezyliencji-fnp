@@ -14,7 +14,7 @@ Końce krzywych w `METRICS` mają status `private-source-pending`: większość 
 
 ## Ścieżka obliczenia
 
-1. Publiczny formularz zbiera przychód i koszty roczne, FTE, średnią płacę brutto, rotację oraz klimat. W API `avgSalary` to **roczna** płaca brutto na FTE; `turnoverPct: 16` oznacza 16%, a `safety: 41` to szacunek własny 41/100, nie pomiar.
+1. Publiczny formularz zbiera przychód i koszty roczne, FTE, średnią płacę brutto, rotację oraz klimat. W API `avgSalary` to **roczna** płaca brutto na FTE; `turnoverPct: 16` oznacza 16%: suma etatów osób, które odeszły w roku, podzielona przez średnie FTE i pomnożona przez 100. Model przyjmuje tylko 0–100%; rzeczywista rotacja przepływowa może przekroczyć 100% i nie jest obsługiwana. `safety: 41` to szacunek własny 41/100, nie pomiar.
 2. `fnpAnalysisParams` nakłada ostrożne priory, rozkład zdarzeń FNP, powiązania FNP, deklarowaną rotację i domyślną liczbę liderów (10% FTE, jak w adapterze silnika). Rotacja jest wymagana: pusta (`undefined`, `null`, `""`, same spacje) kończy się błędem `TypeError` z polskim komunikatem; nie ma stopy domyślnej. Tak samo pusty lub nieliczbowy klimat (także `true`, `[41]`, `" "`). Klimat lub rotacja spoza 0–100 kończą się błędem `RangeError`, bez przycinania. Liczby można podać jako liczby albo napisy z cyframi (`" 41 "`). `computeFnpAnalysis` wykonuje analizę ze stałym ziarnem losowania (`MC_SEED_DEFAULT`, to samo co domyślne ziarno silnika).
 3. Model oblicza koszt danego obszaru przy zadanym klimacie oraz przy 100/100, z tymi samymi pozostałymi parametrami. Odejmuje drugi od pierwszego i zeruje ujemną różnicę. Punkt 100 jest odniesieniem matematycznym, nie organizacją bez problemów.
 4. Stosuje korekty nakładania kosztów, powiązań między wskaźnikami i rodzajów milczenia. Suma publiczna zawiera tylko `errors`, `turnover`, `burnout`. Wagi rodzajów milczenia są skalowane osobno w obrębie tych trzech obszarów i w obrębie pozostałych, więc nie zmieniają ani sumy publicznej, ani pełnej; przesuwają tylko koszt między obszarami.
@@ -128,7 +128,7 @@ const input = {
   revenue: 100_000_000,
   employees: 500,
   avgSalary: 90_000, // Roczna płaca brutto na FTE.
-  turnoverPct: 16, // Wymagana; kwota rotacji rośnie proporcjonalnie do niej.
+  turnoverPct: 16, // Wymagana roczna rotacja w FTE; przed normalizacją wag udział rośnie proporcjonalnie.
   safety: 41, // Szacunek własny 0–100; puste pole kończy się błędem.
   scopeMode: 'conservative',
   safetySource: 'estimate',

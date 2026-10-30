@@ -11,13 +11,13 @@ const split = (text) => {
 };
 
 // Disc, amount, range and one caption. The label says whose numbers these are.
-export default function Headline({ valuation, worst, label = "Przykładowa firma", surveyPending = false }) {
+export default function Headline({ valuation, worst, label = "Przykładowa firma", surveyPending = false, safety }) {
   const total = valuation?.total;
   if (!total) {
     return (
       <div className="disc-block" id="wynik-kwota">
         <Disc share={0} />
-        <p>{surveyPending ? "Wprowadź wynik badania, wybierz badaną grupę i potwierdź zgodność skali, aby zobaczyć kwotę." : "Popraw oznaczone pola w danych firmy. Wtedy pokażemy kwotę."}</p>
+        <p>{surveyPending ? "Wprowadź wynik badania, wybierz grupę oraz potwierdź zgodność skali i, gdy to wymagane, zakresu danych." : "Popraw oznaczone pola w danych firmy. Wtedy pokażemy kwotę."}</p>
       </div>
     );
   }
@@ -27,10 +27,11 @@ export default function Headline({ valuation, worst, label = "Przykładowa firma
     <div className="disc-block" id="wynik-kwota">
       <Disc share={share} />
       <div>
-        <p className="disc-label">{label}</p>
+        <p className="disc-label">{label} · Scenariusz modelowy</p>
         <p className="disc-amount num">{amount}{"\u00a0"}{unit}</p>
-        <p className="disc-range num">{total.high > 0 ? `rocznie, ${moneyRange(total.low, total.high)}` : "rocznie, przy klimacie 100/100"}</p>
+        <p className="disc-range num">{total.high > 0 ? `rocznie · Zakres symulacji ${moneyRange(total.low, total.high)}` : "rocznie, przy klimacie 100/100"}</p>
       </div>
+      {safety === 100 && <p className="small muted">Zero to nadwyżka względem odniesienia 100/100, nie dowód braku kosztów.</p>}
       <p className="disc-notes small num">Koło to {PERCENT.format(share)} kwoty przy najniższej ocenie klimatu.</p>
     </div>
   );

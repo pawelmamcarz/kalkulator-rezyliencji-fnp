@@ -207,7 +207,7 @@ describe("redesign: sentences first, the disc, the firm line", () => {
   it("server output contains the default amount, the disc at its share and the example label", () => {
     const share = amount(41) / amount(0);
     expect(html).toContain(`scale(${Math.sqrt(share)})`);
-    expect(text(html).replace(/\s/g, " ")).toContain("3,15 mln zł rocznie, od 2,39 do 3,96 mln zł");
+    expect(text(html).replace(/\s/g, " ")).toContain("3,15 mln zł rocznie · Zakres symulacji od 2,39 do 3,96 mln zł");
     expect(text(html)).toContain("Przykładowa firma");
     expect(text(html)).toContain(`Koło to ${Math.round(share * 100)}% kwoty przy najniższej ocenie klimatu.`);
     expect(text(mainFlow)).not.toMatch(/model daje|Przy klimacie o 10/);
@@ -218,7 +218,7 @@ describe("redesign: sentences first, the disc, the firm line", () => {
     expect(line(DEFAULT_PARAMS, {})).toBe("Przykładowa firma: 500 etatów, przychód 100 mln zł, koszty 92 mln zł, płaca 90 tys. zł, rotacja 16%.");
     expect(text(html)).toContain("Przykładowa firma: 500 etatów, przychód 100 mln zł, koszty 92 mln zł, płaca 90 tys. zł, rotacja 16%.");
     const mine = { ...DEFAULT_PARAMS, revenue: 2_500_000_000, turnoverPct: 14.5 };
-    expect(line(mine, {})).toBe("Twoja firma: 500 etatów, przychód 2,5 mld zł, koszty 92 mln zł, płaca 90 tys. zł, rotacja 14,5%.");
+    expect(line(mine, {})).toBe("Dane firmy, część wartości jak w przykładzie: 500 etatów, przychód 2,5 mld zł, koszty 92 mln zł, płaca 90 tys. zł, rotacja 14,5%.");
     const broken = { ...DEFAULT_PARAMS, revenue: "" };
     expect(line(broken, validateInputs(broken))).toContain("przychód do poprawy");
     // a climate change alone keeps the example firm
@@ -240,8 +240,8 @@ describe("redesign: sentences first, the disc, the firm line", () => {
   it("labels the three states: example, example with own climate, own firm", () => {
     expect(dataLabel(DEFAULT_PARAMS)).toBe("Przykładowa firma");
     expect(dataLabel({ ...DEFAULT_PARAMS, safety: 10 })).toBe("Przykładowa firma, Twój szacunek klimatu");
-    expect(dataLabel({ ...DEFAULT_PARAMS, employees: 200 })).toBe("Twoja firma");
-    expect(dataLabel({ ...DEFAULT_PARAMS, employees: 200, safety: 10 })).toBe("Twoja firma");
+    expect(dataLabel({ ...DEFAULT_PARAMS, employees: 200 })).toBe("Dane firmy, część wartości jak w przykładzie");
+    expect(dataLabel({ ...DEFAULT_PARAMS, employees: 200, safety: 10 })).toBe("Dane firmy, część wartości jak w przykładzie");
     const a = computeFnpAnalysis({ ...input, safety: 10 });
     const own = text(renderToString(createElement(Headline, { valuation: a.valuation, worst: amount(0), label: dataLabel({ ...DEFAULT_PARAMS, safety: 10 }) })));
     expect(own).toContain("Przykładowa firma, Twój szacunek klimatu");
