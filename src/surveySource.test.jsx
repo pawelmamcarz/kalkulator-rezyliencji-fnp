@@ -5,12 +5,17 @@ import { DEFAULT_PARAMS, validateInputs, scenarioSafety } from "./inputs.js";
 import { dataLabel } from "./firm.js";
 import Invitation from "./sections/Invitation.jsx";
 import Result from "./sections/Result.jsx";
+import Hero from "./sections/Hero.jsx";
 import Channels from "./sections/Channels.jsx";
 import { computeFnpAnalysis } from "./fnpModel.js";
 
 const survey = (extra = {}) => ({ ...DEFAULT_PARAMS, safetySource: "survey", surveySafety: "", surveyScope: "", surveyConfirmed: false, ...extra });
 
 describe("manual survey source", () => {
+  it("uses a relevant introduction for each path", () => {
+    expect(renderToString(createElement(Hero, { survey: true }))).toContain("Wprowadź wynik badania");
+    expect(renderToString(createElement(Hero))).toContain("Wybierz zdanie");
+  });
   it("preserves the ready default quick estimate", () => {
     expect(validateInputs(DEFAULT_PARAMS)).toEqual({});
     expect(dataLabel(DEFAULT_PARAMS)).toBe("Przykładowa firma");

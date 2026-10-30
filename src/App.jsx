@@ -35,7 +35,7 @@ export default function App() {
       <Header />
       <main>
         <div className="flow">
-          <Hero />
+          <Hero survey={params.safetySource === "survey"} />
           <div className="b-disc">
             <h2 className="sr-only">Wynik</h2>
             <Headline valuation={analysis?.valuation} worst={analysis?.worst} label={dataLabel(params)} surveyPending={params.safetySource === "survey" && Object.keys(errors).some((key) => key.startsWith("survey"))} />
