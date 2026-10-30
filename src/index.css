@@ -257,3 +257,11 @@ html { scroll-padding-top: 72px; }
   .invitation-print-only p, .invitation-print-only li { max-width: none; }
   .print-amount { font-size: 18pt; font-weight: 600; margin-top: 8pt; }
 }
+
+/* Dostępne, natywne kontrolki źródła oceny. */
+.climate-source, .survey-scope { border: 0; padding: 0; margin: 0 0 16px; display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.climate-source legend, .survey-scope legend { font-weight: 600; margin-bottom: 8px; }
+.climate-source label, .survey-scope label, .survey-confirm { display: inline-flex; gap: 8px; align-items: baseline; padding: 8px 0; }
+.survey-inputs .field { margin: 16px 0; }
+.survey-inputs .num-input { max-width: 180px; display: block; margin-top: 6px; }
+.survey-confirm { font-weight: 600; }

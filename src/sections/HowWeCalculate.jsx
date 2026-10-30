@@ -13,7 +13,7 @@ export default function HowWeCalculate({ valuation, params }) {
         <summary>Założenia, badania, ograniczenia i źródła</summary>
         <div className="methodology">
           <p>Rezyliencja to zdolność organizacji do reagowania na trudności i uczenia się. Ten kalkulator opisuje jeden jej aspekt: warunki, w których pracownicy zabierają głos.</p>
-          <Limitations />
+          <Limitations survey={params.safetySource === "survey"} />
           <Channels valuation={valuation} params={params} />
           <Methodology />
           <Context />

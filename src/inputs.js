@@ -3,7 +3,7 @@ import { finiteOrNull, isBlankInput } from "./logic/numbers.js";
 export const DEFAULT_PARAMS = {
   companyName: "", revenue: 100_000_000, costs: 92_000_000,
   employees: 500, avgSalary: 90_000, turnoverPct: 16, safety: 41,
-  safetySource: "estimate", scopeMode: "conservative", valuationEnabled: true,
+  safetySource: "estimate", surveySafety: "", surveyScope: "", surveyConfirmed: false, scopeMode: "conservative", valuationEnabled: true,
 };
 
 export const INPUT_FIELDS = [
@@ -24,7 +24,19 @@ export function inputError(value, { min, max }) {
   return "";
 }
 
+export function scenarioSafety(params) {
+  return params.safetySource === "survey" ? params.surveySafety : params.safety;
+}
+
 export function validateInputs(params) {
-  const fields = [...INPUT_FIELDS, { key: "safety", min: 0, max: 100 }];
-  return Object.fromEntries(fields.map((field) => [field.key, inputError(params[field.key], field)]).filter(([, error]) => error));
+  const fields = [...INPUT_FIELDS];
+  fields.push(params.safetySource === "survey"
+    ? { key: "surveySafety", min: 0, max: 100 }
+    : { key: "safety", min: 0, max: 100 });
+  const errors = Object.fromEntries(fields.map((field) => [field.key, inputError(params[field.key], field)]).filter(([, error]) => error));
+  if (params.safetySource === "survey") {
+    if (!["whole", "part", "unknown"].includes(params.surveyScope)) errors.surveyScope = "Wybierz zakres badanej grupy.";
+    if (params.surveyConfirmed !== true) errors.surveyConfirmed = "Potwierdź zgodność skali i sposobu jej przeliczenia.";
+  }
+  return errors;
 }

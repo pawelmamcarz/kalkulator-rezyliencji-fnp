@@ -32,7 +32,7 @@ export default function Result({ valuation, params }) {
         <p className="caveat small">
           To scenariusz przy założeniach autora, a nie wycena księgowa, prognoza, dowód przyczyny ani obietnica oszczędności. <a href="#jak-liczymy">Jak to liczymy</a>
         </p>
-      </> : <p style={{ marginTop: 10 }}>Uzupełnij lub popraw oznaczone pola w danych firmy. Wtedy pokażemy wynik.</p>}
+      </> : <p style={{ marginTop: 10 }}>Uzupełnij lub popraw oznaczone pola w formularzu. Wtedy pokażemy wynik.</p>}
     </section>
   );
 }
