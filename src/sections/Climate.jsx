@@ -1,13 +1,36 @@
 import ClimateStops from "../components/ClimateStops.jsx";
 import { climateAnchor } from "../channels.js";
 import { sensitivityShort } from "../format.js";
+import NumberField from "../components/NumberField.jsx";
 
 // The instrument: five sentences, then the fine slider, then the
 // own-estimate line the contract requires.
-export default function Climate({ safety, up, sensitivity }) {
+export default function Climate({ safety, up, sensitivity, params = {}, errors = {} }) {
+  const survey = params.safetySource === "survey";
   const anchor = climateAnchor(safety);
   return (
-    <section id="klimat" className="b-climate" aria-labelledby="klimat-pytanie">
+    <section id="klimat" className="b-climate" aria-label="Ocena klimatu organizacji">
+      <fieldset className="climate-source">
+        <legend>Skąd pochodzi ocena klimatu?</legend>
+        <label><input type="radio" name="safetySource" checked={!survey} onChange={() => up("safetySource", "estimate")} /> Szybki szacunek</label>
+        <label><input type="radio" name="safetySource" checked={survey} onChange={() => up("safetySource", "survey")} /> Mam wynik badania</label>
+      </fieldset>
+      {survey ? <div className="survey-inputs">
+        <p className="small muted" id="survey-help">Wpisz wynik tylko, jeśli jego skala jest zgodna z oceną klimatu w tym modelu: 0 oznacza najniższe, a 100 najwyższe bezpieczeństwo zgłaszania problemów. Samo przeliczenie procentu nie zapewnia zgodności. Nie importujemy danych z ankiet.</p>
+        <div className="field">
+          <label htmlFor="surveySafety">Wynik badania na zgodnej skali 0–100</label>
+          <NumberField id="surveySafety" className="num-input" decimal value={params.surveySafety} onValue={(value) => up("surveySafety", value)} aria-describedby="survey-help" />
+          {params.surveySafety !== "" && errors.surveySafety && <p className="field-error" role="status">{errors.surveySafety}</p>}
+        </div>
+        <fieldset className="survey-scope"><legend>Kogo obejmuje wynik?</legend>
+          <label><input type="radio" name="surveyScope" checked={params.surveyScope === "whole"} onChange={() => up("surveyScope", "whole")} /> Całą organizację</label>
+          <label><input type="radio" name="surveyScope" checked={params.surveyScope === "part"} onChange={() => up("surveyScope", "part")} /> Część organizacji</label>
+          <label><input type="radio" name="surveyScope" checked={params.surveyScope === "unknown"} onChange={() => up("surveyScope", "unknown")} /> Nie wiem</label>
+        </fieldset>
+        <p className="small muted">Wynik części organizacji nie opisuje automatycznie całej firmy. Ocena zakresu i reprezentatywności pozostaje po stronie użytkownika.</p>
+        <label className="survey-confirm"><input type="checkbox" checked={params.surveyConfirmed === true} onChange={(event) => up("surveyConfirmed", event.target.checked)} /> Potwierdzam, że wynik i sposób jego przeliczenia są zgodne z tą skalą.</label>
+        <p className="small muted">Wynik finansowy pozostaje scenariuszem zależnym od założeń, nie pomiarem strat.</p>
+      </div> : <>
       <h2 id="klimat-pytanie" className="climate-q">
         <label htmlFor="safety">Jak bezpiecznie jest u Was zgłosić problem albo przyznać się do błędu?</label>
       </h2>
@@ -22,6 +45,7 @@ export default function Climate({ safety, up, sensitivity }) {
       {sensitivityShort(sensitivity) && <p id="wrazliwosc" className="small num">{sensitivityShort(sensitivity)}</p>}
       <span id="climate-anchor" className="sr-only">{anchor.label}</span>
       <p id="climate-help" className="climate-note small muted">To szacunek własny, nie pomiar.</p>
+      </>}
     </section>
   );
 }

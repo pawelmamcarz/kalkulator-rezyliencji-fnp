@@ -11,13 +11,13 @@ const split = (text) => {
 };
 
 // Disc, amount, range and one caption. The label says whose numbers these are.
-export default function Headline({ valuation, worst, label = "Przykładowa firma" }) {
+export default function Headline({ valuation, worst, label = "Przykładowa firma", surveyPending = false }) {
   const total = valuation?.total;
   if (!total) {
     return (
       <div className="disc-block" id="wynik-kwota">
         <Disc share={0} />
-        <p>Popraw oznaczone pola w danych firmy. Wtedy pokażemy kwotę.</p>
+        <p>{surveyPending ? "Wprowadź wynik badania, wybierz badaną grupę i potwierdź zgodność skali, aby zobaczyć kwotę." : "Popraw oznaczone pola w danych firmy. Wtedy pokażemy kwotę."}</p>
       </div>
     );
   }

@@ -8,6 +8,7 @@ import Headline from "./sections/Headline.jsx";
 import Climate from "./sections/Climate.jsx";
 import Diagnosis from "./sections/Diagnosis.jsx";
 import { dataLabel } from "./firm.js";
+import { scenarioSafety } from "./inputs.js";
 import Result from "./sections/Result.jsx";
 import NextSteps from "./sections/NextSteps.jsx";
 import ConferenceBanner from "./sections/ConferenceBanner.jsx";
@@ -21,6 +22,7 @@ import LiveBar from "./components/LiveBar.jsx";
 export default function App() {
   const { params, up, reset, errors } = useParamsState();
   const analysis = useCostCalculation(params);
+  const modelParams = { ...params, safety: scenarioSafety(params) };
   // Visitors from the conference QR (?konferencja) are already at the event,
   // so they do not see the conference announcement. Everything else is shared.
   const conference = useConferenceMode();
@@ -36,15 +38,15 @@ export default function App() {
           <Hero />
           <div className="b-disc">
             <h2 className="sr-only">Wynik</h2>
-            <Headline valuation={analysis?.valuation} worst={analysis?.worst} label={dataLabel(params)} />
+            <Headline valuation={analysis?.valuation} worst={analysis?.worst} label={dataLabel(params)} surveyPending={params.safetySource === "survey" && Object.keys(errors).some((key) => key.startsWith("survey"))} />
           </div>
-          <Climate safety={params.safety} up={up} sensitivity={analysis?.sensitivity} />
+          <Climate safety={params.safety} params={params} errors={errors} up={up} sensitivity={analysis?.sensitivity} />
           <Diagnosis params={params} up={up} errors={errors} reset={reset} />
-          <Result valuation={analysis?.valuation} params={params} />
+          <Result valuation={analysis?.valuation} params={modelParams} />
           <NextSteps ready={!!analysis} params={params} up={up} />
         </div>
         {!conference && <ConferenceBanner />}
-        <HowWeCalculate valuation={analysis?.valuation} params={params} />
+        <HowWeCalculate valuation={analysis?.valuation} params={modelParams} />
       </main>
       <Footer />
       <Invitation params={params} valuation={analysis?.valuation} sensitivity={analysis?.sensitivity} />

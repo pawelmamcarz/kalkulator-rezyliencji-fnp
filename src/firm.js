@@ -5,12 +5,13 @@ export const FIRM_KEYS = INPUT_FIELDS.map((field) => field.key);
 
 const differs = (params, keys) => keys.some((key) => !Object.is(params[key], DEFAULT_PARAMS[key]));
 // Any change at all (the disc label) or to the firm only (the firm line).
-export const isEdited = (params) => differs(params, [...FIRM_KEYS, "safety"]);
+export const isEdited = (params) => differs(params, [...FIRM_KEYS, "safety", "safetySource", "surveySafety", "surveyScope", "surveyConfirmed"]);
 export const isFirmEdited = (params) => differs(params, FIRM_KEYS);
 
 // Whose numbers are on screen: the example firm, the example firm with the
 // visitor's own climate estimate, or the visitor's firm.
 export function dataLabel(params) {
+  if (params.safetySource === "survey") return `${isFirmEdited(params) ? "Twoja firma" : "Przykładowa firma"}, wynik badania wprowadzony ręcznie`;
   if (isFirmEdited(params)) return "Twoja firma";
   return differs(params, ["safety"]) ? "Przykładowa firma, Twój szacunek klimatu" : "Przykładowa firma";
 }
