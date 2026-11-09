@@ -1,4 +1,4 @@
-# Rotunda: „Czego nie powiedziałeś w tym miesiącu?”
+# Rotunda: „Czego nie powiedziałeś / powiedziałaś w tym miesiącu?”
 
 Booth game for the FNP conference, 19 listopada 2026. Worker `fnp-mapa-milczenia`, route `fnp.silence-tax.com/rotunda*`. Polish UI, diacritics, no em-dashes (U+2014). Shown as „prototyp”: a map of what visitors chose to write, judged by an LLM service (Jev), not a measurement of any person, room or company, and not validated on real answers.
 
@@ -10,19 +10,20 @@ Booth game for the FNP conference, 19 listopada 2026. Worker `fnp-mapa-milczenia
 - „anonimowo” only for what appears on the screen. The act of writing is „bez imienia i logowania” (the server keeps salted hashes of IP and browser id for the rate limit).
 - Toyota andon fact only as an analogy, with its source: BBC News, „The triumph of lean production”, February 2007 (Georgetown, Kentucky: about 2,000 cord pulls a week, versus twice a week at a Ford plant). Never equate one judged sentence with a failure to report.
 - Calculator: always „Kalkulator Rezyliencji FNP”, linked as `https://fnp.silence-tax.com/?konferencja`, with no other parameter. Hard rule: no share, role breakdown or Jev judgment is ever converted into złoty or into the calculator's climate input; no Rotunda page shows or asks for an amount. The pages say the calculator does not use the game's result. Tested in `src/rotunda.test.js`.
+- Inclusive forms, one convention on every page: both forms in full, separated by „ / ” („Menedżer / menedżerka”, „Specjalista / specjalistka”, „powiedziałeś / powiedziałaś”). Counts of entries use the Polish plural forms (1 wpis, 2–4 wpisy, 5+ wpisów).
 - Footer on every page: „Fundacja Nowe Przestrzenie × Paweł Mamcarz · silnik: Jev (TypeSafe)” and „prototyp”.
 
 ## Flow
 
 1. Phone (`/rotunda/`): visitor draws a card with a sentence starter, finishes the sentence (max 200 chars), picks a role, optionally ticks consent for a quote on the screen (shown without name, after moderation), sends. No access code.
 2. Jev judges the entry. Phone shows: whether the sentence describes withholding, Jev's confidence, the main cause indicated in the sentence, and, from `minN.share` silent entries on, the share of entries describing withholding that indicate the same main cause (with n = number of such entries). Then the Toyota analogy, the quote status, and a teaser for the calculator that says it does not use this result.
-3. Big screen (`/rotunda/ekran/`): entry counter; from `minN.share` entries on, the share of entries that describe withholding, causes indicated by role, areas; rotating approved quotes; two labelled QR codes (Gra: `/rotunda/`, Kalkulator: `/?konferencja`). Below `minN.share` entries: count and a waiting panel only. Polls every 5 s.
-4. Moderator (`/rotunda/moderacja/#kod=...&mod=...`): approves or rejects quotes before they reach the screen.
-5. Heatmap (`/rotunda/analiza/`): a demonstration on made-up answers, not a measurement of a team. Up to 25 pasted answers without an access code, team threshold 5, server-side limit of 3 analyses per IP in 10 minutes.
+3. Big screen (`/rotunda/ekran/`): entry counter; from `minN.share` entries on, the share of entries that describe withholding, causes indicated by role, areas; rotating approved quotes; two labelled QR codes (Gra: `/rotunda/`, Kalkulator: `/?konferencja`). Below `minN.share` entries: count and a waiting panel only. Polls every 5 s. Until the first successful answer the counters stay blank („–”) and the panel says „Łączenie…”, then „Brak połączenia z serwerem”: no data is never shown as zero entries. Area bars and cause bars share one scale (share of entries describing withholding).
+4. Moderator (`/rotunda/moderacja/#kod=...&mod=...`): approves or rejects quotes before they reach the screen, and sees the quotes approved so far („Na ekranie”), each with „Zdejmij z ekranu” (asks for confirmation, deletes the text). No keyboard shortcuts: a stray key must never approve or delete.
+5. Heatmap (`/rotunda/analiza/`): a demonstration on made-up answers, not a measurement of a team. Up to 25 pasted answers without an access code, team threshold 5, server-side limit of 30 analyses per IP in 10 minutes (the presenter shares the venue address with the audience). The results carry „Dane wymyślone, demonstracja” in the table caption and the per-answer heading; a failed run clears the previous results.
 
 ## Constants (shared, in `demo/src/rotunda.js`)
 
-`ROTUNDA`: `maxText` 200, `minShareN` 10, `minRoleSize` 3, `maxQuotes` 12, `rateLimit` 5, `ipRateLimit` 60, `rateWindowMs` 10 min, `threshold` 0.5. Pages read `minShareN` and `minRoleSize` from `minN` in API responses (`{ share, role }`) and do not hardcode them.
+`ROTUNDA`: `maxText` 200, `minShareN` 10, `minRoleSize` 3, `maxQuotes` 12, `rateLimit` 5, `ipRateLimit` 1500 (a whole conference room behind one venue address), `rateWindowMs` 10 min, `threshold` 0.5, `jevTimeoutMs` 15 s, `staleEntryMs` 30 s. Pages read `minShareN` and `minRoleSize` from `minN` in API responses (`{ share, role }`) and do not hardcode them.
 
 Roles: `zarzad` „Zarząd”, `menedzer` „Menedżer / menedżerka”, `specjalista` „Specjalista / specjalistka”.
 
@@ -51,9 +52,10 @@ Areas: the five FNP areas from `AREAS` plus `brak`.
 Single entries, the aggregate screen and the heatmap (`api/mapa`) are public. Moderation requires `DEMO_CODE` and `MOD_CODE` in request headers. `DEMO_CODE` is also the salt for the IP and browser-id hashes.
 
 `POST /rotunda/api/wpis`
-Body: `{ rola, starter, text, consent, client }`, `client` optional: a random per-browser id (8–64 chars `[A-Za-z0-9-]`); `text` is the completion only (1–200 chars), `consent` boolean.
-Rate limit, atomic: before Jev is called, one row is reserved in `wpis_requests` by a single conditional `INSERT … SELECT … WHERE (count in window) < limit`. With `client`: at most 5 per browser and 60 per IP in 10 minutes; without `client`: 5 per IP. Failed Jev calls keep their slot, so the limit also caps TypeSafe spend.
-Jev state: `{ odpowiedz: "<starter text> <completion>" }`, questions = diagnosis questions plus, only when `consent`, two checks: `dane_osobowe` (names, companies, identifiable people or places) and `obrazliwe` (insults, vulgarity).
+Body: `{ rola, starter, text, consent, client, entry }`, `client` optional: a random per-browser id (8–64 chars `[A-Za-z0-9-]`); `entry` optional, same format: a random id per submission attempt, reused by the phone when it sends the same card, text, role and consent again; `text` is the completion only (1–200 chars), `consent` boolean.
+Rate limit, atomic: before Jev is called, one row is reserved in `wpis_requests` by a single conditional `INSERT … SELECT … WHERE (count in window) < limit`. With `client`: at most 5 per browser and 1500 per IP in 10 minutes; without `client`: 5 per IP. The 429 message names the limit that was hit: „Za dużo wpisów z tej przeglądarki…” or „Za dużo wpisów z tej sieci. Spróbuj za kilka minut.” When Jev does not answer (error status, network error, or no answer within `jevTimeoutMs`), the slot is given back, so an outage does not use up a visitor's entries. When Jev answers but the judgment is unusable, the slot stays used, so the limit still caps TypeSafe spend.
+Idempotency: the reservation row and the stored entry carry `entry_key` (salted hash of `entry`, unique). A request whose `entry` is already stored returns that entry's result (same `id`, current `hall`): no Jev call, no second row, no slot. If it is reserved but not stored yet, the answer is 409 „Ten wpis jest jeszcze oceniany…”; a reservation older than `staleEntryMs` is taken over instead of reserving a second slot. The Worker finishes judging and storing an entry even when the phone has disconnected (`waitUntil`). The phone aborts its request after 20 s, keeps the text and asks to send again.
+Jev state: `{ odpowiedz: "<starter text without its ellipsis> <completion>" }` (`fullSentence`, e.g. „Szef nie wie, że mamy opóźnienie”; the same sentence is stored and quoted), questions = diagnosis questions plus, only when `consent`, two checks: `dane_osobowe` (names, companies, identifiable people or places) and `obrazliwe` (insults, vulgarity).
 Stored in D1: judgment, role, starter, time, IP hash, browser-id hash. Text stored only when `consent` and both checks < 0.5; then `quote_status = "pending"`. Otherwise text is not stored. The text is sent to TypeSafe for judging regardless of consent.
 Response 200:
 ```json
@@ -61,8 +63,8 @@ Response 200:
   "hall": { "total": 57, "silent": 41, "topCauseShare": 0.38, "minN": { "share": 10, "role": 3 } },
   "quote": "pending" | "not_stored" }
 ```
-`silence` = Jev's probability that the sentence describes withholding. `topCause` = highest cause probability when silent, else null. `hall.silent` = entries describing withholding (after insert). `topCauseShare` = share of those whose `topCause` equals this one; `null` when this entry has no `topCause` or `hall.silent < minN.share`. The phone prints „Tę samą główną przyczynę ma X% wpisów opisujących przemilczenie (n = hall.silent)”.
-Errors: 400 invalid input, 429 rate limit, 502 Jev failure, 503 not configured. Error body `{ "error": "<Polish message>" }`.
+`silence` = Jev's probability that the sentence describes withholding. `topCause` = the cause with the highest probability when silent and that probability is at least `threshold`; otherwise `null` (no cause is invented when Jev indicates none; the phone then says „Jev nie wskazał wyraźnej przyczyny”, and a quote on the screen carries no cause tag). `hall.silent` = entries describing withholding (after insert). `topCauseShare` = share of those whose `topCause` equals this one; `null` when this entry has no `topCause` or `hall.silent < minN.share`. The phone prints „Tę samą główną przyczynę ma X% wpisów opisujących przemilczenie (n = hall.silent)”.
+Errors: 400 invalid input, 409 the same `entry` is still being judged, 429 rate limit, 502 Jev failure or timeout, 503 not configured. Error body `{ "error": "<Polish message>" }`.
 
 `GET /rotunda/api/stan`
 ```json
@@ -73,11 +75,11 @@ Errors: 400 invalid input, 429 rate limit, 502 Jev failure, 503 not configured. 
 ```
 `causes` and `areas` count only entries describing withholding (a sentence can indicate several causes or none, so cause bars do not sum to 100%); the screen divides both by `silent`. `silentShare` = `overall.silent / total`, or `null` below `minN.share`. `quotes`: up to 12 most recently approved. Thresholds and suppression as above.
 
-`GET /rotunda/api/moderacja` with headers `X-Rotunda-Code: <DEMO_CODE>` and `X-Rotunda-Mod: <MOD_CODE>` → `{ "pending": [ { id, text, rola, createdAt, dane_osobowe, obrazliwe } ] }` (oldest first).
-`POST /rotunda/api/moderacja` with the same headers, body `{ id, decision: "approve" | "reject" }` → `{ ok: true }`. Rejecting deletes the stored text.
+`GET /rotunda/api/moderacja` with headers `X-Rotunda-Code: <DEMO_CODE>` and `X-Rotunda-Mod: <MOD_CODE>` → `{ "pending": [ { id, text, rola, createdAt, dane_osobowe, obrazliwe } ], "approved": [ { id, text, rola, moderatedAt } ], "maxQuotes": 12 }` (`pending` oldest first; `approved` most recently approved first, the order of the screen, which rotates the first `maxQuotes`).
+`POST /rotunda/api/moderacja` with the same headers, body `{ id, decision: "approve" | "reject" }` → `{ ok: true }`. Rejecting deletes the stored text; it also works on an approved quote, which is how the moderator takes one off the screen.
 Any moderation request with `code`, `mod` or `kod` in the query string → 400 (before the codes are checked), because URLs can end up in logs. Codes in a POST body are ignored. Wrong or missing header codes → 403.
 
-`POST /rotunda/api/mapa` body `{ answers: [ { team, text } ] }` (1–25 answers, text ≤ 500, team 1–40 chars) → `{ teams, answers, minTeamSize: 5, maxAnswers: 25 }`. At most 3 analyses per IP in 10 minutes (atomic reservation in `mapa_requests`). Jev-call ceiling per IP: 25 × 3 = 75 per 10 minutes (before this change: 20 × 3 = 60). Nothing is stored except the reservation row (IP hash, time).
+`POST /rotunda/api/mapa` body `{ answers: [ { team, text } ] }` (1–25 answers, text ≤ 500, team 1–40 chars) → `{ teams, answers, minTeamSize: 5, maxAnswers: 25 }`. At most 30 analyses per IP in 10 minutes (atomic reservation in `mapa_requests`). Jev-call ceiling per IP: 25 × 30 = 750 per 10 minutes. Each Jev call is given up after 25 s. Nothing is stored except the reservation row (IP hash, time).
 
 ## Storage
 
@@ -86,6 +88,7 @@ D1 binding `DB`, database `fnp-rotunda`. Migrations in `demo/migrations/`:
 - `0002_client_hash.sql`: `wpisy.client_hash`.
 - `0003_mapa_requests.sql`: `mapa_requests(id, ip_hash, created_at)`.
 - `0004_wpis_requests.sql`: `wpis_requests(id, ip_hash, client_hash, created_at)`, the atomic rate limit for `/api/wpis`.
+- `0005_entry_key.sql`: `wpis_requests.entry_key` and `wpisy.entry_key` (nullable, unique): the idempotency key for `/api/wpis`.
 
 `ip_hash` = SHA-256 of `CF-Connecting-IP` + `DEMO_CODE`; `client_hash` likewise for the browser id. Raw IPs and browser ids are never stored. Nothing is purged automatically: entries are kept until the organiser deletes them (the phone page says so).
 
@@ -94,7 +97,7 @@ D1 binding `DB`, database `fnp-rotunda`. Migrations in `demo/migrations/`:
 All commands below are run by the owner by hand; agents do not run remote D1 commands or deploy.
 
 Before 19.11 (after the last rehearsal):
-1. Apply new migrations remotely: `npx wrangler d1 migrations apply fnp-rotunda --remote -c demo/wrangler.jsonc` (0004 is required before deploying this version).
+1. Apply new migrations remotely: `npx wrangler d1 migrations apply fnp-rotunda --remote -c demo/wrangler.jsonc` (0005 is required before deploying this version: without it every `/api/wpis` request fails).
 2. Deploy: `npm run demo:deploy`.
 3. Clear test entries: `npx wrangler d1 execute fnp-rotunda --remote -c demo/wrangler.jsonc --command "DELETE FROM wpisy; DELETE FROM wpis_requests; DELETE FROM mapa_requests;"`
 4. Check: `npx wrangler d1 execute fnp-rotunda --remote -c demo/wrangler.jsonc --command "SELECT COUNT(*) FROM wpisy"` returns 0; open `/rotunda/ekran/` and see the empty state.

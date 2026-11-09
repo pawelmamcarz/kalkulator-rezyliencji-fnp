@@ -1,7 +1,7 @@
 import { DEFAULT_MODEL, callSystemOne, noul, toApiQuestions } from "../../scripts/jev-client.js";
 import { AREAS, CAUSES, questions as diagnosisQuestions } from "../../scripts/jev-diagnoza.lib.js";
 
-// Rotunda booth game: „Czego nie powiedziałeś w tym miesiącu?”.
+// Rotunda booth game: „Czego nie powiedziałeś / powiedziałaś w tym miesiącu?”.
 // A map of what visitors chose to write, judged by Jev: not a measurement of
 // any person, room or company. Answer text goes to TypeSafe for judgment;
 // D1 keeps judgments, and text only with consent, after the checks, until a
@@ -44,10 +44,14 @@ export const ROTUNDA = {
   minRoleSize: 3,
   maxQuotes: 12,
   // Per browser (client id), and a looser cap per IP for shared conference Wi-Fi.
+  // The per-IP cap is sized for a whole conference room behind one venue address.
   rateLimit: 5,
-  ipRateLimit: 60,
+  ipRateLimit: 1500,
   rateWindowMs: 10 * 60 * 1000,
   threshold: 0.5,
+  jevTimeoutMs: 15 * 1000,
+  // A reserved entry id with no stored entry after this long (> jevTimeoutMs) is abandoned.
+  staleEntryMs: 30 * 1000,
 };
 
 export const minN = () => ({ share: ROTUNDA.minShareN, role: ROTUNDA.minRoleSize });
@@ -63,9 +67,13 @@ export const QUOTE_CHECKS = {
   obrazliwe: noul(`${BOOTH} Czy wypowiedź zawiera obelgi, wulgaryzmy, poniżające określenia osób lub grup albo treści nienawistne? Rzeczowa, nawet ostra krytyka przełożonych, firmy lub decyzji bez wyzwisk i wulgaryzmów nie jest obraźliwa.`),
 };
 
+// The whole sentence as judged, stored and quoted: the card's ellipsis marks where the
+// completion goes, so it is dropped („Szef nie wie, że mamy opóźnienie”).
+export const fullSentence = (starter, text) => `${STARTERS[starter].replace(/…$/, "")} ${text}`;
+
 export function buildWpisRequest({ starter, text, consent }, model = DEFAULT_MODEL) {
   const qs = consent ? { ...diagnosisQuestions, ...QUOTE_CHECKS } : diagnosisQuestions;
-  return { model, state: { odpowiedz: `${STARTERS[starter]} ${text}` }, questions: toApiQuestions(qs) };
+  return { model, state: { odpowiedz: fullSentence(starter, text) }, questions: toApiQuestions(qs) };
 }
 
 export const json = (body, status = 200) => new Response(JSON.stringify(body), {
@@ -112,7 +120,10 @@ export function toJudgment(answers, consent) {
   const scores = Object.fromEntries(CAUSE_IDS.map((id) => [id, num(answers[`przyczyna_${id}`]?.noul) ?? 0]));
   const area = AREA_IDS.includes(answers.obszar?.choice) ? answers.obszar.choice : "brak";
   const causes = silent ? CAUSE_IDS.filter((id) => scores[id] >= ROTUNDA.threshold) : [];
-  const topCause = silent ? CAUSE_IDS.reduce((best, id) => (scores[id] > scores[best] ? id : best), CAUSE_IDS[0]) : null;
+  // The main cause is the strongest one Jev actually indicates. None is invented when
+  // every cause is below the threshold (an argmax alone defaulted to the first id).
+  const best = CAUSE_IDS.reduce((top, id) => (scores[id] > scores[top] ? id : top), CAUSE_IDS[0]);
+  const topCause = silent && scores[best] >= ROTUNDA.threshold ? best : null;
   const judgment = { silence, silent, area, causes, topCause, severity: num(answers.nasilenie?.score) ?? 0 };
   // Missing checks count as failed: the text is then not stored.
   const checks = consent
@@ -129,6 +140,41 @@ async function readBody(request) {
   }
 }
 
+const hallOf = (env, topCause) => env.DB.prepare(
+  `SELECT COUNT(*) AS total,
+          SUM(CASE WHEN silence >= ? THEN 1 ELSE 0 END) AS silent,
+          SUM(CASE WHEN silence >= ? AND top_cause = ? THEN 1 ELSE 0 END) AS same
+     FROM wpisy`,
+).bind(ROTUNDA.threshold, ROTUNDA.threshold, topCause).first();
+
+async function wpisResponse(env, id, judgment, quote) {
+  const hall = await hallOf(env, judgment.topCause);
+  const silentCount = hall?.silent ?? 0;
+  // The share is among entries describing withholding, and only from minShareN of them.
+  // An entry without a main cause (topCause null) has no share.
+  const topCauseShare = judgment.topCause && silentCount >= ROTUNDA.minShareN ? (hall.same ?? 0) / silentCount : null;
+  return json({ id, judgment, hall: { total: hall?.total ?? 0, silent: silentCount, topCauseShare, minN: minN() }, quote });
+}
+
+const storedEntry = (env, entryKey) => env.DB.prepare(
+  "SELECT id, silence, area, top_cause, causes, severity, text FROM wpisy WHERE entry_key = ?",
+).bind(entryKey).first();
+
+// A repeated entry id gets the stored judgment back: no Jev call, no new row, no slot.
+function replay(env, row) {
+  let causes;
+  try {
+    causes = JSON.parse(row.causes ?? "[]");
+  } catch {
+    causes = [];
+  }
+  const judgment = {
+    silence: row.silence, silent: row.silence >= ROTUNDA.threshold, area: row.area,
+    causes: Array.isArray(causes) ? causes : [], topCause: row.top_cause ?? null, severity: row.severity ?? 0,
+  };
+  return wpisResponse(env, row.id, judgment, row.text === null ? "not_stored" : "pending");
+}
+
 export async function handleWpis(request, env, fetchImpl, now = () => new Date()) {
   const body = await readBody(request);
   if (body === undefined) return json({ error: "Niepoprawny JSON." }, 400);
@@ -139,68 +185,98 @@ export async function handleWpis(request, env, fetchImpl, now = () => new Date()
   const entry = { rola: body.rola, starter: body.starter, text: body.text.trim(), consent: body.consent };
   const ipHash = await hashIp(request.headers.get("CF-Connecting-IP") ?? "unknown", env.DEMO_CODE);
   const clientHash = isClientId(body.client) ? await hashIp(`client:${body.client}`, env.DEMO_CODE) : null;
+  // Optional idempotency key: a random id the phone reuses when it retries the same text.
+  const entryKey = isClientId(body.entry) ? await hashIp(`entry:${body.entry}`, env.DEMO_CODE) : null;
   const since = new Date(now().getTime() - ROTUNDA.rateWindowMs).toISOString();
   // Reserve a slot before calling Jev, in one conditional INSERT, so concurrent
   // requests cannot all pass a check-then-insert gap (same pattern as /api/mapa).
-  // Failed Jev calls keep their slot: the limit also caps TypeSafe spend.
   // Without a client id fall back to the strict per-IP limit.
+  // OR IGNORE: a repeated entry key hits the unique index and reserves nothing.
+  let slotId = crypto.randomUUID();
   const reserved = await env.DB.prepare(clientHash
-    ? `INSERT INTO wpis_requests (id, ip_hash, client_hash, created_at)
-       SELECT ?, ?, ?, ?
+    ? `INSERT OR IGNORE INTO wpis_requests (id, ip_hash, client_hash, created_at, entry_key)
+       SELECT ?, ?, ?, ?, ?
         WHERE (SELECT COUNT(*) FROM wpis_requests WHERE client_hash = ? AND created_at >= ?) < ?
           AND (SELECT COUNT(*) FROM wpis_requests WHERE ip_hash = ? AND created_at >= ?) < ?`
-    : `INSERT INTO wpis_requests (id, ip_hash, client_hash, created_at)
-       SELECT ?, ?, ?, ?
+    : `INSERT OR IGNORE INTO wpis_requests (id, ip_hash, client_hash, created_at, entry_key)
+       SELECT ?, ?, ?, ?, ?
         WHERE (SELECT COUNT(*) FROM wpis_requests WHERE ip_hash = ? AND created_at >= ?) < ?`)
     .bind(...(clientHash
-      ? [crypto.randomUUID(), ipHash, clientHash, now().toISOString(), clientHash, since, ROTUNDA.rateLimit, ipHash, since, ROTUNDA.ipRateLimit]
-      : [crypto.randomUUID(), ipHash, null, now().toISOString(), ipHash, since, ROTUNDA.rateLimit]))
+      ? [slotId, ipHash, clientHash, now().toISOString(), entryKey, clientHash, since, ROTUNDA.rateLimit, ipHash, since, ROTUNDA.ipRateLimit]
+      : [slotId, ipHash, null, now().toISOString(), entryKey, ipHash, since, ROTUNDA.rateLimit]))
     .run();
   if (!reserved?.meta?.changes) {
-    return json({ error: "Za dużo wpisów z tego urządzenia. Spróbuj ponownie za kilka minut." }, 429);
+    const prior = entryKey
+      ? await env.DB.prepare("SELECT id, created_at FROM wpis_requests WHERE entry_key = ?").bind(entryKey).first()
+      : null;
+    if (!prior) {
+      const own = clientHash
+        ? await env.DB.prepare("SELECT COUNT(*) AS n FROM wpis_requests WHERE client_hash = ? AND created_at >= ?").bind(clientHash, since).first()
+        : null;
+      // Say which limit was hit: the room shares one address, so the network limit is nobody's fault.
+      const error = (own?.n ?? 0) >= ROTUNDA.rateLimit
+        ? "Za dużo wpisów z tej przeglądarki. Spróbuj za kilka minut."
+        : "Za dużo wpisów z tej sieci. Spróbuj za kilka minut.";
+      return json({ error }, 429);
+    }
+    // Same entry id again: a retry after a lost response, or a double send.
+    const stored = await storedEntry(env, entryKey);
+    if (stored) return replay(env, stored);
+    // Reserved but not stored: still with Jev, or abandoned. Take an abandoned one over
+    // (atomically, on its old timestamp) instead of reserving a second slot.
+    const staleBefore = new Date(now().getTime() - ROTUNDA.staleEntryMs).toISOString();
+    const claimed = prior.created_at < staleBefore && (await env.DB.prepare(
+      "UPDATE wpis_requests SET created_at = ? WHERE id = ? AND created_at = ?",
+    ).bind(now().toISOString(), prior.id, prior.created_at).run())?.meta?.changes;
+    if (!claimed) return json({ error: "Ten wpis jest jeszcze oceniany. Spróbuj ponownie za chwilę." }, 409);
+    slotId = prior.id;
   }
 
+  let answers;
+  try {
+    ({ answers } = await callSystemOne({
+      apiKey: env.TYPESAFE_API_KEY, ...buildWpisRequest(entry), fetchImpl, timeoutMs: ROTUNDA.jevTimeoutMs,
+    }));
+  } catch {
+    // Jev did not answer (error status, network, timeout): give the slot back, so an
+    // outage does not lock visitors out of retrying.
+    await env.DB.prepare("DELETE FROM wpis_requests WHERE id = ?").bind(slotId).run();
+    return json({ error: "Jev nie odpowiedział. Spróbuj ponownie za chwilę." }, 502);
+  }
   let judgment;
   let checks;
   try {
-    const res = await callSystemOne({ apiKey: env.TYPESAFE_API_KEY, ...buildWpisRequest(entry), fetchImpl });
-    ({ judgment, checks } = toJudgment(res.answers, entry.consent));
+    ({ judgment, checks } = toJudgment(answers, entry.consent));
   } catch {
+    // Jev answered (and was paid for) but the answer is unusable: the slot stays used,
+    // so the limit still caps TypeSafe spend; only the entry key is freed for a retry.
+    await env.DB.prepare("UPDATE wpis_requests SET entry_key = NULL WHERE id = ?").bind(slotId).run();
     return json({ error: "Jev nie odpowiedział. Spróbuj ponownie za chwilę." }, 502);
   }
 
   const storeText = Boolean(checks && checks.dane_osobowe < ROTUNDA.threshold && checks.obrazliwe < ROTUNDA.threshold);
   const id = crypto.randomUUID();
-  await env.DB.prepare(
-    `INSERT INTO wpisy (id, created_at, rola, starter, silence, area, top_cause, causes, severity, text, quote_status, ip_hash, dane_osobowe, obrazliwe, client_hash)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  const inserted = await env.DB.prepare(
+    `INSERT OR IGNORE INTO wpisy (id, created_at, rola, starter, silence, area, top_cause, causes, severity, text, quote_status, ip_hash, dane_osobowe, obrazliwe, client_hash, entry_key)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).bind(
     id, now().toISOString(), entry.rola, entry.starter, judgment.silence, judgment.area, judgment.topCause,
     JSON.stringify(judgment.causes), judgment.severity,
-    storeText ? `${STARTERS[entry.starter]} ${entry.text}` : null,
+    storeText ? fullSentence(entry.starter, entry.text) : null,
     storeText ? "pending" : null,
     ipHash,
     storeText ? checks.dane_osobowe : null,
     storeText ? checks.obrazliwe : null,
     clientHash,
+    entryKey,
   ).run();
+  if (!inserted?.meta?.changes && entryKey) {
+    // Another request with the same entry id stored it first: return that one.
+    const stored = await storedEntry(env, entryKey);
+    if (stored) return replay(env, stored);
+  }
 
-  const hall = await env.DB.prepare(
-    `SELECT COUNT(*) AS total,
-            SUM(CASE WHEN silence >= ? THEN 1 ELSE 0 END) AS silent,
-            SUM(CASE WHEN silence >= ? AND top_cause = ? THEN 1 ELSE 0 END) AS same
-       FROM wpisy`,
-  ).bind(ROTUNDA.threshold, ROTUNDA.threshold, judgment.topCause).first();
-  const silentCount = hall?.silent ?? 0;
-  // The share is among entries describing withholding, and only from minShareN of them.
-  const topCauseShare = judgment.topCause && silentCount >= ROTUNDA.minShareN ? (hall.same ?? 0) / silentCount : null;
-
-  return json({
-    id,
-    judgment,
-    hall: { total: hall?.total ?? 0, silent: silentCount, topCauseShare, minN: minN() },
-    quote: storeText ? "pending" : "not_stored",
-  });
+  return wpisResponse(env, id, judgment, storeText ? "pending" : "not_stored");
 }
 
 const zeros = (ids) => Object.fromEntries(ids.map((id) => [id, 0]));
@@ -298,10 +374,18 @@ export async function handleModeracja(request, env, now = () => new Date()) {
       `SELECT id, text, rola, created_at, dane_osobowe, obrazliwe FROM wpisy
         WHERE quote_status = 'pending' AND text IS NOT NULL ORDER BY created_at ASC`,
     ).all();
+    // Same order as the screen: the first maxQuotes of these are the ones it rotates.
+    const { results: approved = [] } = await env.DB.prepare(
+      `SELECT id, text, rola, moderated_at FROM wpisy
+        WHERE quote_status = 'approved' AND text IS NOT NULL
+        ORDER BY moderated_at DESC, created_at DESC`,
+    ).all();
     return json({
       pending: results.map((r) => ({
         id: r.id, text: r.text, rola: r.rola, createdAt: r.created_at, dane_osobowe: r.dane_osobowe, obrazliwe: r.obrazliwe,
       })),
+      approved: approved.map((r) => ({ id: r.id, text: r.text, rola: r.rola, moderatedAt: r.moderated_at })),
+      maxQuotes: ROTUNDA.maxQuotes,
     });
   }
 

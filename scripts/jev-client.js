@@ -46,6 +46,8 @@ export async function callSystemOne({
   questions,
   endpoint = SYSTEMONE_URL,
   fetchImpl = globalThis.fetch,
+  // Optional: abort the call after this many milliseconds (the Worker sets it).
+  timeoutMs,
 }) {
   if (!apiKey) {
     const error = new Error("Missing TYPESAFE_API_KEY");
@@ -62,6 +64,7 @@ export async function callSystemOne({
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ model, state, questions }),
+    ...(timeoutMs ? { signal: AbortSignal.timeout(timeoutMs) } : {}),
   });
   const body = await readJson(response);
   if (!response.ok) {

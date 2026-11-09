@@ -33,9 +33,11 @@ h1 .count[data-zero="true"] { color: var(--mute); }
 .rule strong { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 4px; }
 .bar { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-family: var(--mono); font-size: 12px; color: var(--mute); margin-bottom: 14px; min-height: 18px; }
 .bar .err { color: var(--accent); }
-.bar .keys { display: none; }
-@media (min-width: 720px) and (hover: hover) { .bar .keys { display: inline; } }
-kbd { font-family: var(--mono); border: 1px solid var(--rule); padding: 0 5px; border-radius: 2px; font-size: 11px; color: var(--ink); background: var(--card); }
+h2 { font-family: var(--mono); text-transform: uppercase; font-size: 18px; line-height: 1.2; border-top: 2px solid var(--rule); padding-top: 12px; margin: 36px 0 8px; display: flex; align-items: baseline; gap: 10px; }
+h2 .count { color: var(--stamp); }
+.hint { font-size: 14px; color: var(--mute); margin-bottom: 14px; }
+.card .tag { color: var(--mute); }
+.card .actions.one { grid-template-columns: 1fr; }
 
 .list { display: grid; gap: 14px; }
 .card { border: 1px solid var(--rule); background: var(--card); padding: 16px; position: relative; }
@@ -89,10 +91,15 @@ footer a { color: var(--ink); }
 
   <div class="bar" id="bar" hidden>
     <span id="status" role="status" aria-live="polite"></span>
-    <span class="keys"><kbd>A</kbd> pokaż · <kbd>R</kbd> odrzuć (pierwsza karta)</span>
   </div>
 
   <div class="list" id="list" hidden></div>
+
+  <section id="onscreen" hidden aria-labelledby="onscreen-h">
+    <h2 id="onscreen-h">Na ekranie <span class="count" id="count-on">0</span></h2>
+    <p class="hint" id="onscreen-hint"></p>
+    <div class="list" id="approved"></div>
+  </section>
 
   <footer>
     Ekran: <a href="../ekran/">/rotunda/ekran/</a> · Telefon: <a href="../">/rotunda/</a><br>
@@ -127,6 +134,8 @@ let mod = (params.get("mod") || store.get(KEY_MOD) || "").trim();
 const authHeaders = () => ({ "X-Rotunda-Code": kod, "X-Rotunda-Mod": mod });
 
 let pending = [];
+let approved = [];            // quotes approved for the screen, newest first
+let maxQuotes = null;         // how many of them the screen rotates (from the API)
 let hidden = new Set();       // ids removed optimistically, waiting for the server
 let timer = null;
 let polling = false;
@@ -193,6 +202,40 @@ function render() {
   items.forEach((q, i) => list.append(card(q, i === 0)));
 }
 
+// Quotes already on the screen, each with a way to take it down.
+function renderApproved() {
+  const items = approved.filter((q) => !hidden.has(q.id));
+  $("count-on").textContent = String(items.length);
+  $("onscreen-hint").textContent = `Cytaty zatwierdzone do pokazania${maxQuotes ? `; ekran pokazuje na zmianę ${maxQuotes} ostatnio zatwierdzonych` : ""}. „Zdejmij z ekranu” usuwa też zapisany tekst i nie da się tego cofnąć.`;
+  const list = $("approved");
+  list.replaceChildren();
+  if (!items.length) {
+    const e = el("div", "empty");
+    e.append(el("b", null, "Nic"), document.createTextNode("Na ekranie nie ma teraz żadnego cytatu."));
+    list.append(e);
+    return;
+  }
+  items.forEach((q, i) => {
+    const c = el("article", "card");
+    c.dataset.id = q.id;
+    const meta = el("div", "meta");
+    meta.append(
+      el("span", "role", ROLES[q.rola] || q.rola || "Rola nieznana"),
+      el("span", "tag", maxQuotes && i >= maxQuotes ? "zatwierdzony, poza rotacją ekranu" : "na ekranie"),
+    );
+    c.append(meta, el("p", "text", q.text || ""));
+    const actions = el("div", "actions one");
+    const off = el("button", "no", "Zdejmij z ekranu");
+    off.type = "button";
+    off.onclick = () => {
+      if (confirm("Zdjąć ten cytat z ekranu? Zapisany tekst zostanie usunięty.")) decide(q.id, "reject", true);
+    };
+    actions.append(off);
+    c.append(actions);
+    list.append(c);
+  });
+}
+
 function card(q, first) {
   const c = el("article", "card" + (first ? " first" : ""));
   c.dataset.id = q.id;
@@ -228,10 +271,11 @@ function card(q, first) {
   return c;
 }
 
-async function decide(id, decision) {
+async function decide(id, decision, onScreen = false) {
   if (hidden.has(id)) return;
   hidden.add(id);
   render();
+  renderApproved();
   try {
     const res = await fetch(API, {
       method: "POST",
@@ -241,13 +285,18 @@ async function decide(id, decision) {
     let data = {};
     try { data = await res.json(); } catch { /* body optional */ }
     if (!res.ok) throw new Error(data.error || `Błąd ${res.status}`);
+    const quote = pending.find((q) => q.id === id);
     pending = pending.filter((q) => q.id !== id);
+    approved = approved.filter((q) => q.id !== id);
+    if (decision === "approve" && quote) approved.unshift({ id, text: quote.text, rola: quote.rola });
     hidden.delete(id);
     render();
-    if (res.status === 200) status(decision === "approve" ? "Wysłano na ekran." : "Odrzucono, tekst usunięty.");
+    renderApproved();
+    if (res.status === 200) status(decision === "approve" ? "Wysłano na ekran." : onScreen ? "Zdjęto z ekranu, tekst usunięty." : "Odrzucono, tekst usunięty.");
   } catch (error) {
     hidden.delete(id);
     render();
+    renderApproved();
     toast(`Nie udało się zapisać decyzji: ${error.message}. Spróbuj ponownie.`);
   }
 }
@@ -269,9 +318,12 @@ async function poll() {
     const list = Array.isArray(data.pending) ? data.pending : [];
     list.sort((a, b) => Date.parse(a.createdAt || 0) - Date.parse(b.createdAt || 0));
     pending = list;
+    approved = Array.isArray(data.approved) ? data.approved : [];
+    maxQuotes = Number(data.maxQuotes) || null;
     // Drop optimistic markers for ids the server no longer returns.
-    for (const id of [...hidden]) if (!pending.some((q) => q.id === id)) hidden.delete(id);
+    for (const id of [...hidden]) if (![...pending, ...approved].some((q) => q.id === id)) hidden.delete(id);
     render();
+    renderApproved();
     status(`Sprawdzono ${clock()}`);
   } catch (error) {
     status(`Brak połączenia (${error.message}). Ponawiamy co 5 s.`, true);
@@ -286,6 +338,7 @@ function start() {
   $("login").hidden = true;
   $("bar").hidden = false;
   $("list").hidden = false;
+  $("onscreen").hidden = false;
   status("Łączenie…");
   poll();
   clearInterval(timer);
@@ -296,6 +349,7 @@ function stop() { clearInterval(timer); timer = null; }
 function showLogin(msg) {
   $("bar").hidden = true;
   $("list").hidden = true;
+  $("onscreen").hidden = true;
   const f = $("login");
   f.hidden = false;
   $("in-kod").value = kod;
@@ -312,22 +366,11 @@ $("login").onsubmit = (e) => {
   start();
 };
 
-// Keyboard: A approve, R reject, for the first visible card. Ignored while typing.
-document.addEventListener("keydown", (e) => {
-  if (e.metaKey || e.ctrlKey || e.altKey) return;
-  const tag = (e.target && e.target.tagName) || "";
-  if (tag === "INPUT" || tag === "TEXTAREA") return;
-  const key = e.key.toLowerCase();
-  if (key !== "a" && key !== "r") return;
-  const first = visible()[0];
-  if (!first) return;
-  e.preventDefault();
-  decide(first.id, key === "a" ? "approve" : "reject");
-});
+// No keyboard shortcuts on purpose: a stray key press must never approve or delete a quote.
 
 // Refresh "time ago" labels between polls and pause polling in background tabs.
 setInterval(() => {
-  document.querySelectorAll(".card").forEach((c) => {
+  document.querySelectorAll("#list .card").forEach((c) => {
     const q = pending.find((x) => x.id === c.dataset.id);
     const a = c.querySelector(".ago");
     if (q && a) a.textContent = ago(q.createdAt);

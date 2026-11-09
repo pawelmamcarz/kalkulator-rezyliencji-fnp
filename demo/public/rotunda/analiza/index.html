@@ -45,6 +45,9 @@ button:disabled { opacity: .5; cursor: progress; }
 #status.err { color: var(--accent); }
 .scroll { overflow-x: auto; border: 1px solid var(--rule); background: var(--card); }
 table { border-collapse: collapse; width: 100%; font-size: 15px; }
+caption, .demo-tag { font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+caption { caption-side: top; text-align: left; padding: 10px 12px 4px; }
+.demo-tag { display: inline-block; border: 1px solid var(--accent); padding: 2px 8px; margin-left: 8px; vertical-align: middle; }
 th, td { border-bottom: 1px solid var(--grid); padding: 10px 12px; text-align: left; vertical-align: top; }
 th { font: 600 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--mute); vertical-align: bottom; }
 td.num { font-family: var(--mono); white-space: nowrap; }
@@ -85,14 +88,14 @@ footer a { color: var(--ink); }
     <h2>Tabela zespołów</h2>
     <div class="scroll"><table id="teams"></table></div>
     <p class="hint" id="teams-note" style="margin-top:10px"></p>
-    <h2>Odpowiedzi pojedynczo</h2>
+    <h2>Odpowiedzi pojedynczo <span class="demo-tag">Dane wymyślone, demonstracja</span></h2>
     <div class="cards" id="cards"></div>
   </section>
 
   <p class="warn"><a href="https://fnp.silence-tax.com/?konferencja">Kalkulator Rezyliencji FNP</a>: roczny scenariusz skali kosztów dla firmy, liczony z jej danych, nie z tej tabeli.</p>
 
   <footer>
-    Gra na telefon: <a href="../">Czego nie powiedziałeś w tym miesiącu?</a> · <a href="../ekran/">Mapa wpisów na żywo</a> · Diagnoza FNP: <a href="mailto:zapraszamy@noweprzestrzenie.pl">zapraszamy@noweprzestrzenie.pl</a><br>
+    Gra na telefon: <a href="../">Czego nie powiedziałeś / powiedziałaś w tym miesiącu?</a> · <a href="../ekran/">Mapa wpisów na żywo</a> · Diagnoza FNP: <a href="mailto:zapraszamy@noweprzestrzenie.pl">zapraszamy@noweprzestrzenie.pl</a><br>
     Fundacja Nowe Przestrzenie × Paweł Mamcarz · silnik: Jev (TypeSafe) · prototyp
   </footer>
 </main>
@@ -156,7 +159,7 @@ function renderTeams(teams, min) {
     }).join("");
     return `<tr><td>${esc(t.team)}</td><td class="num">${t.n}</td><td class="num" style="${heat(t.silenceShare)}">${pct(t.silenceShare)}</td><td class="num" style="${heat(t.severity / 3)}">${t.severity.toFixed(1).replace(".", ",")}</td><td>${area}</td>${causes}</tr>`;
   }).join("");
-  $("teams").innerHTML = `<thead>${head}</thead><tbody>${rows}</tbody>`;
+  $("teams").innerHTML = `<caption>Dane wymyślone, demonstracja</caption><thead>${head}</thead><tbody>${rows}</tbody>`;
   $("teams-note").textContent = `Przyczyny: liczba odpowiedzi opisujących przemilczenie, w których Jev wskazał daną przyczynę (prawdopodobieństwo co najmniej 0,5). Jedna odpowiedź może mieć kilka przyczyn. Ocena powagi to średnia z porządkowej oceny Jev 0–3: tylko orientacyjnie, to nie jest skala pomiarowa. Zespoły poniżej ${min} odpowiedzi są ukryte razem z ich odpowiedziami pojedynczo (próg anonimowości).`;
 }
 
@@ -195,6 +198,10 @@ $("run").onclick = async () => {
     status("Gotowe.");
     $("out").scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (error) {
+    // A failed run must not leave the previous run's table under the new input.
+    $("out").hidden = true;
+    $("teams").innerHTML = "";
+    $("cards").innerHTML = "";
     status(error.message, true);
   } finally {
     $("run").disabled = false;
