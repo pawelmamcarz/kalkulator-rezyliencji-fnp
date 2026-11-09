@@ -73,8 +73,10 @@ describe("conference demo worker", () => {
   it("uses the project-wide team threshold and keeps the Jev-call ceiling per IP bounded", () => {
     expect(MIN_TEAM_SIZE).toBe(5);
     expect(LIMITS.minTeamSize).toBe(MIN_TEAM_SIZE);
-    // Before: 20 answers × 3 analyses = 60 Jev calls per IP per 10 min. Now 25 × 3 = 75.
-    expect(LIMITS.maxAnswers * LIMITS.maxBatches).toBe(75);
+    // The presenter shares the venue address with the audience: 30 runs per 10 min, not 3.
+    expect(LIMITS.maxBatches).toBe(30);
+    expect(LIMITS.maxAnswers * LIMITS.maxBatches).toBe(750);
+    expect(LIMITS.jevTimeoutMs).toBeGreaterThan(0);
     expect(LIMITS.rateWindowMs).toBe(10 * 60 * 1000);
   });
 
@@ -130,6 +132,9 @@ describe("conference demo worker", () => {
     expect(html).toContain(`Do ${LIMITS.maxAnswers} odpowiedzi`);
     expect(html).toContain(`const MAX_ANSWERS = ${LIMITS.maxAnswers};`);
     expect(html).toContain("(orientacyjnie)");
+    // Still labelled as made-up data after „Pokaż mapę” scrolls past the warning.
+    expect(html).toContain("<caption>Dane wymyślone, demonstracja</caption>");
+    expect(html).toContain('Odpowiedzi pojedynczo <span class="demo-tag">Dane wymyślone, demonstracja</span>');
     expect(html).not.toContain("<th>Nasilenie");
     expect(html).toContain('<a href="https://fnp.silence-tax.com/?konferencja">Kalkulator Rezyliencji FNP</a>');
     expect(html).toContain('name="robots" content="noindex"');
