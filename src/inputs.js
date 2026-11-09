@@ -8,7 +8,7 @@ export const DEFAULT_PARAMS = {
 
 export const INPUT_FIELDS = [
   { key: "revenue", label: "Przychody roczne", min: 0, max: 1e13, unit: "zł", hint: "Ostatni pełny rok. Służą tylko do obliczenia procentu." },
-  { key: "costs", label: "Koszty roczne", min: 0, max: 1e13, unit: "zł", hint: "Ten sam rok. Służą tylko do porównania z marżą." },
+  { key: "costs", label: "Koszty roczne", min: 0, max: 1e13, unit: "zł", hint: "Ten sam rok. Służą tylko do porównania z różnicą między przychodami a kosztami." },
   { key: "employees", label: "Liczba etatów", min: 1, max: 5_000_000, unit: "etatów", hint: "Średnio w roku. Dwa pół etatu to jeden etat." },
   { key: "avgSalary", label: "Roczna płaca brutto na etat", min: 0, max: 10_000_000, unit: "zł", hint: "Średnio, z premiami, bez składek pracodawcy." },
   { key: "turnoverPct", label: "Rotacja roczna", min: 0, max: 100, unit: "%", hint: "Suma etatów osób, które odeszły w roku, podzielona przez średnią liczbę etatów i pomnożona przez 100. Kalkulator przyjmuje zakres 0–100%." },

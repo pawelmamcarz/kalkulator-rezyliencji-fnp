@@ -39,7 +39,7 @@ export default function Channels({ valuation, params }) {
                 <p className="muted">{copy?.body}</p>
                 {channel.id === "continuity" && valuation && (
                   <p className="small muted" style={{ marginTop: 8 }}>
-                    Zadeklarowana rotacja: {plNumber(params.turnoverPct)}%. Model przypisuje klimatowi część odejść z Twojej firmy: przy klimacie {params.safety}/100 jest to {share(fnpTurnoverClimateShare(params.safety))} według krzywej modelu, a do kwoty wlicza tę część z wagą {plNumber(TURNOVER_CLIMATE_WEIGHT)}. W modelu przy klimacie 100/100 kwota wynosi zero. Podział między trzema obszarami jest umowny: normalizacja wag może nieznacznie zmieniać inne składowe, gdy zmienia się rotacja. Szczegóły opisujemy niżej, w założeniach autora.
+                    Zadeklarowana rotacja: {plNumber(params.turnoverPct)}%. Model przypisuje klimatowi część odejść z Twojej firmy: przy klimacie {plNumber(params.safety)}/100 jest to {share(fnpTurnoverClimateShare(params.safety))} według krzywej modelu, a do kwoty wlicza tę część z wagą {plNumber(TURNOVER_CLIMATE_WEIGHT)}. W modelu przy klimacie 100/100 kwota wynosi zero. Podział między trzema obszarami jest umowny: normalizacja wag może nieznacznie zmieniać inne składowe, gdy zmienia się rotacja. Szczegóły opisujemy niżej, w założeniach autora.
                   </p>
                 )}
               </div>

@@ -14,7 +14,10 @@ export function dataLabel(params) {
   const edited = isFirmEdited(params);
   const someExample = edited && FIRM_KEYS.some((key) => Object.is(params[key], DEFAULT_PARAMS[key]));
   const firmLabel = !edited ? "Przykładowa firma" : someExample ? "Dane firmy, część wartości jak w przykładzie" : "Twoja firma";
-  if (params.safetySource === "survey") return `${firmLabel}, wynik badania wprowadzony ręcznie`;
+  if (params.safetySource === "survey") {
+    const scope = { part: ", wynik badania części organizacji", unknown: ", wynik badania nieustalonej grupy" }[params.surveyScope] || ", wynik badania wprowadzony ręcznie";
+    return `${firmLabel}${scope}`;
+  }
   if (edited) return firmLabel;
   return differs(params, ["safety"]) ? "Przykładowa firma, Twój szacunek klimatu" : "Przykładowa firma";
 }
@@ -24,7 +27,7 @@ const shown = (value, format, errors, key) => (errors[key] ? "do poprawy" : form
 // "Przykładowa firma: 500 etatów, przychód 100 mln zł, ..." from the current values.
 export function firmSummary(params, errors = {}) {
   const parts = [
-    `${shown(params.employees, (v) => `${plNumber(v)} etatów`, errors, "employees")}`,
+    `${shown(params.employees, (v) => `${plNumber(v)} ${Number.isInteger(Number(v)) ? "etatów" : "etatu"}`, errors, "employees")}`,
     `przychód ${shown(params.revenue, money, errors, "revenue")}`,
     `koszty ${shown(params.costs, money, errors, "costs")}`,
     `płaca ${shown(params.avgSalary, money, errors, "avgSalary")}`,

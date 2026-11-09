@@ -1,7 +1,7 @@
 import { CHANNEL_COPY, splitChannel } from "../channels.js";
 import { INPUT_FIELDS } from "../inputs.js";
 import { dataLabel } from "../firm.js";
-import { money, share, sensitivitySentence } from "../format.js";
+import { money, plNumber, share, sensitivitySentence } from "../format.js";
 
 export default function Invitation({ params, valuation, sensitivity }) {
   const total = valuation?.total;
@@ -13,7 +13,7 @@ export default function Invitation({ params, valuation, sensitivity }) {
       <p>Fundacja Nowe Przestrzenie × Paweł Mamcarz</p>
       <h2>Kalkulator Rezyliencji FNP</h2>
       <p style={{ overflowWrap: "anywhere" }}>{name} · {dataLabel(params)}</p>
-      <p>{survey ? `Scenariusz roczny · wynik badania wpisany ręcznie · dotyczy ${scope}` : "Scenariusz roczny · tryb ostrożny · szacunek własny, nie pomiar"}</p>
+      <p>{survey ? `Scenariusz roczny · wynik badania wpisany ręcznie · dotyczy ${scope}` : "Scenariusz roczny · założenia autora · szacunek własny, nie pomiar"}</p>
       {total ? <>
         <p className="print-amount">Wariant bazowy: {money(total.base)}</p>
         <p>Zakres P10–P90: {money(total.low)} – {money(total.high)}</p>
@@ -22,7 +22,7 @@ export default function Invitation({ params, valuation, sensitivity }) {
         <h3>Dane wejściowe</h3>
         <ul style={{ paddingLeft: 18 }}>
           {INPUT_FIELDS.map((field) => <li key={field.key}>{field.label}: {Number(params[field.key]).toLocaleString("pl-PL")} {field.unit}</li>)}
-          <li>{survey ? `Wynik badania: ${params.surveySafety}/100, dotyczy ${scope}; zgodność skali deklaruje użytkownik; kalkulator jej nie weryfikuje${["part", "unknown"].includes(params.surveyScope) ? "; zgodność zakresu danych i badanej grupy deklaruje użytkownik" : ""}` : `Klimat organizacji: ${params.safety}/100, szacunek własny`}</li>
+          <li>{survey ? `Wynik badania: ${plNumber(params.surveySafety)}/100, dotyczy ${scope}; zgodność skali deklaruje użytkownik; kalkulator jej nie weryfikuje${["part", "unknown"].includes(params.surveyScope) ? "; zgodność zakresu danych i badanej grupy deklaruje użytkownik" : ""}` : `Klimat organizacji: ${params.safety}/100, szacunek własny`}</li>
         </ul>
         <h3>Obszary</h3>
         <ol style={{ paddingLeft: 18 }}>
