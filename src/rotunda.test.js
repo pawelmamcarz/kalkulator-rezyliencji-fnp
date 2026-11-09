@@ -1,11 +1,11 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
 import worker from "../demo/src/worker.js";
 import {
-  CAUSE_LABELS, MOD_HEADERS, ROLES, ROTUNDA, STARTERS, handleModeracja, handleStan, handleWpis, suppressRoles, validateWpis,
+  CAUSE_LABELS, MOD_HEADERS, ROLES, ROTUNDA, STARTERS, fullSentence, handleModeracja, handleStan, handleWpis, suppressRoles, toJudgment, validateWpis,
 } from "../demo/src/rotunda.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -30,11 +30,11 @@ function fakeD1() {
 const calls = [];
 function jevAnswer(text, questionIds) {
   const silent = /milcz|boję/.test(text);
-  const cause = /nic się nie zmieni/.test(text) ? "bezsens" : "lek";
+  const cause = /bez przyczyny/.test(text) ? null : /nic się nie zmieni/.test(text) ? "bezsens" : "lek";
   const a = {
     milczenie: { type: "noul", noul: silent ? 0.91 : 0.1 },
     obszar: { type: "choice", choice: "bledy", confidence: 0.9 },
-    przyczyna_lek: { type: "noul", noul: cause === "lek" ? 0.8 : 0.2 },
+    przyczyna_lek: { type: "noul", noul: cause === "lek" ? 0.8 : cause ? 0.2 : 0.1 },
     przyczyna_bezsens: { type: "noul", noul: cause === "bezsens" ? 0.85 : 0.1 },
     przyczyna_brak_kanalu: { type: "noul", noul: 0.1 },
     przyczyna_lojalnosc: { type: "noul", noul: 0.1 },
@@ -53,10 +53,13 @@ const fakeFetch = async (_url, init) => {
 };
 
 let env;
+const DEFAULTS = { ...ROTUNDA };
 beforeEach(() => {
   calls.length = 0;
   env = { DEMO_CODE: "stoisko", MOD_CODE: "moderator", TYPESAFE_API_KEY: "test", DB: fakeD1() };
 });
+// Some tests shrink a limit or a timeout to keep the run short.
+afterEach(() => Object.assign(ROTUNDA, DEFAULTS));
 
 let ipCounter = 0;
 const wpis = (body, ip = `10.0.0.${++ipCounter}`) => new Request("https://fnp.test/rotunda/api/wpis", {
@@ -73,6 +76,7 @@ const modPost = (body, headers = auth(), now) => handleModeracja(new Request("ht
 }), env, now);
 const MIN_N = { share: ROTUNDA.minShareN, role: ROTUNDA.minRoleSize };
 const rows = () => env.DB.raw.prepare("SELECT * FROM wpisy").all();
+const slots = () => env.DB.raw.prepare("SELECT * FROM wpis_requests").all();
 
 describe("rotunda constants", () => {
   it("match the SPEC texts", () => {
@@ -122,7 +126,10 @@ describe("POST /rotunda/api/wpis", () => {
     // One entry: no share yet, only counts and the thresholds.
     expect(data.hall).toEqual({ total: 1, silent: 1, topCauseShare: null, minN: MIN_N });
     expect(data.quote).toBe("not_stored");
-    expect(calls[0].state).toEqual({ odpowiedz: "Wiem o błędzie, ale… boję się kary za zgłoszenie" });
+    // The card's ellipsis is not kept mid-sentence.
+    expect(calls[0].state).toEqual({ odpowiedz: "Wiem o błędzie, ale boję się kary za zgłoszenie" });
+    expect(fullSentence("szef", "mamy opóźnienie")).toBe("Szef nie wie, że mamy opóźnienie");
+    for (const id of Object.keys(STARTERS)) expect(fullSentence(id, "x")).not.toContain("…");
     expect(calls[0].questionIds).not.toContain("dane_osobowe");
     const [row] = rows();
     expect(row).toMatchObject({ id: data.id, rola: "menedzer", starter: "blad", text: null, quote_status: null, top_cause: "lek" });
@@ -136,7 +143,7 @@ describe("POST /rotunda/api/wpis", () => {
     const data = await res.json();
     expect(data.quote).toBe("pending");
     expect(calls[0].questionIds).toEqual(expect.arrayContaining(["dane_osobowe", "obrazliwe"]));
-    expect(rows()[0]).toMatchObject({ text: "Wiem o błędzie, ale… boję się kary", quote_status: "pending" });
+    expect(rows()[0]).toMatchObject({ text: "Wiem o błędzie, ale boję się kary", quote_status: "pending" });
   });
 
   it("does not store text when dane_osobowe or obrazliwe is at least 0.5", async () => {
@@ -151,6 +158,37 @@ describe("POST /rotunda/api/wpis", () => {
     const data = await (await send({ text: "mówię wprost na przeglądzie" })).json();
     expect(data.judgment).toMatchObject({ silent: false, causes: [], topCause: null });
     expect(data.hall).toEqual({ total: 1, silent: 0, topCauseShare: null, minN: MIN_N });
+  });
+
+  it("names a main cause only when Jev indicates one at the threshold or above", () => {
+    const answers = (scores) => ({
+      milczenie: { noul: 0.9 }, obszar: { choice: "bledy" }, nasilenie: { score: 1 },
+      ...Object.fromEntries(Object.entries(scores).map(([id, noul]) => [`przyczyna_${id}`, { noul }])),
+    });
+    const top = (scores) => toJudgment(answers(scores), false).judgment.topCause;
+    // No cause indicated, a tie at zero, or missing scores: nothing is invented (it used to be „lek”).
+    expect(top({ lek: 0.1, bezsens: 0.2, brak_kanalu: 0.3, lojalnosc: 0.49 })).toBeNull();
+    expect(top({ lek: 0, bezsens: 0, brak_kanalu: 0, lojalnosc: 0 })).toBeNull();
+    expect(top({})).toBeNull();
+    expect(toJudgment(answers({ lek: 0.4 }), false).judgment.causes).toEqual([]);
+    // At the threshold it counts; the strongest of several wins.
+    expect(top({ lek: 0.1, bezsens: 0.2, brak_kanalu: 0.3, lojalnosc: 0.5 })).toBe("lojalnosc");
+    expect(top({ lek: 0.6, bezsens: 0.9, brak_kanalu: 0.3, lojalnosc: 0.5 })).toBe("bezsens");
+  });
+
+  it("an entry without a main cause gets no share, is not counted as anyone's cause, and reaches the screen without a cause tag", async () => {
+    for (let i = 0; i < 10; i++) await send({ text: `boję się ${i}` });
+    const none = await (await send({ consent: true, text: "milczę bez przyczyny" })).json();
+    expect(none.judgment).toMatchObject({ silent: true, causes: [], topCause: null });
+    expect(none.hall).toEqual({ total: 11, silent: 11, topCauseShare: null, minN: MIN_N });
+    expect(rows().find((r) => r.id === none.id).top_cause).toBeNull();
+    // The denominator still counts it; the numerator (same cause) does not.
+    const next = await (await send({ text: "boję się znowu" })).json();
+    expect(next.hall.topCauseShare).toBeCloseTo(11 / 12);
+    await modPost({ id: none.id, decision: "approve" });
+    const data = await stan();
+    expect(data.quotes).toEqual([{ id: none.id, text: "Wiem o błędzie, ale milczę bez przyczyny", rola: "menedzer", topCause: null }]);
+    expect(data.overall).toMatchObject({ n: 12, silent: 12, causes: { lek: 11, bezsens: 0, brak_kanalu: 0, lojalnosc: 0 } });
   });
 
   it("computes topCauseShare among silent entries only, and only from minShareN of them", async () => {
@@ -207,11 +245,28 @@ describe("POST /rotunda/api/wpis", () => {
     expect(row.client_hash).not.toContain("browser");
   });
 
-  it("caps one IP at 60 entries even across browsers", async () => {
-    let t = Date.parse("2026-11-19T13:00:00Z");
-    const now = () => new Date(t);
-    for (let i = 0; i < 60; i++) expect((await handleWpis(wpis({ client: `c-${String(i).padStart(8, "0")}` }, "8.8.8.8"), env, fakeFetch, now)).status).toBe(200);
-    expect((await handleWpis(wpis({ client: "c-new-browser" }, "8.8.8.8"), env, fakeFetch, now)).status).toBe(429);
+  it("lets a whole conference room behind one address write, and says which limit was hit", async () => {
+    // Hundreds of phones on one venue Wi-Fi share one address.
+    expect(ROTUNDA.ipRateLimit).toBeGreaterThanOrEqual(1500);
+    expect(ROTUNDA.rateLimit).toBe(5);
+    const now = () => new Date("2026-11-19T13:00:00Z");
+    const from = (client) => handleWpis(wpis({ client }, "8.8.8.8"), env, fakeFetch, now);
+    for (let i = 0; i < 200; i++) expect((await from(`c-${String(i).padStart(8, "0")}`)).status).toBe(200);
+    // The network cap itself, shrunk so the test stays short: 200 slots are taken.
+    ROTUNDA.ipRateLimit = 201;
+    expect((await from("c-one-more-ok")).status).toBe(200);
+    const network = await from("c-new-browser");
+    expect(network.status).toBe(429);
+    expect((await network.json()).error).toBe("Za dużo wpisów z tej sieci. Spróbuj za kilka minut.");
+    // A browser over its own limit is told so, and not blamed on the network.
+    ROTUNDA.ipRateLimit = DEFAULTS.ipRateLimit;
+    for (let i = 0; i < 5; i++) expect((await from("c-busy-browser")).status).toBe(200);
+    const own = await from("c-busy-browser");
+    expect(own.status).toBe(429);
+    expect((await own.json()).error).toBe("Za dużo wpisów z tej przeglądarki. Spróbuj za kilka minut.");
+    // Without a browser id the strict limit is per address.
+    for (let i = 0; i < 5; i++) await handleWpis(wpis({}, "4.4.4.4"), env, fakeFetch, now);
+    expect((await (await handleWpis(wpis({}, "4.4.4.4"), env, fakeFetch, now)).json()).error).toMatch(/z tej sieci/);
   });
 
   it("reserves the rate-limit slot atomically, so concurrent requests cannot overshoot", async () => {
@@ -228,14 +283,116 @@ describe("POST /rotunda/api/wpis", () => {
     expect(JSON.stringify(reservations)).not.toMatch(/7\.7\.7\.7|browser-race/);
   });
 
-  it("maps Jev failures to 502 and stores nothing, but the failed call still counts toward the limit", async () => {
+  it("maps Jev failures to 502, stores nothing and gives the slot back", async () => {
     const failing = async () => ({ ok: false, status: 500, text: async () => "boom" });
     const res = await handleWpis(wpis({}, "6.6.6.6"), env, failing);
     expect(res.status).toBe(502);
     expect(await res.text()).not.toContain("test");
     expect(rows()).toHaveLength(0);
-    for (let i = 0; i < ROTUNDA.rateLimit - 1; i++) await handleWpis(wpis({}, "6.6.6.6"), env, failing);
+    for (let i = 0; i < ROTUNDA.rateLimit + 2; i++) expect((await handleWpis(wpis({}, "6.6.6.6"), env, failing)).status).toBe(502);
+    expect(slots()).toHaveLength(0);
+    // An outage did not use up the visitor's five entries.
+    for (let i = 0; i < ROTUNDA.rateLimit; i++) expect((await handleWpis(wpis({}, "6.6.6.6"), env, fakeFetch)).status).toBe(200);
     expect((await handleWpis(wpis({}, "6.6.6.6"), env, fakeFetch)).status).toBe(429);
+  });
+
+  it("keeps the slot when Jev answered with an unusable judgment, so the limit still caps spend", async () => {
+    const broken = async () => ({ ok: true, status: 200, text: async () => JSON.stringify({ answers: {} }) });
+    for (let i = 0; i < ROTUNDA.rateLimit; i++) {
+      expect((await handleWpis(wpis({ entry: `entry-broken-${i}` }, "6.6.6.7"), env, broken)).status).toBe(502);
+    }
+    expect(rows()).toHaveLength(0);
+    expect(slots()).toHaveLength(ROTUNDA.rateLimit);
+    // The entry ids are freed, but the slots are spent.
+    expect(slots().every((r) => r.entry_key === null)).toBe(true);
+    expect((await handleWpis(wpis({ entry: "entry-broken-0" }, "6.6.6.7"), env, fakeFetch)).status).toBe(429);
+  });
+
+  it("stops waiting for Jev after jevTimeoutMs and gives the slot back", async () => {
+    ROTUNDA.jevTimeoutMs = 30;
+    // Never answers; settles only when the caller's signal aborts.
+    const hanging = (_url, init) => new Promise((_resolve, reject) => {
+      init.signal.addEventListener("abort", () => reject(init.signal.reason));
+    });
+    const started = Date.now();
+    const res = await handleWpis(wpis({ entry: "entry-timeout-1" }, "6.6.6.8"), env, hanging);
+    expect(res.status).toBe(502);
+    expect(Date.now() - started).toBeLessThan(2000);
+    expect(slots()).toHaveLength(0);
+    expect(rows()).toHaveLength(0);
+    // The same entry id can be sent again once Jev is back.
+    expect((await handleWpis(wpis({ entry: "entry-timeout-1" }, "6.6.6.8"), env, fakeFetch)).status).toBe(200);
+    expect(DEFAULTS.jevTimeoutMs).toBe(15_000);
+    expect(DEFAULTS.staleEntryMs).toBeGreaterThan(DEFAULTS.jevTimeoutMs);
+  });
+
+  it("a retry with the same entry id returns the stored result: no second entry, Jev call or slot", async () => {
+    const body = { client: "browser-idem-0001", entry: "entry-idem-0001", consent: true, text: "boję się kary" };
+    const first = await (await send(body, "3.3.3.3")).json();
+    // The response was lost on the way; the phone sends the same attempt again (twice).
+    const again = await send(body, "3.3.3.3");
+    expect(again.status).toBe(200);
+    expect(await again.json()).toEqual(first);
+    expect((await (await send(body, "3.3.3.3")).json()).id).toBe(first.id);
+    expect(first.quote).toBe("pending");
+    expect(calls).toHaveLength(1);
+    expect(rows()).toHaveLength(1);
+    expect(slots()).toHaveLength(1);
+    // Only hashes are kept, never the raw id.
+    expect(JSON.stringify([rows(), slots()])).not.toContain("entry-idem");
+    expect(rows()[0].entry_key).toMatch(/^[0-9a-f]{64}$/);
+    // The replay took no slot: four more new entries still fit under the limit of five.
+    for (let i = 0; i < 4; i++) expect((await send({ ...body, entry: `entry-idem-100${i}` }, "3.3.3.3")).status).toBe(200);
+    expect((await send({ ...body, entry: "entry-idem-9999" }, "3.3.3.3")).status).toBe(429);
+    // Even at the limit, the already stored attempt is still answered.
+    expect((await (await send(body, "3.3.3.3")).json()).id).toBe(first.id);
+    // A new id (edited text, or „Jeszcze raz”) is a new entry; without an id nothing is deduplicated.
+    expect((await send({ text: "boję się" }, "3.3.3.9")).status).toBe(200);
+    expect((await send({ text: "boję się" }, "3.3.3.9")).status).toBe(200);
+    expect(rows()).toHaveLength(7);
+  });
+
+  it("a replay after rejection or without consent reports no stored text", async () => {
+    const body = { entry: "entry-idem-0002", consent: true, text: "boję się kary" };
+    const { id } = await (await send(body, "3.3.4.1")).json();
+    await modPost({ id, decision: "reject" });
+    expect((await (await send(body, "3.3.4.1")).json()).quote).toBe("not_stored");
+    const plain = { entry: "entry-idem-0003", consent: false, text: "boję się kary" };
+    await send(plain, "3.3.4.2");
+    expect(await (await send(plain, "3.3.4.2")).json()).toMatchObject({ quote: "not_stored", judgment: { topCause: "lek", causes: ["lek"], silent: true } });
+  });
+
+  it("a double send of one entry id while Jev is still judging stores one entry", async () => {
+    const slowFetch = async (url, init) => { await new Promise((r) => setTimeout(r, 20)); return fakeFetch(url, init); };
+    const body = { client: "browser-idem-0002", entry: "entry-idem-0004" };
+    const results = await Promise.all(Array.from({ length: 4 }, () => handleWpis(wpis(body, "3.3.5.1"), env, slowFetch)));
+    expect(results.map((r) => r.status).sort()).toEqual([200, 409, 409, 409]);
+    const busy = results.find((r) => r.status === 409);
+    expect((await busy.json()).error).toMatch(/jeszcze oceniany/);
+    expect(calls).toHaveLength(1);
+    expect(rows()).toHaveLength(1);
+    expect(slots()).toHaveLength(1);
+    const stored = await (await handleWpis(wpis(body, "3.3.5.1"), env, slowFetch)).json();
+    expect(stored.id).toBe(rows()[0].id);
+  });
+
+  it("takes over an abandoned reservation instead of using a second slot", async () => {
+    let t = Date.parse("2026-11-19T15:00:00Z");
+    const now = () => new Date(t);
+    const body = { client: "browser-idem-0003", entry: "entry-idem-0005" };
+    // Simulate a request that reserved its slot and died before storing the entry.
+    await handleWpis(wpis(body, "3.3.6.1"), env, fakeFetch, now);
+    env.DB.raw.exec("DELETE FROM wpisy");
+    calls.length = 0;
+    // Right after: still treated as in flight.
+    t += 5_000;
+    expect((await handleWpis(wpis(body, "3.3.6.1"), env, fakeFetch, now)).status).toBe(409);
+    // After staleEntryMs the retry takes the old reservation over.
+    t += ROTUNDA.staleEntryMs;
+    expect((await handleWpis(wpis(body, "3.3.6.1"), env, fakeFetch, now)).status).toBe(200);
+    expect(calls).toHaveLength(1);
+    expect(rows()).toHaveLength(1);
+    expect(slots()).toHaveLength(1);
   });
 });
 
@@ -340,15 +497,35 @@ describe("/rotunda/api/moderacja", () => {
     const { pending } = await (await modGet()).json();
     expect(pending.map((p) => p.id)).toEqual([first.id, second.id]);
     expect(pending[1]).toEqual({
-      id: second.id, text: "Szef nie wie, że… boję się drugi", rola: "zarzad",
+      id: second.id, text: "Szef nie wie, że boję się drugi", rola: "zarzad",
       createdAt: expect.any(String), dane_osobowe: 0.05, obrazliwe: 0.02,
     });
 
     expect(await (await modPost({ id: second.id, decision: "approve" })).json()).toEqual({ ok: true });
     const data = await stan();
     // Below minShareN every role group is suppressed, so the quote carries no role.
-    expect(data.quotes).toEqual([{ id: second.id, text: "Szef nie wie, że… boję się drugi", rola: null, topCause: "lek" }]);
-    expect((await (await modGet()).json()).pending.map((p) => p.id)).toEqual([first.id]);
+    expect(data.quotes).toEqual([{ id: second.id, text: "Szef nie wie, że boję się drugi", rola: null, topCause: "lek" }]);
+    const after = await (await modGet()).json();
+    expect(after.pending.map((p) => p.id)).toEqual([first.id]);
+    // The moderator also sees what is on the screen now and can take it down.
+    expect(after.approved).toEqual([{ id: second.id, text: "Szef nie wie, że boję się drugi", rola: "zarzad", moderatedAt: expect.any(String) }]);
+    expect(after.maxQuotes).toBe(ROTUNDA.maxQuotes);
+    expect((await modPost({ id: second.id, decision: "reject" })).status).toBe(200);
+    expect((await stan()).quotes).toEqual([]);
+    expect((await (await modGet()).json()).approved).toEqual([]);
+    expect(rows().find((r) => r.id === second.id)).toMatchObject({ text: null, quote_status: "rejected" });
+  });
+
+  it("lists approved quotes only to a moderator, newest first", async () => {
+    let t = Date.parse("2026-11-19T10:00:00Z");
+    const now = () => new Date((t += 1000));
+    const ids = [];
+    for (let i = 0; i < 3; i++) ids.push((await (await handleWpis(wpis({ consent: true, text: `boję się ${i}` }), env, fakeFetch, now)).json()).id);
+    for (const id of ids) await modPost({ id, decision: "approve" }, auth(), now);
+    expect((await (await modGet()).json()).approved.map((q) => q.id)).toEqual([...ids].reverse());
+    const denied = await modGet(auth("stoisko", "zly"));
+    expect(denied.status).toBe(403);
+    expect(await denied.text()).not.toContain("boję");
   });
 
   it("reject deletes the stored text", async () => {
@@ -491,6 +668,46 @@ describe("rotunda pages: public wording contract", () => {
     expect(html).toContain("Kalkulator Rezyliencji FNP");
     expect(html).toContain(">Gra<");
     expect(html).toContain(">Kalkulator<");
+  });
+
+  it("counts entries with Polish plural forms on the screen", () => {
+    const html = page("ekran/index.html");
+    const plural = new Function(`${html.match(/function plural\(n, one, few, many\) \{[\s\S]*?\n\}/)[0]}; return plural;`)();
+    const forms = Object.fromEntries([0, 1, 2, 4, 5, 11, 12, 14, 21, 22, 25, 112, 122].map((n) => [n, plural(n, "wpis", "wpisy", "wpisów")]));
+    expect(forms).toEqual({
+      0: "wpisów", 1: "wpis", 2: "wpisy", 4: "wpisy", 5: "wpisów", 11: "wpisów", 12: "wpisów", 14: "wpisów",
+      21: "wpisów", 22: "wpisy", 25: "wpisów", 112: "wpisów", 122: "wpisy",
+    });
+    // The header counter and the role columns use it; no bare „N wpisów”.
+    expect(html).toContain('$("total-lbl").textContent = plural(total, "wpis", "wpisy", "wpisów")');
+    expect(html).not.toMatch(/\$\{g\.n\} wpisów/);
+  });
+
+  it("big screen does not show zero entries before the server has answered", () => {
+    const html = page("ekran/index.html");
+    expect(html).not.toContain("render({ total: 0 })");
+    expect(html).toContain("Łączenie…");
+    expect(html).toContain("Brak połączenia z serwerem");
+    expect(html).toMatch(/id="total">–</);
+  });
+
+  it("uses the same inclusive forms on every page and tells the visitor when text is stored", () => {
+    for (const p of PAGES) expect(page(p), p).not.toMatch(/powiedziałeś(?! \/ powiedziałaś)/);
+    for (const p of ["ekran/index.html", "moderacja/index.html"]) {
+      expect(page(p), p).toContain(`menedzer: "${ROLES.menedzer}", specjalista: "${ROLES.specjalista}"`);
+    }
+    const phone = page("index.html");
+    expect(phone).toContain("Treść zapisujemy tylko za Twoją zgodą. Na ekran trafia dopiero po sprawdzeniu przez moderatora.");
+    expect(phone).not.toContain("tylko za zgodą i po moderacji");
+    // The 429 text comes from the server and names the limit; the fallback blames no device.
+    expect(phone).not.toMatch(/z tego (telefonu|urządzenia)/);
+  });
+
+  it("moderator page has no single-key shortcuts and can take an approved quote down", () => {
+    const html = page("moderacja/index.html");
+    expect(html).not.toMatch(/keydown|keyup|keypress|<kbd/);
+    expect(html).toContain("Zdejmij z ekranu");
+    expect(html).toContain("data.approved");
   });
 
   it("moderator page sends codes only in headers", () => {

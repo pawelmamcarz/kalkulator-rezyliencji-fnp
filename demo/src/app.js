@@ -9,8 +9,10 @@ export { sameCode };
 // Answer text is never stored or logged here; it is sent to TypeSafe for judgment only.
 
 // Team threshold is the project-wide anonymity threshold (MIN_TEAM_SIZE = 5).
-// Jev-call ceiling per IP: maxAnswers × maxBatches per rateWindowMs = 25 × 3 = 75 per 10 min.
-export const LIMITS = { maxAnswers: 25, maxText: 500, maxTeam: 40, minTeamSize: MIN_TEAM_SIZE, maxBatches: 3, rateWindowMs: 10 * 60 * 1000 };
+// maxBatches is per IP, and the presenter shares the venue network with the audience,
+// so it is sized for a stage demo, not for one visitor.
+// Jev-call ceiling per IP: maxAnswers × maxBatches per rateWindowMs = 25 × 30 = 750 per 10 min.
+export const LIMITS = { maxAnswers: 25, maxText: 500, maxTeam: 40, minTeamSize: MIN_TEAM_SIZE, maxBatches: 30, rateWindowMs: 10 * 60 * 1000, jevTimeoutMs: 25 * 1000 };
 
 export function validateDemoInput(body) {
   if (!body || typeof body !== "object") return "Niepoprawne zapytanie.";
@@ -43,7 +45,7 @@ export async function handleMapa(request, env, fetchImpl, now = () => new Date()
   const rows = body.answers.map((r) => ({ team: r.team.trim(), text: r.text.trim() }));
   try {
     const answers = await mapLimit(rows, 6, async (row) => {
-      const res = await callSystemOne({ apiKey: env.TYPESAFE_API_KEY, ...buildRequest(row, DEFAULT_MODEL), fetchImpl });
+      const res = await callSystemOne({ apiKey: env.TYPESAFE_API_KEY, ...buildRequest(row, DEFAULT_MODEL), fetchImpl, timeoutMs: LIMITS.jevTimeoutMs });
       return res.answers;
     });
     const teams = aggregate(rows, answers, { minTeamSize: LIMITS.minTeamSize });
@@ -65,7 +67,9 @@ export const BASE = "/rotunda";
 
 const API = {
   "/api/mapa": { POST: (req, env) => handleMapa(req, env) },
-  "/api/wpis": { POST: (req, env) => handleWpis(req, env) },
+  // waitUntil: an entry whose phone lost the connection is still judged and stored,
+  // so the phone's retry with the same entry id gets that result back.
+  "/api/wpis": { POST: (req, env, ctx) => { const done = handleWpis(req, env); ctx?.waitUntil?.(done.catch(() => {})); return done; } },
   "/api/stan": { GET: (req, env) => handleStan(req, env) },
   "/api/moderacja": { GET: (req, env) => handleModeracja(req, env), POST: (req, env) => handleModeracja(req, env) },
 };
@@ -81,7 +85,7 @@ export default {
     if (route) {
       const handler = Object.hasOwn(route, request.method) ? route[request.method] : null;
       if (!handler) return json({ error: `Tylko ${Object.keys(route).join(" lub ")}.` }, 405);
-      return handler(request, env);
+      return handler(request, env, _ctx);
     }
     if (url.pathname.startsWith(`${BASE}/api/`)) return json({ error: "Nie ma takiego adresu." }, 404);
     return env.ASSETS.fetch(request);
