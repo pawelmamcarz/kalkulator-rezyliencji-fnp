@@ -6,7 +6,7 @@ export default function ConferenceBanner() {
     <aside aria-label="Zapowiedź konferencji" className="conference">
       <p><span className="num">{date}</span>: {name}</p>
       {registrationUrl && (
-        <a className="btn" href={registrationUrl} target="_blank" rel="noopener noreferrer">Zarejestruj się</a>
+        <a className="btn" href={registrationUrl} target="_blank" rel="noopener noreferrer">Zobacz program</a>
       )}
     </aside>
   );

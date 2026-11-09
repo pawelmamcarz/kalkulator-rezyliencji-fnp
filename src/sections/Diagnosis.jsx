@@ -7,6 +7,13 @@ import { FIRM_KEYS, firmSummary, isEdited } from "../firm.js";
 const DECIMAL_FIELDS = new Set(["turnoverPct"]);
 // The firm in one line; the five fields open in place on request and open
 // themselves while any field is invalid.
+// Plausibility hints that do not block the result.
+function softWarning(key, params) {
+  const salary = Number(params.avgSalary);
+  if (key === "avgSalary" && salary > 0 && salary < 50_000) return "Czy to kwota roczna? Płacę miesięczną pomnóż przez 12.";
+  return "";
+}
+
 export default function Diagnosis({ params, up, errors, reset }) {
   const [open, setOpen] = useState(false);
   const panel = useId();
@@ -27,7 +34,7 @@ export default function Diagnosis({ params, up, errors, reset }) {
         {edited && <button type="button" className="btn" onClick={reset}>Przywróć przykład</button>}
       </div>
       <div id={panel} hidden={!expanded}>
-        <p className="small muted" style={{ marginTop: 16 }}>Liczymy w przeglądarce, niczego nie wysyłamy.</p>
+        <p className="small muted" style={{ marginTop: 16 }}>Liczymy w przeglądarce. Wpisanych danych ani wyniku nie wysyłamy i nie zapisujemy.</p>
         <div className="fields">
           {INPUT_FIELDS.map(({ key, label, unit, hint }) => (
             <div key={key} className="field">
@@ -40,6 +47,7 @@ export default function Diagnosis({ params, up, errors, reset }) {
               </div>
               <p id={`${key}-hint`} className="field-hint">{hint}</p>
               {errors[key] && <p id={`${key}-error`} className="field-error">{errors[key]}</p>}
+              {!errors[key] && softWarning(key, params) && <p className="field-hint" role="status">{softWarning(key, params)}</p>}
             </div>
           ))}
         </div>

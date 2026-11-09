@@ -1,11 +1,14 @@
 import { CHANNEL_COPY, splitChannel } from "../channels.js";
 import { money, share as percent } from "../format.js";
+import { payrollAboveCosts } from "../firm.js";
 
 // "Co składa się na kwotę": the three areas in the sum, the two outside it,
 // the share of revenue and the one caveat sentence.
 export default function Result({ valuation, params }) {
   const total = valuation?.total;
   const profit = params.revenue - params.costs;
+  const payroll = payrollAboveCosts(params);
+  const incoherent = payroll > 0;
   const channels = (valuation?.channels || []).map((channel) => ({ id: channel.id, copy: CHANNEL_COPY[channel.id], split: splitChannel(channel) }));
   const inSum = channels.filter((channel) => channel.split.inSum);
   const outside = channels.filter((channel) => !channel.split.inSum);
@@ -22,11 +25,14 @@ export default function Result({ valuation, params }) {
           ))}
         </ul>
         <p className="areas-more small">Poza sumą, bez kwoty: {outside.map(({ copy }) => copy?.title).join(" oraz ")}.</p>
+        {incoherent ? <p className="small" role="status" style={{ marginTop: 10 }}>Etaty × płaca ({money(payroll)}) przekraczają podane koszty roczne. Dane wyglądają na niespójne, więc nie pokazujemy udziału w przychodach. Sprawdź, czy wszystkie pola dotyczą tej samej organizacji i roku.</p> : <>
         <p className="small num" style={{ marginTop: 10 }}>
           {params.revenue > 0 ? `To ${percent(total.base / params.revenue)} rocznych przychodów.` : "Przychody wynoszą 0 zł, więc nie liczymy udziału w przychodach."}
           {profit > 0 && params.revenue > 0 && ` To także ${percent(total.base / profit)} różnicy między przychodami a kosztami (${money(profit)}).`}
         </p>
-        {profit <= 0 && <p className="small" style={{ marginTop: 6 }}>Koszty nie są niższe od przychodów, więc nie porównujemy wyniku z marżą.</p>}
+        {profit <= 0 && <p className="small" style={{ marginTop: 6 }}>Koszty nie są niższe od przychodów, więc nie porównujemy wyniku z różnicą między przychodami a kosztami.</p>}
+        <p className="small muted" style={{ marginTop: 6 }}>Kwoty nie należy ponownie odejmować od zysku.</p>
+        </>}
         {params.safety === 100 && <p className="small" style={{ marginTop: 6 }}>Przy 100/100 nadwyżka wynosi zero z definicji modelu. Nie oznacza to braku błędów, odejść ani wypalenia.</p>}
         {params.avgSalary === 0 && <p className="small" style={{ marginTop: 6 }}>Przy płacy 0 zł koszty rotacji i wypalenia są zerowe. Błędy mają oddzielne koszty zdarzeń, więc nadal mogą zwiększać wynik.</p>}
         <p className="caveat small">

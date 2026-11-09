@@ -21,6 +21,7 @@ export default function Climate({ safety, up, sensitivity, params = {}, errors =
           <label htmlFor="surveySafety">Wynik badania na zgodnej skali 0–100</label>
           <NumberField id="surveySafety" className="num-input" decimal value={params.surveySafety} onValue={(value) => up("surveySafety", value)} aria-describedby="survey-help" />
           {params.surveySafety !== "" && errors.surveySafety && <p className="field-error" role="status">{errors.surveySafety}</p>}
+          {params.surveySafety !== "" && !errors.surveySafety && Number(params.surveySafety) <= 10 && <p className="field-hint" role="status">Wynik ma wartość do 10. Czy to średnia ze skali 1–5 lub 1–7? Taki wynik wymaga przeliczenia na skalę 0–100.</p>}
         </div>
         <fieldset className="survey-scope"><legend>Kogo obejmuje wynik?</legend>
           <label><input type="radio" name="surveyScope" checked={params.surveyScope === "whole"} onChange={() => up("surveyScope", "whole")} /> Całą organizację</label>

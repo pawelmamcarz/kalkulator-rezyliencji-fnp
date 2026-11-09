@@ -32,7 +32,7 @@ export default function Headline({ valuation, worst, label = "Przykładowa firma
         <p className="disc-range num">{total.high > 0 ? `rocznie · Zakres symulacji ${moneyRange(total.low, total.high)}` : "rocznie, przy klimacie 100/100"}</p>
       </div>
       {safety === 100 && <p className="small muted">Zero to nadwyżka względem odniesienia 100/100, nie dowód braku kosztów.</p>}
-      <p className="disc-notes small num">Koło to {PERCENT.format(share)} kwoty przy najniższej ocenie klimatu.</p>
+      <p className="disc-notes small num">Koło: {PERCENT.format(share)} kwoty, jaką model pokazałby przy ocenie klimatu 0/100.</p>
     </div>
   );
 }
