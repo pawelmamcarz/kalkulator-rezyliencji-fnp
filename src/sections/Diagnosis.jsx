@@ -3,8 +3,8 @@ import NumberField from "../components/NumberField.jsx";
 import { INPUT_FIELDS } from "../inputs.js";
 import { FIRM_KEYS, firmSummary, isEdited } from "../firm.js";
 
-// Fields that take a decimal comma (percent, part-time FTE); the rest are whole numbers.
-const DECIMAL_FIELDS = new Set(["turnoverPct", "employees"]);
+// Fields that take a decimal comma (percent); the rest are whole numbers.
+const DECIMAL_FIELDS = new Set(["turnoverPct"]);
 // The firm in one line; the five fields open in place on request and open
 // themselves while any field is invalid.
 // Plausibility hints that do not block the result.

@@ -1,15 +1,14 @@
 import { CHANNEL_COPY, splitChannel } from "../channels.js";
 import { money, share as percent } from "../format.js";
+import { payrollAboveCosts } from "../firm.js";
 
 // "Co składa się na kwotę": the three areas in the sum, the two outside it,
 // the share of revenue and the one caveat sentence.
 export default function Result({ valuation, params }) {
   const total = valuation?.total;
   const profit = params.revenue - params.costs;
-  // Payroll implied by FTE × salary above revenue or costs means the inputs
-  // describe different scopes, so percentages would mislead.
-  const payroll = Number(params.employees) * Number(params.avgSalary);
-  const incoherent = payroll > 0 && (payroll > params.revenue || (params.costs > 0 && payroll > params.costs));
+  const payroll = payrollAboveCosts(params);
+  const incoherent = payroll > 0;
   const channels = (valuation?.channels || []).map((channel) => ({ id: channel.id, copy: CHANNEL_COPY[channel.id], split: splitChannel(channel) }));
   const inSum = channels.filter((channel) => channel.split.inSum);
   const outside = channels.filter((channel) => !channel.split.inSum);
@@ -26,7 +25,7 @@ export default function Result({ valuation, params }) {
           ))}
         </ul>
         <p className="areas-more small">Poza sumą, bez kwoty: {outside.map(({ copy }) => copy?.title).join(" oraz ")}.</p>
-        {incoherent ? <p className="small" role="status" style={{ marginTop: 10 }}>Etaty × płaca ({money(payroll)}) przekraczają podane {payroll > params.revenue ? "przychody" : "koszty"}. Dane wyglądają na niespójne, więc nie pokazujemy udziału w przychodach. Sprawdź, czy wszystkie pola dotyczą tej samej organizacji i roku.</p> : <>
+        {incoherent ? <p className="small" role="status" style={{ marginTop: 10 }}>Etaty × płaca ({money(payroll)}) przekraczają podane koszty roczne. Dane wyglądają na niespójne, więc nie pokazujemy udziału w przychodach. Sprawdź, czy wszystkie pola dotyczą tej samej organizacji i roku.</p> : <>
         <p className="small num" style={{ marginTop: 10 }}>
           {params.revenue > 0 ? `To ${percent(total.base / params.revenue)} rocznych przychodów.` : "Przychody wynoszą 0 zł, więc nie liczymy udziału w przychodach."}
           {profit > 0 && params.revenue > 0 && ` To także ${percent(total.base / profit)} różnicy między przychodami a kosztami (${money(profit)}).`}

@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { dataLabel } from "./firm.js";
-import { DEFAULT_PARAMS, validateInputs } from "./inputs.js";
-import { computeFnpAnalysis } from "./fnpModel.js";
+import { DEFAULT_PARAMS } from "./inputs.js";
 
 describe("wynik badania części organizacji", () => {
   it("nagłówek mówi, że wynik dotyczy części organizacji albo nieustalonej grupy", () => {
@@ -12,12 +11,24 @@ describe("wynik badania części organizacji", () => {
   });
 });
 
-describe("niepełne etaty", () => {
-  it("12,5 etatu jest poprawną daną i daje skończony wynik", () => {
-    const params = { ...DEFAULT_PARAMS, employees: 12.5 };
-    expect(validateInputs(params)).toEqual({});
-    const result = computeFnpAnalysis({ ...params, safety: 41 });
-    expect(Number.isFinite(result.costs.totalTax)).toBe(true);
-    expect(result.costs.totalTax).toBeGreaterThan(0);
+
+import { etatWord, payrollAboveCosts } from "./firm.js";
+describe("odmiana i spójność danych", () => {
+  it("odmienia etat po polsku", () => {
+    expect([1, 2, 4, 5, 12, 14, 22, 25, 500].map(etatWord)).toEqual(["etat", "etaty", "etaty", "etatów", "etatów", "etatów", "etaty", "etatów", "etatów"]);
   });
+  it("płace powyżej kosztów oznaczają niespójne dane, powyżej samych przychodów nie", () => {
+    expect(payrollAboveCosts({ ...DEFAULT_PARAMS, employees: 5000 })).toBe(450_000_000);
+    expect(payrollAboveCosts(DEFAULT_PARAMS)).toBe(0);
+    expect(payrollAboveCosts({ ...DEFAULT_PARAMS, revenue: 0 })).toBe(0);
+    expect(payrollAboveCosts({ ...DEFAULT_PARAMS, costs: 0 })).toBe(0);
+  });
+});
+
+import { inputError, INPUT_FIELDS } from "./inputs.js";
+it("ułamek etatu dostaje konkretną wskazówkę zamiast ogólnego błędu", () => {
+  const field = INPUT_FIELDS.find((f) => f.key === "employees");
+  expect(inputError(NaN, field)).toContain("zaokrąglij");
+  expect(inputError(NaN, INPUT_FIELDS.find((f) => f.key === "revenue"))).toBe("Wpisz skończoną liczbę.");
+  expect(inputError("13", field)).toBe("");
 });

@@ -9,17 +9,17 @@ export const DEFAULT_PARAMS = {
 export const INPUT_FIELDS = [
   { key: "revenue", label: "Przychody roczne", min: 0, max: 1e13, unit: "zł", hint: "Ostatni pełny rok. Służą tylko do obliczenia procentu." },
   { key: "costs", label: "Koszty roczne", min: 0, max: 1e13, unit: "zł", hint: "Ten sam rok. Służą tylko do porównania z różnicą między przychodami a kosztami." },
-  { key: "employees", label: "Liczba etatów", min: 1, max: 5_000_000, unit: "etatów", hint: "Średnio w roku. Dwa pół etatu to jeden etat." },
+  { key: "employees", label: "Liczba etatów", integer: true, min: 1, max: 5_000_000, unit: "etatów", hint: "Średnio w roku, zaokrąglone do pełnych etatów. Dwa pół etatu to jeden etat." },
   { key: "avgSalary", label: "Roczna płaca brutto na etat", min: 0, max: 10_000_000, unit: "zł", hint: "Średnio, z premiami, bez składek pracodawcy." },
   { key: "turnoverPct", label: "Rotacja roczna", min: 0, max: 100, unit: "%", hint: "Suma etatów osób, które odeszły w roku, podzielona przez średnią liczbę etatów i pomnożona przez 100. Kalkulator przyjmuje zakres 0–100%." },
 ];
 
 // Only finite numbers or trimmed numeric strings count; whitespace is blank,
 // and booleans or arrays are not numbers (Number(" ") === 0, Number(true) === 1).
-export function inputError(value, { min, max }) {
+export function inputError(value, { min, max, integer = false }) {
   if (isBlankInput(value)) return "Uzupełnij pole, aby obliczyć wynik.";
   const number = finiteOrNull(value);
-  if (number === null) return "Wpisz skończoną liczbę.";
+  if (number === null) return integer ? "Wpisz liczbę całkowitą, bez przecinka. Na przykład 12,5 etatu zaokrąglij do 13." : "Wpisz skończoną liczbę.";
   if (number < min || number > max) return `Wpisz liczbę od ${min.toLocaleString("pl-PL")} do ${max.toLocaleString("pl-PL")}.`;
   return "";
 }
