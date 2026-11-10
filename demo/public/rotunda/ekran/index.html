@@ -6,186 +6,198 @@
 <meta name="robots" content="noindex">
 <link rel="icon" href="data:,">
 <title>Rotunda FNP: ekran</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap">
+<link rel="preload" href="../fonts/outfit-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="../brand.css">
 <style>
-:root {
-  --paper: #fcfcfa; --ink: #0a0a0a; --mute: #6a6a66; --rule: #0a0a0a;
-  --stamp: #0a3a82; --accent: #b81a1a; --grid: #d6d3c8; --card: #fff; --track: #ebe9e1;
-  --serif: "Source Serif 4", Georgia, serif;
-  --mono: "IBM Plex Mono", ui-monospace, monospace;
-  --ease: 700ms cubic-bezier(.2, .7, .2, 1);
-}
-* { box-sizing: border-box; margin: 0; }
+/* Projector canvas 1920×1080, scaled to the viewport. Nothing a viewer must read is under about 22 px. */
 html, body { height: 100%; }
-body {
-  font-family: var(--serif); font-size: 22px; line-height: 1.4; color: var(--ink);
-  background-color: var(--paper);
-  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
-  background-size: 40px 40px;
-  overflow: hidden;
-}
+body { background: var(--pale); overflow: hidden; font-size: 24px; line-height: 1.3; }
 .screen {
   width: 1920px; height: 1080px; position: absolute; transform-origin: top left;
-  display: grid; grid-template-rows: 176px 1fr 64px; gap: 24px;
-  padding: 32px 48px 24px;
+  display: grid; grid-template-rows: 1fr auto; gap: 22px; padding: 40px 56px 26px;
 }
-.micro { font-family: var(--mono); font-size: 15px; letter-spacing: .22em; text-transform: uppercase; color: var(--mute); }
+main { display: grid; grid-template-columns: 650px 1fr; grid-template-rows: 500px 1fr; gap: 28px 56px; min-height: 0; }
 
-/* Header */
-header { display: grid; grid-template-columns: 1fr auto auto; gap: 40px; align-items: stretch; border-bottom: 3px solid var(--rule); padding-bottom: 20px; }
-h1 { font-family: var(--mono); text-transform: uppercase; font-size: 60px; line-height: 1.05; margin-top: 10px; letter-spacing: -.01em; }
-.sub { font-size: 24px; color: var(--mute); margin-top: 8px; max-width: 760px; }
-.stats { display: flex; gap: 48px; align-items: flex-end; padding-right: 8px; padding-bottom: 6px; }
-.stat .num { font-family: var(--mono); font-weight: 700; font-size: 92px; line-height: 1; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
-.stat .num small { font-size: 46px; font-weight: 600; margin-left: 2px; }
-.stat .lbl { font-family: var(--mono); font-size: 15px; letter-spacing: .18em; text-transform: uppercase; color: var(--mute); margin-top: 6px; }
-.stat.silent .num { color: var(--accent); }
-.stat .lbl { white-space: nowrap; }
-.stat.silent .lbl { letter-spacing: .06em; }
-.stat.wait .num { color: var(--mute); }
-.qtag { font-family: var(--mono); font-size: 13px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: #fff; background: var(--ink); padding: 2px 8px; display: inline-block; margin-bottom: 6px; }
-.qr { display: grid; grid-template-columns: 128px auto; gap: 18px; align-items: center; border: 2px solid var(--rule); background: var(--card); padding: 12px 20px 12px 12px; }
-.qr canvas, .qr svg { width: 128px; height: 128px; display: block; }
-.qr .cta { font-family: var(--mono); font-weight: 700; font-size: 20px; line-height: 1.2; text-transform: uppercase; letter-spacing: .04em; max-width: 220px; }
-.qr .url { font-family: var(--mono); font-size: 16px; color: var(--stamp); margin-top: 8px; letter-spacing: .02em; }
+/* Hero: title, and the share of entries as a disc inside a ring */
+.hero { grid-area: 1 / 1; display: flex; flex-direction: column; min-width: 0; }
+.logos { display: flex; align-items: center; gap: 22px; font-size: 22px; color: var(--muted); }
+.logos img { height: 46px; width: auto; display: block; }
+.logos .summit { height: 42px; padding-left: 22px; border-left: 1px solid var(--line); box-sizing: content-box; }
+h1 { font-size: 59px; letter-spacing: -.06em; margin-top: 20px; white-space: nowrap; }
+.sub { font-size: 23px; line-height: 1.3; color: var(--muted); margin-top: 10px; max-width: 640px; }
+.gauge { display: grid; grid-template-columns: 276px 1fr; gap: 36px; align-items: center; margin-top: auto; }
+/* The ring is every entry; the disc's area is the share that describes withholding. */
+.ring { position: relative; width: 276px; height: 276px; border-radius: 50%; border: 5px solid var(--blue); background: var(--white); }
+.disc, .pulse { position: absolute; border-radius: 50%; }
+.disc { inset: 0; background: var(--orange); transform: scale(0); }
+.pulse { inset: -5px; border: 5px solid var(--orange); opacity: 0; pointer-events: none; }
+.stats { display: grid; gap: 14px; min-width: 0; }
+.stat .num { font-weight: 600; font-size: 100px; line-height: .92; letter-spacing: -.06em; font-variant-numeric: tabular-nums; }
+.stat .num small { font-size: 54px; font-weight: 600; margin-left: 4px; letter-spacing: -.04em; }
+.stat .lbl { display: flex; gap: 12px; align-items: flex-start; font-size: 24px; line-height: 1.2; margin-top: 8px; }
+.stat.wait .num { color: var(--muted); }
+.key { flex: none; width: 20px; height: 20px; border-radius: 50%; margin-top: 4px; }
+.key.all { border: 4px solid var(--blue); background: var(--white); }
+.key.part { background: var(--orange); }
 
-/* Main */
-main { display: grid; grid-template-columns: 1fr 600px; gap: 32px; min-height: 0; }
-.left { display: grid; grid-template-rows: auto auto; align-content: start; gap: 20px; min-height: 0; }
-h2 { font-family: var(--mono); text-transform: uppercase; font-size: 22px; letter-spacing: .06em; border-top: 2px solid var(--rule); padding-top: 10px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
-h2 .note { font-family: var(--mono); font-size: 14px; letter-spacing: .12em; color: var(--mute); text-transform: uppercase; font-weight: 400; }
-.subnote { font-size: 18px; color: var(--mute); margin: -6px 0 12px; }
-.waiting { border: 2px solid var(--rule); background: var(--card); padding: 48px 56px; }
-.waiting .big { font-size: 56px; line-height: 1.15; }
-.waiting .big b { font-family: var(--mono); color: var(--stamp); }
-.waiting p { font-size: 26px; color: var(--mute); margin-top: 20px; max-width: 900px; }
+/* Panels */
+.panel { background: var(--white); border: 1px solid var(--line); border-radius: 22px; }
+.qtag { display: inline-block; font-size: 20px; font-weight: 600; line-height: 1; color: var(--white); background: var(--ink); padding: 6px 12px 7px; border-radius: 30px; margin-bottom: 8px; }
+.url { font-size: 23px; font-weight: 500; overflow-wrap: anywhere; }
 
-.roles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
-.role { min-width: 0; border: 1px solid var(--rule); background: var(--card); padding: 14px 18px 14px; display: flex; flex-direction: column; min-height: 300px; }
-.role.all { border-width: 2px; }
-.role .head { border-bottom: 1px solid var(--grid); padding-bottom: 8px; margin-bottom: 12px; }
-.role .name { font-family: var(--mono); font-weight: 700; font-size: 20px; line-height: 1.2; text-transform: uppercase; letter-spacing: .04em; display: block; min-height: 48px; }
-.role .n { font-family: var(--mono); font-size: 14px; color: var(--mute); white-space: nowrap; letter-spacing: .06em; display: block; margin-top: 2px; min-height: 18px; }
-.bars { display: grid; gap: 11px; flex: 1; align-content: start; }
-.bar { display: grid; grid-template-columns: 1fr 62px; grid-template-rows: auto 18px; row-gap: 4px; column-gap: 10px; align-items: center; }
-.bar .lab { grid-column: 1 / -1; font-size: 18px; line-height: 1.2; overflow-wrap: anywhere; min-width: 0; }
-.bar .val { font-family: var(--mono); font-weight: 600; font-size: 22px; text-align: right; line-height: 1; font-variant-numeric: tabular-nums; }
-.bar .track { grid-column: 1; height: 18px; background: var(--track); position: relative; }
-.bar .fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--ink); border-radius: 0 4px 4px 0; transition: width var(--ease), background-color 300ms; }
-.bar.lead .fill { background: var(--accent); }
-.bar.lead .lab { font-weight: 600; }
-.bar.lead .lab::before { content: "▲ "; color: var(--accent); font-family: var(--mono); font-size: 13px; vertical-align: 2px; }
-.role .empty { flex: 1; display: grid; place-items: center; text-align: center; color: var(--mute); font-style: italic; font-size: 22px; padding: 12px; }
-.role .empty .micro { display: block; margin-top: 10px; font-style: normal; }
-
-.areas .list { display: grid; gap: 8px; }
-.arow { display: grid; grid-template-columns: 290px 1fr 120px; gap: 14px; align-items: center; }
-.arow .lab { font-size: 20px; }
-.arow .track { height: 20px; background: var(--track); position: relative; }
-.arow .fill { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--stamp); border-radius: 0 4px 4px 0; transition: width var(--ease); }
-.arow .val { font-family: var(--mono); font-size: 20px; text-align: right; font-variant-numeric: tabular-nums; }
-.arow .val small { color: var(--mute); font-size: 16px; }
-
-/* Quote */
-.right { display: flex; flex-direction: column; gap: 20px; min-height: 0; }
-.calc { display: grid; grid-template-columns: 132px 1fr; gap: 18px; align-items: center; border: 1px solid var(--rule); background: var(--card); padding: 12px 18px 12px 12px; }
-.calc svg { width: 132px; height: 132px; display: block; }
-.calc .name { font-family: var(--mono); font-weight: 700; font-size: 20px; text-transform: uppercase; letter-spacing: .02em; line-height: 1.2; }
-.calc .what { font-size: 18px; color: var(--mute); margin-top: 4px; line-height: 1.3; }
-.calc .url { font-family: var(--mono); font-size: 16px; color: var(--stamp); margin-top: 6px; }
-.quote { flex: 1; border: 2px solid var(--rule); background: var(--card); padding: 36px 40px; display: flex; flex-direction: column; position: relative; min-height: 0; overflow: hidden; }
-.quote .stamp { font-family: var(--mono); font-size: 14px; letter-spacing: .2em; text-transform: uppercase; color: var(--stamp); border: 1.5px solid var(--stamp); padding: 4px 10px; align-self: flex-start; transform: rotate(-2deg); }
-.quote .stamp, .quote .meta { flex: none; }
-.quote blockquote { flex: 1 1 0; min-height: 0; overflow: hidden; overflow-wrap: anywhere; display: flex; align-items: center; font-size: 42px; line-height: 1.3; font-weight: 400; margin: 20px 0; }
+/* Quote and QR codes (top right) */
+.right { grid-area: 1 / 2; display: grid; grid-template-columns: 1fr 470px; gap: 32px; min-width: 0; min-height: 0; }
+.quote { padding: 30px 36px 28px; display: flex; flex-direction: column; position: relative; min-height: 0; min-width: 0; overflow: hidden; }
+.quote.card { background: var(--yellow); border-color: var(--yellow); }
+.quote .stamp { font-size: 22px; font-weight: 600; flex: none; }
+.quote .meta { flex: none; display: flex; flex-wrap: wrap; gap: 10px; font-size: 22px; line-height: 1.2; min-height: 40px; }
+.quote .meta span { padding: 8px 16px; border-radius: 30px; background: var(--sage); }
+.quote .meta .cause { background: var(--yellow); }
+.quote.card .meta span { background: none; padding: 8px 0; }
+.quote blockquote { flex: 1 1 0; min-height: 0; overflow: hidden; overflow-wrap: anywhere; display: flex; align-items: center; font-size: 42px; line-height: 1.2; font-weight: 500; letter-spacing: -.03em; margin: 14px 0; }
 .quote blockquote.long { font-size: 34px; }
-.quote blockquote.xlong { font-size: 27px; }
-.quote blockquote.starter { font-style: italic; color: var(--ink); }
-.quote blockquote.starter em { color: var(--accent); font-style: italic; }
-.quote .meta { border-top: 1px solid var(--grid); padding-top: 14px; display: flex; flex-wrap: wrap; gap: 10px 22px; font-family: var(--mono); font-size: 16px; letter-spacing: .04em; }
-.quote .meta .cause { color: var(--accent); }
-.quote .fade { transition: opacity 500ms; }
-.quote .fade.out { opacity: 0; }
-.quote .dots { position: absolute; right: 20px; top: 20px; display: flex; gap: 6px; }
-.quote .dots i { width: 8px; height: 8px; background: var(--grid); }
+.quote blockquote.xlong { font-size: 28px; letter-spacing: -.02em; }
+.quote blockquote.starter { font-size: 54px; font-weight: 600; letter-spacing: -.05em; line-height: 1.08; }
+.quote .dots { position: absolute; right: 30px; top: 38px; display: flex; gap: 7px; }
+.quote .dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
 .quote .dots i.on { background: var(--ink); }
+.codes { display: grid; grid-template-rows: auto auto; gap: 16px; align-content: space-between; min-height: 0; }
+.qr, .calc { display: grid; column-gap: 20px; align-items: center; padding: 14px 20px 14px 14px; }
+.qr { grid-template-columns: 158px 1fr; }
+.calc { grid-template-columns: 132px 1fr; }
+.qr svg, .calc svg { display: block; }
+.qr .cta, .calc .name { font-weight: 600; font-size: 26px; line-height: 1.12; letter-spacing: -.03em; }
+.qr .url { grid-column: 1 / -1; margin-top: 6px; }
+.calc .what { grid-column: 1 / -1; font-size: 21px; line-height: 1.25; margin-top: 8px; }
+.calc .url { margin-top: 6px; }
 
-/* Empty state */
-.welcome { grid-column: 1 / -1; border: 2px solid var(--rule); background: var(--card); display: grid; grid-template-columns: 1fr 460px; gap: 48px; align-items: center; padding: 56px 72px; }
-.welcome .big { font-size: 64px; line-height: 1.15; }
-.welcome .big em { color: var(--accent); font-style: italic; }
-.welcome p { font-size: 26px; color: var(--mute); margin-top: 24px; max-width: 900px; }
-.welcome .qrbig { justify-self: center; text-align: center; }
-.welcome .qrbig canvas, .welcome .qrbig svg { width: 360px; height: 360px; display: block; margin: 0 auto 16px; }
-.welcome .qrbig .cta { font-family: var(--mono); font-weight: 700; font-size: 24px; text-transform: uppercase; }
-.welcome .qrbig .url { font-family: var(--mono); font-size: 20px; color: var(--stamp); margin-top: 6px; }
-.welcome.boot { grid-template-columns: 1fr; }
-.welcome.boot.off .big { color: var(--accent); }
+/* Causes by role and areas (bottom) */
+.left { grid-area: 2 / 1 / 3 / -1; display: grid; grid-template-columns: 1fr 650px; gap: 56px; align-content: start; min-height: 0; min-width: 0; }
+.waiting { grid-column: 1 / -1; padding: 44px 56px; align-self: start; }
+.waiting .big { font-size: 76px; font-weight: 600; letter-spacing: -.06em; line-height: 1.05; }
+.waiting p { font-size: 28px; color: var(--muted); margin-top: 18px; max-width: 1100px; }
+h2 { font-size: 28px; letter-spacing: -.04em; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 20px; }
+h2 .note { font-size: 20px; font-weight: 400; letter-spacing: 0; color: var(--muted); }
+.subnote { font-size: 20px; color: var(--muted); margin-top: 2px; }
+.roles { display: grid; grid-template-columns: 318px repeat(4, minmax(0, 1fr)); column-gap: 8px; margin-top: 10px; }
+.role { min-width: 0; display: flex; flex-direction: column; padding: 8px 14px 4px; border-radius: 16px; }
+.role.all { background: var(--white); border: 1px solid var(--line); }
+.role.labels { padding-left: 0; }
+.role .head { height: 106px; }
+.role .name { font-weight: 600; font-size: 22px; line-height: 1.1; letter-spacing: -.03em; display: block; }
+.role .n { font-size: 19px; line-height: 1.15; color: var(--muted); display: block; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.bars { display: grid; grid-auto-rows: 56px; }
+.bars .lab { font-size: 24px; line-height: 1.1; display: flex; align-items: center; white-space: nowrap; }
+.bar { display: grid; align-content: center; row-gap: 6px; }
+.bar .val { font-weight: 600; font-size: 27px; line-height: 1; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.track { display: block; height: 14px; border-radius: 7px; background: var(--sage); position: relative; overflow: hidden; }
+.role.all .track { background: var(--sage); }
+/* Bars move by transform only, so a new value costs no layout. */
+.fill { position: absolute; inset: 0; border-radius: 7px; background: var(--ink); transform: translateX(-100%); }
+.bar.lead .fill { background: var(--orange); }
+.bar.lead .val::after { content: ""; display: inline-block; width: 11px; height: 11px; border-radius: 50%; background: var(--orange); margin-left: 5px; vertical-align: 8px; }
+.role .empty { flex: 1; display: grid; place-content: center; text-align: center; font-size: 22px; line-height: 1.2; padding: 8px 4px; }
+.role .empty .micro { display: block; margin-top: 8px; font-size: 19px; color: var(--muted); }
+.areas .list { display: grid; grid-auto-rows: 56px; margin-top: 14px; }
+.arow { display: grid; grid-template-columns: 296px 1fr 118px; gap: 14px; align-items: center; }
+.arow .lab { font-size: 24px; line-height: 1.1; }
+.arow .val { font-size: 27px; font-weight: 600; letter-spacing: -.03em; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.arow .val small { color: var(--muted); font-size: 21px; font-weight: 400; letter-spacing: 0; margin-left: 4px; }
 
-/* Footer */
-footer { border-top: 2px solid var(--rule); padding-top: 14px; display: flex; justify-content: space-between; align-items: center; gap: 24px; font-size: 19px; color: var(--mute); }
+/* Before the first answer, and with no entries yet */
+.welcome { grid-area: 1 / 2 / 3 / 3; padding: 52px 64px; display: grid; grid-template-columns: 1fr 520px; grid-template-rows: auto 1fr; gap: 28px 48px; align-items: center; }
+.welcome .big { grid-column: 1 / -1; font-size: 74px; font-weight: 600; letter-spacing: -.06em; line-height: 1.04; }
+.welcome p { font-size: 27px; line-height: 1.35; color: var(--muted); max-width: 520px; }
+.welcome .qrbig { justify-self: end; text-align: center; }
+.welcome .orb { width: 520px; height: 520px; border-radius: 50%; background: var(--orange); display: grid; place-items: center; }
+.welcome .orb > div { background: var(--white); padding: 8px; border-radius: 12px; }
+.welcome .orb svg { display: block; }
+.welcome .invite { align-self: center; }
+.welcome .invite .cta { font-weight: 600; font-size: 34px; letter-spacing: -.04em; line-height: 1.1; margin-top: 28px; }
+.welcome .invite .url { font-size: 27px; margin-top: 10px; }
+.welcome.boot { grid-template-columns: 1fr; grid-template-rows: auto; align-content: center; }
+.welcome.boot p { max-width: 900px; }
+
+footer { display: flex; justify-content: space-between; align-items: baseline; gap: 32px; font-size: 22px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 16px; }
 footer b { color: var(--ink); font-weight: 600; }
-.conn { font-family: var(--mono); font-size: 14px; letter-spacing: .12em; text-transform: uppercase; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
-.conn::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: #2c7a3d; }
-.conn.off { color: var(--accent); }
-.conn.off::before { background: var(--accent); animation: blink 1.4s infinite; }
-@keyframes blink { 50% { opacity: .2; } }
-
-[hidden] { display: none !important; }
-
-@media (prefers-reduced-motion: reduce) {
-  .bar .fill, .arow .fill, .quote .fade { transition: none; }
-  .conn.off::before { animation: none; }
-}
+.conn { display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; color: var(--ink); font-variant-numeric: tabular-nums; }
+.conn::before { content: ""; width: 14px; height: 14px; border-radius: 50%; background: #2c7a3d; }
+.conn.off { font-weight: 600; }
+.conn.off::before { background: var(--white); border: 4px solid var(--orange-dark); }
 </style>
 </head>
 <body>
 <div class="screen">
-  <header>
-    <div>
-      <div class="micro">Fundacja Nowe Przestrzenie · Rotunda · 19 listopada 2026</div>
+  <main>
+    <section class="hero">
+      <div class="logos">
+        <img src="../img/fnp-logo-black.png" alt="Fundacja Nowe Przestrzenie">
+        <img class="summit" src="../img/summit-logo-black.png" alt="Safe Space Summit '26">
+        <span>Rotunda, 19 listopada 2026</span>
+      </div>
       <h1>Mapa milczenia Rotundy</h1>
       <div class="sub">Czego nie powiedziałeś / powiedziałaś w tym miesiącu? Wpisy chętnych uczestników, bez imion, ocenione przez Jev.</div>
-    </div>
-    <div class="stats">
-      <div class="stat wait" id="stat-total"><div class="num" id="total">–</div><div class="lbl" id="total-lbl">wpisów</div></div>
-      <div class="stat silent wait" id="stat-silent"><div class="num"><span id="silent">–</span><small id="silent-pct" hidden>%</small></div><div class="lbl" id="silent-lbl">czekamy na dane</div></div>
-    </div>
-    <div class="qr" id="qr-box">
-      <div id="qr"></div>
-      <div>
-        <div class="qtag">Gra</div>
-        <div class="cta">Zeskanuj i dokończ zdanie</div>
-        <div class="url">fnp.silence-tax.com/rotunda</div>
-      </div>
-    </div>
-  </header>
-
-  <main>
-    <!-- Shown until the first successful answer from the server: no data is not zero entries. -->
-    <section class="welcome boot" id="boot">
-      <div>
-        <div class="big" id="boot-big">Łączenie…</div>
-        <p id="boot-p">Pobieramy wpisy z serwera.</p>
+      <div class="gauge">
+        <div class="ring" id="ring" role="img" aria-label="Udział wpisów opisujących przemilczenie: czekamy na dane">
+          <span class="pulse" id="pulse"></span>
+          <span class="disc" id="disc"></span>
+        </div>
+        <div class="stats">
+          <div class="stat wait" id="stat-total"><div class="num" id="total">–</div><div class="lbl"><i class="key all"></i><span id="total-lbl">wpisów</span></div></div>
+          <div class="stat silent wait" id="stat-silent"><div class="num"><span id="silent">–</span><small id="silent-pct" hidden>%</small></div><div class="lbl"><i class="key part"></i><span id="silent-lbl">czekamy na dane</span></div></div>
+        </div>
       </div>
     </section>
 
-    <section class="welcome" id="welcome" hidden>
-      <div>
-        <div class="big">Jeszcze nie ma <em>wpisów</em>.<br>Dokończ pierwsze zdanie.</div>
+    <!-- Shown until the first successful answer from the server: no data is not zero entries. -->
+    <section class="welcome boot panel" id="boot">
+      <div class="big" id="boot-big">Łączenie…</div>
+      <p id="boot-p">Pobieramy wpisy z serwera.</p>
+    </section>
+
+    <section class="welcome panel" id="welcome" hidden>
+      <div class="big">Jeszcze nie ma wpisów.<br>Dokończ pierwsze zdanie.</div>
+      <div class="invite">
         <p id="welcome-p">Wylosuj kartę na telefonie, dopisz jedno zdanie o tym, czego nie powiedziałeś / powiedziałaś w tym miesiącu, wybierz rolę. Gdy wpisów będzie dość, zobaczysz tutaj, jakie przyczyny wskazują zdania uczestników.</p>
+        <div class="cta">Zeskanuj i dokończ zdanie</div>
+        <div class="url">fnp.silence-tax.com/rotunda</div>
       </div>
       <div class="qrbig">
-        <div id="qr-big"></div>
-        <div class="qtag">Gra</div>
-        <div class="cta">Zeskanuj i dokończ zdanie</div>
-        <div class="url">fnp.silence-tax.com/rotunda</div>
+        <div class="orb"><div id="qr-big"></div></div>
       </div>
     </section>
 
+    <div class="right" id="right" hidden>
+      <div class="quote panel" id="quote">
+        <div class="dots" id="dots"></div>
+        <div class="stamp" id="q-stamp">Cytat z wpisu</div>
+        <blockquote id="q-text"></blockquote>
+        <div class="meta" id="q-meta"></div>
+      </div>
+      <div class="codes">
+        <div class="qr panel" id="qr-box">
+          <div id="qr"></div>
+          <div>
+            <div class="qtag">Gra</div>
+            <div class="cta">Zeskanuj i dokończ zdanie</div>
+          </div>
+          <div class="url">fnp.silence-tax.com/rotunda</div>
+        </div>
+        <aside class="calc panel" aria-label="Kalkulator Rezyliencji FNP">
+          <div id="qr-calc"></div>
+          <div>
+            <div class="qtag">Kalkulator</div>
+            <div class="name">Kalkulator Rezyliencji FNP</div>
+            <div class="url">fnp.silence-tax.com</div>
+          </div>
+          <div class="what">Roczny scenariusz skali kosztów dla Twojej firmy, z jej danych. Nie korzysta z wyników tej gry.</div>
+        </aside>
+      </div>
+    </div>
+
     <div class="left" id="left" hidden>
-      <section class="waiting" id="waiting" hidden>
-        <div class="big">Mamy <b id="wait-n">0</b> <span id="wait-word">wpisów</span>.</div>
+      <section class="waiting panel" id="waiting" hidden>
+        <div class="big">Mamy <b id="wait-n" class="tnum">0</b> <span id="wait-word">wpisów</span>.</div>
         <p id="wait-p"></p>
       </section>
       <section id="sec-roles" hidden>
@@ -198,45 +210,43 @@ footer b { color: var(--ink); font-weight: 600; }
         <div class="list" id="areas"></div>
       </section>
     </div>
-
-    <div class="right" id="right" hidden>
-      <div class="quote">
-        <div class="dots" id="dots"></div>
-        <div class="stamp" id="q-stamp">Cytat z wpisu</div>
-        <blockquote id="q-text" class="fade"></blockquote>
-        <div class="meta fade" id="q-meta"></div>
-      </div>
-      <aside class="calc" aria-label="Kalkulator Rezyliencji FNP">
-        <div id="qr-calc"></div>
-        <div>
-          <div class="qtag">Kalkulator</div>
-          <div class="name">Kalkulator Rezyliencji FNP</div>
-          <div class="what">Roczny scenariusz skali kosztów dla Twojej firmy, z jej danych. Nie korzysta z wyników tej gry.</div>
-          <div class="url">fnp.silence-tax.com</div>
-        </div>
-      </aside>
-    </div>
   </main>
 
   <footer>
     <div>Fundacja Nowe Przestrzenie × Paweł Mamcarz · silnik: Jev (TypeSafe) · <b>prototyp</b>. Mapa wpisów, nie pomiar osób, sali ani firmy.</div>
-    <div><span class="conn" id="conn">łączenie</span></div>
+    <div><span class="conn" id="conn">Łączenie</span></div>
   </footer>
 </div>
 
 <script src="qrcode.js"></script><!-- qrcode-generator 1.4.4, MIT, vendored: works without the CDN -->
+<script src="../vendor/motion.js"></script><!-- motion 12.23.22, MIT, vendored; without it every change is instant -->
 <script>
 const ROLES = { zarzad: "Zarząd", menedzer: "Menedżer / menedżerka", specjalista: "Specjalista / specjalistka" };
 const CAUSES = { lek: "Lęk przed konsekwencjami", bezsens: "Nic się nie zmieni", brak_kanalu: "Brak kanału lub czasu", lojalnosc: "Ochrona innych" };
 const AREAS = { rotacja: "Rotacja i utrata wiedzy", bledy: "Błędy i compliance", wypalenie: "Wypalenie i pasywność", innowacje: "Innowacje i uczenie się", koordynacja: "Koordynacja i hierarchia", brak: "Poza obszarami" };
 const STARTERS = ["Szef nie wie, że…", "Wiem o błędzie, ale…", "Mój pomysł przepadł, bo…", "Na spotkaniu wszyscy kiwali głową, a ja…", "Klient nie wie, że…", "Do zarządu nie dociera, że…", "Odchodząc z firmy, powiem, że…", "Nie mówię o tym głośno, bo…"];
-const POLL_MS = 5000, QUOTE_MS = 8000;
+const POLL_MS = 5000, QUOTE_MS = 8000, MIN_QUOTE_PX = 24;
 // Thresholds come from the server (`minN` in /api/stan); nothing is hardcoded here.
 let minN = { share: null, role: null };
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* Motion (window.Motion, vendored). With reduced motion, or if the file did not load,
+   every state change is instant. One animation per target: the previous one is stopped
+   before the next starts, so nothing piles up while the screen runs for hours. */
+const M = !reduced && window.Motion && typeof window.Motion.animate === "function" ? window.Motion : null;
+const SPRING = { type: "spring", stiffness: 110, damping: 20 };
+const running = new Map();
+function play(key, start) {
+  const prev = running.get(key);
+  if (prev) prev.stop();
+  const anim = start();
+  running.set(key, anim);
+  anim.then(() => { if (running.get(key) === anim) running.delete(key); });
+  return anim;
+}
 
 function fitScreen() {
   const scale = Math.min(innerWidth / 1920, innerHeight / 1080);
@@ -259,70 +269,102 @@ function drawQr(el, size, url = GAME_URL) {
     const svg = el.querySelector("svg");
     if (svg) { svg.setAttribute("width", size); svg.setAttribute("height", size); }
   } catch {
-    el.innerHTML = `<div style="width:${size}px;height:${size}px;border:1px dashed var(--grid)"></div>`;
+    el.innerHTML = `<div style="width:${size}px;height:${size}px;border:1px dashed var(--edge)"></div>`;
   }
 }
-drawQr($("qr"), 128);
-drawQr($("qr-big"), 360);
+drawQr($("qr"), 158);
+drawQr($("qr-big"), 336);
 drawQr($("qr-calc"), 132, CALC_URL);
 
-/* counters */
+/* counters: count to the new value when it changes */
 const shown = { total: 0, silent: 0 };
 function tween(key, el, target) {
   const from = shown[key];
   shown[key] = target;
-  if (reduced || from === target) { el.textContent = target; return; }
-  const t0 = performance.now(), dur = 700;
-  const step = (t) => {
-    const p = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - p, 3);
-    el.textContent = Math.round(from + (target - from) * e);
-    if (p < 1) requestAnimationFrame(step);
-  };
-  requestAnimationFrame(step);
+  if (!M || from === target) { el.textContent = target; return; }
+  play(`count-${key}`, () => M.animate(from, target, { duration: 0.9, ease: "easeOut", onUpdate: (v) => { el.textContent = Math.round(v); } }))
+    .then(() => { if (shown[key] === target) el.textContent = target; });
 }
 
-/* roles matrix */
+/* disc: its area inside the ring is the share of entries describing withholding */
+let discScale = 0;
+function setDisc(share) {
+  const known = typeof share === "number";
+  const scale = known ? Math.sqrt(Math.max(0, Math.min(1, share))) : 0;
+  $("ring").setAttribute("aria-label", known
+    ? `Udział wpisów opisujących przemilczenie: ${Math.round(100 * share)}%. Pole pomarańczowego koła w niebieskim okręgu odpowiada temu udziałowi.`
+    : "Udział wpisów opisujących przemilczenie: czekamy na wpisy");
+  if (scale === discScale) return;
+  const from = discScale;
+  discScale = scale;
+  if (!M) { $("disc").style.transform = `scale(${scale})`; return; }
+  play("disc", () => M.animate($("disc"), { scale: [from, scale] }, SPRING));
+}
+/* one pulse of the ring for each poll that brings new entries */
+function pulse() {
+  if (!M) return;
+  play("pulse", () => M.animate($("pulse"), { scale: [1, 1.2], opacity: [0.9, 0] }, { duration: 1.3, ease: "easeOut" }));
+}
+
+/* bars: the fill slides inside its track (transform only) */
+const barAt = new Map();
+function setBar(fill, key, pct) {
+  const from = barAt.has(key) ? barAt.get(key) : 0;
+  if (from === pct) return;
+  barAt.set(key, pct);
+  if (!M) { fill.style.transform = `translateX(${pct - 100}%)`; return; }
+  play(key, () => M.animate(fill, { x: [`${from - 100}%`, `${pct - 100}%`] }, SPRING));
+}
+function setText(el, text) { if (el.textContent !== text) el.textContent = text; }
+function setHtml(el, html) { if (el.dataset.html !== html) { el.dataset.html = html; el.innerHTML = html; } }
+
+/* roles matrix: one row per cause, one column per group */
 function ensureRoles() {
   if ($("roles").children.length) return;
   const cols = [["all", "Wszystkie wpisy"], ...Object.entries(ROLES)];
-  $("roles").innerHTML = cols.map(([id, name]) => `
+  $("roles").innerHTML = `
+    <div class="role labels"><div class="head"></div><div class="bars">${Object.values(CAUSES).map((lab) => `<span class="lab">${lab}</span>`).join("")}</div></div>` + cols.map(([id, name]) => `
     <div class="role ${id === "all" ? "all" : ""}" id="role-${id}">
       <div class="head"><span class="name">${name}</span><span class="n" id="n-${id}"></span></div>
       <div class="bars" id="bars-${id}">${Object.entries(CAUSES).map(([cid, lab]) => `
-        <div class="bar" id="bar-${id}-${cid}"><span class="lab">${lab}</span><span class="track"><span class="fill"></span></span><span class="val">–</span></div>`).join("")}
+        <div class="bar" id="bar-${id}-${cid}" aria-label="${lab}"><span class="val">–</span><span class="track"><span class="fill"></span></span></div>`).join("")}
       </div>
       <div class="empty" id="empty-${id}" hidden></div>
     </div>`).join("");
 }
 
+function setEmpty(id, html) {
+  $(`bars-${id}`).hidden = true;
+  $(`empty-${id}`).hidden = false;
+  setHtml($(`empty-${id}`), html);
+}
 function renderGroup(id, g) {
-  const bars = $(`bars-${id}`), empty = $(`empty-${id}`), n = $(`n-${id}`);
+  const n = $(`n-${id}`);
   if (!g || g.suppressed || !g.n) {
-    bars.hidden = true; empty.hidden = false;
-    n.textContent = g && g.n ? `n = ${g.n}` : "n = 0";
+    setHtml(n, g && g.n ? `n = ${g.n}` : "n = 0");
     const small = g && g.n && minN.role && g.n < minN.role;
-    empty.innerHTML = !g || !g.n
+    setEmpty(id, !g || !g.n
       ? "jeszcze bez wpisów"
       : small
         ? `za mało wpisów<span class="micro">pokażemy od ${minN.role} wpisów</span>`
-        : `ukryte dla anonimowości<span class="micro">inaczej dałoby się wyliczyć mniejszą grupę</span>`;
+        : `ukryte dla anonimowości<span class="micro">inaczej dałoby się wyliczyć mniejszą grupę</span>`);
     return;
   }
-  bars.hidden = false; empty.hidden = true;
-  n.textContent = `n = ${g.n} · przemilczenie: ${g.silent}`;
+  setHtml(n, `n = ${g.n}<br>przemilczenie: ${g.silent}`);
   const causes = g.causes || {};
   const max = Math.max(0, ...Object.keys(CAUSES).map((c) => causes[c] || 0));
   if (!g.silent) {
-    bars.hidden = true; empty.hidden = false;
-    empty.innerHTML = `żaden wpis nie opisuje przemilczenia<span class="micro">${g.n} ${plural(g.n, "wpis", "wpisy", "wpisów")}</span>`;
+    setEmpty(id, `żaden wpis nie opisuje przemilczenia<span class="micro">${g.n} ${plural(g.n, "wpis", "wpisy", "wpisów")}</span>`);
     return;
   }
+  $(`bars-${id}`).hidden = false;
+  $(`empty-${id}`).hidden = true;
   for (const cid of Object.keys(CAUSES)) {
-    const v = causes[cid] || 0, share = v / g.silent;
+    const v = causes[cid] || 0, pct = Math.round(100 * v / g.silent);
     const bar = $(`bar-${id}-${cid}`);
     bar.classList.toggle("lead", v > 0 && v === max);
-    bar.querySelector(".val").textContent = `${Math.round(100 * share)}%`;
-    bar.querySelector(".fill").style.width = `${Math.round(100 * share)}%`;
+    setText(bar.querySelector(".val"), `${pct}%`);
+    setBar(bar.querySelector(".fill"), `bar-${id}-${cid}`, pct);
   }
 }
 
@@ -333,47 +375,56 @@ function renderAreas(overall) {
   const rows = Object.entries(AREAS).map(([id, lab]) => [id, lab, areas[id] || 0]).filter(([id, , v]) => id !== "brak" || v > 0);
   const el = $("areas");
   if (el.children.length !== rows.length) {
+    for (const id of Object.keys(AREAS)) barAt.delete(`area-${id}`);
     el.innerHTML = rows.map(([id, lab]) => `<div class="arow" id="area-${id}"><span class="lab">${lab}</span><span class="track"><span class="fill"></span></span><span class="val"></span></div>`).join("");
   }
   for (const [id, , v] of rows) {
-    const row = $(`area-${id}`);
+    const row = $(`area-${id}`), pct = total ? Math.round(100 * v / total) : 0;
     // Same scale as the cause bars: share of entries describing withholding, not of the largest area.
-    row.querySelector(".fill").style.width = `${total ? Math.round(100 * v / total) : 0}%`;
-    row.querySelector(".val").innerHTML = `${v} <small>${total ? Math.round(100 * v / total) : 0}%</small>`;
+    setBar(row.querySelector(".fill"), `area-${id}`, pct);
+    setHtml(row.querySelector(".val"), `${v} <small>${pct}%</small>`);
   }
 }
 
-/* quotes */
-let quotes = [], qIndex = -1, qTimer = null, starterIndex = 0;
-function setQuote(html, meta, cls) {
-  const t = $("q-text"), m = $("q-meta");
+/* quotes: the old one leaves upwards, the next one arrives from below */
+let quotes = [], qIndex = -1, qTimer = null, starterIndex = 0, quoteTurn = 0;
+function fitQuote() {
+  const t = $("q-text");
+  // Last resort for an unusually tall quote: shrink until it fits the box, never under MIN_QUOTE_PX.
+  t.style.fontSize = "";
+  for (let px = parseFloat(getComputedStyle(t).fontSize); t.scrollHeight > t.clientHeight && px > MIN_QUOTE_PX; px -= 1) t.style.fontSize = `${px - 1}px`;
+}
+function setQuote(html, meta, cls, stamp) {
+  const t = $("q-text"), m = $("q-meta"), parts = [t, m];
   const swap = () => {
-    t.innerHTML = html; t.className = `fade ${cls}`; m.innerHTML = meta; t.classList.remove("out"); m.classList.remove("out");
-    // Last resort for an unusually tall quote: shrink until it fits the box.
-    t.style.fontSize = "";
-    for (let px = parseFloat(getComputedStyle(t).fontSize); t.scrollHeight > t.clientHeight && px > 18; px -= 1) t.style.fontSize = `${px - 1}px`;
+    $("quote").classList.toggle("card", cls === "starter");
+    setText($("q-stamp"), stamp);
+    t.innerHTML = html; t.className = cls; m.innerHTML = meta;
+    fitQuote();
   };
-  if (reduced) return swap();
-  t.classList.add("out"); m.classList.add("out");
-  setTimeout(swap, 500);
+  if (!M) return swap();
+  const turn = ++quoteTurn;
+  const arrive = () => { swap(); return M.animate(parts, { opacity: [0, 1], y: [22, 0] }, { duration: 0.55, ease: "easeOut", delay: M.stagger(0.09) }); };
+  if (turn === 1) { play("quote", arrive); return; }
+  // A leave that a newer quote has overtaken must not bring its own text in.
+  play("quote", () => M.animate(parts, { opacity: 0, y: -16 }, { duration: 0.3, ease: "easeIn" }))
+    .then(() => { if (turn === quoteTurn) play("quote", arrive); });
 }
 function showNextQuote() {
   const dots = $("dots");
   if (!quotes.length) {
     const s = STARTERS[starterIndex++ % STARTERS.length];
-    $("q-stamp").textContent = "Karta do dokończenia";
-    setQuote(`${esc(s.replace(/…$/, ""))}<em>…</em>`, `<span>Dokończ na telefonie, bez imienia, do 200 znaków</span>`, "starter");
+    setQuote(esc(s), `<span>Dokończ na telefonie, bez imienia, do 200 znaków</span>`, "starter", "Karta do dokończenia");
     dots.innerHTML = "";
     return;
   }
   qIndex = (qIndex + 1) % quotes.length;
   const q = quotes[qIndex];
-  $("q-stamp").textContent = "Cytat z wpisu";
   // The server sends no role for quotes from a suppressed role group.
   const meta = `${q.rola && ROLES[q.rola] ? `<span>${ROLES[q.rola]}</span>` : ""}${q.topCause && CAUSES[q.topCause] ? `<span class="cause">${CAUSES[q.topCause]}</span>` : ""}`;
   // A quote is at most about 240 characters (longest card + 200).
-  setQuote(`„${esc(q.text)}”`, meta, q.text.length > 200 ? "xlong" : q.text.length > 120 ? "long" : "");
-  dots.innerHTML = quotes.map((_, i) => `<i class="${i === qIndex ? "on" : ""}"></i>`).join("");
+  setQuote(`„${esc(q.text)}”`, meta, q.text.length > 200 ? "xlong" : q.text.length > 120 ? "long" : "", "Cytat z wpisu");
+  dots.innerHTML = quotes.length > 1 ? quotes.map((_, i) => `<i class="${i === qIndex ? "on" : ""}"></i>`).join("") : "";
 }
 function setQuotes(list) {
   const next = Array.isArray(list) ? list : [];
@@ -384,6 +435,8 @@ function setQuotes(list) {
   showNextQuote();
   qTimer = setInterval(showNextQuote, QUOTE_MS);
 }
+// The quote is measured to fit its box; measure again once Outfit has replaced the fallback face.
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if ($("q-text").textContent) fitQuote(); });
 
 /* state */
 function plural(n, one, few, many) {
@@ -393,6 +446,7 @@ function plural(n, one, few, many) {
   return many;
 }
 
+let seenTotal = null;
 function render(d) {
   if (d.minN) minN = d.minN;
   const total = d.total || 0;
@@ -409,10 +463,15 @@ function render(d) {
   $("total-lbl").textContent = plural(total, "wpis", "wpisy", "wpisów");
   $("stat-silent").classList.toggle("wait", !ready);
   $("silent-pct").hidden = !ready;
+  setDisc(ready ? d.silentShare : null);
+  if (seenTotal !== null && total > seenTotal) pulse();
+  seenTotal = total;
   if (ready) {
     tween("silent", $("silent"), Math.round(100 * d.silentShare));
     $("silent-lbl").textContent = "wpisów opisuje przemilczenie";
   } else {
+    const count = running.get("count-silent");
+    if (count) count.stop();
     shown.silent = 0;
     $("silent").textContent = "–";
     $("silent-lbl").textContent = minN.share ? `udział od ${minN.share} wpisów` : "czekamy na wpisy";
@@ -439,17 +498,19 @@ function render(d) {
 function setConn(ok, when) {
   const c = $("conn");
   c.className = ok ? "conn" : "conn off";
-  c.textContent = ok ? `na żywo ${when || ""}`.trim() : "brak połączenia";
+  setText(c, ok ? `Na żywo ${when || ""}`.trim() : "Brak połączenia");
 }
 
-let last = null;
+let last = null, lastKey = "";
 async function poll() {
   try {
     const res = await fetch("../api/stan", { cache: "no-store", signal: AbortSignal.timeout(POLL_MS * 2) });
     if (!res.ok) throw new Error(String(res.status));
     const d = await res.json();
     last = d;
-    render(d);
+    // An unchanged answer touches nothing on the page: the 5 s loop costs no layout.
+    const key = JSON.stringify({ ...d, updatedAt: null });
+    if (key !== lastKey) { lastKey = key; render(d); }
     const t = d.updatedAt ? new Date(d.updatedAt) : new Date();
     setConn(true, isNaN(t) ? "" : t.toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" }));
   } catch {

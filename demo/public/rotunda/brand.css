@@ -1,0 +1,34 @@
+/* Shared look of the Rotunda pages: Fundacja Nowe Przestrzenie tokens, as on
+   ambasador.noweprzestrzenie.pl. Outfit is self-hosted (SIL OFL 1.1, see
+   fonts/OFL-Outfit.txt): the venue network is not a dependency. */
+@font-face {
+  font-family: "Outfit"; font-style: normal; font-weight: 100 900; font-display: swap;
+  src: url("fonts/outfit-variable.woff2") format("woff2");
+}
+:root {
+  --ink: #111; --muted: #5c5c5c;
+  --orange: #ff511f; --orange-dark: #d63c12; --orange-mid: #ff9142;
+  --yellow: #f6d087; --blue: #87daf4;
+  --pale: #faf8f4; --sage: #f4f1ea; --line: #e6e2da; --edge: #8c877d; --white: #fff;
+  --font: "Outfit", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: var(--font); color: var(--ink); font-synthesis: none;
+}
+* { box-sizing: border-box; margin: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body { font-family: var(--font); color: var(--ink); background: var(--white); line-height: 1.5; }
+button, input, textarea { font: inherit; color: inherit; }
+button, a, input, textarea, label { -webkit-tap-highlight-color: transparent; }
+a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 4px; }
+h1, h2, h3 { font-weight: 600; letter-spacing: -.045em; line-height: 1.06; text-wrap: balance; }
+:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.tnum { font-variant-numeric: tabular-nums; }
+.logo { display: block; width: auto; height: 36px; }
+/* Orange is a fill, never small text: ink sits on it. */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; text-align: center; text-decoration: none;
+  min-height: 52px; padding: 14px 22px; border: 1px solid var(--orange); border-radius: 8px;
+  background: var(--orange); color: var(--ink); font-weight: 600; font-size: 16px; line-height: 1.25; cursor: pointer;
+}
+.btn.outline { background: transparent; border-color: var(--ink); }
+.btn:disabled { opacity: .6; cursor: progress; }
+[hidden] { display: none !important; }
