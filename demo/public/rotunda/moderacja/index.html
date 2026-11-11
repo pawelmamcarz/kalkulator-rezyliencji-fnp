@@ -9,8 +9,8 @@
 <link rel="preload" href="../fonts/outfit-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="../brand.css">
 <style>
-body { font-size: 17px; background: var(--pale); }
-main { max-width: 640px; margin: 0 auto; padding: 20px 16px 80px; }
+body { font-size: 17px; background: var(--pale); --page-width: 640px; --page-gutter: 16px; }
+main { max-width: var(--page-width); margin: 0 auto; padding: 20px var(--page-gutter) 80px; }
 @media (min-width: 720px) { main { padding: 32px 24px 96px; } }
 .credit { font-size: 14px; color: var(--muted); margin-top: 18px; }
 h1 { font-size: clamp(34px, 8vw, 46px); letter-spacing: -.06em; margin: 8px 0 16px; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
@@ -38,7 +38,7 @@ h2 .count { font-variant-numeric: tabular-nums; }
 .chip { font-size: 14px; font-weight: 600; background: var(--yellow); border-radius: 30px; padding: 4px 12px; font-variant-numeric: tabular-nums; }
 .chip .val { font-weight: 400; }
 .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-button { font-weight: 600; font-size: 16px; border: 1px solid var(--ink); border-radius: 8px; cursor: pointer; padding: 16px 10px; min-height: 56px; touch-action: manipulation; }
+button { font-weight: 600; font-size: 16px; border: 1px solid var(--ink); border-radius: 999px; cursor: pointer; padding: 16px 10px; min-height: 56px; touch-action: manipulation; }
 button.ok { background: var(--ink); color: var(--white); }
 button.no { background: var(--white); color: var(--orange-dark); border-color: var(--orange-dark); }
 button.primary { background: var(--orange); border-color: var(--orange); color: var(--ink); padding: 12px 18px; min-height: 52px; }
@@ -68,8 +68,13 @@ footer a { color: var(--ink); }
 </style>
 </head>
 <body>
+<header class="brand-header">
+  <div class="brand-header-inner">
+    <img class="logo" src="../img/fnp-logo-black.png" width="131" height="36" alt="Fundacja Nowe Przestrzenie">
+    <span>Mapa milczenia · Rotunda</span>
+  </div>
+</header>
 <main>
-  <img class="logo" src="../img/fnp-logo-black.png" width="131" height="36" alt="Fundacja Nowe Przestrzenie">
   <div class="credit">Rotunda, prototyp</div>
   <h1>Moderacja <span class="count" id="count" data-zero="true" aria-label="liczba wpisów do moderacji">0</span></h1>
 

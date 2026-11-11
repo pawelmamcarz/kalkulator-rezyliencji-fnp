@@ -7,6 +7,7 @@
   --paper: #ffffff;      /* page */
   --voice: #ff511f;      /* the cost and only the cost: the disc fill. Never text, never another fill. */
   --safe: #87daf4;       /* Safe Space blue: the outline of the worst case */
+  --safe-surface: #eaf8fc; /* light Safe Space background */
   --sand: #f6d087;       /* quiet fill: conference note */
   --muted: #5d6c7b;      /* secondary text */
   --hairline: #d9d9d9;   /* field borders, separators inside lists */
@@ -58,7 +59,16 @@ a:hover { text-decoration-thickness: 2px; }
 
 /* Page frame */
 .page { max-width: 1200px; margin: 0 auto; padding: 0 calc(var(--gutter) + env(safe-area-inset-right)) 0 calc(var(--gutter) + env(safe-area-inset-left)); }
-.site-header { display: flex; align-items: center; gap: 10px; padding: 14px 0 0; font-size: var(--t-s); font-weight: 600; }
+.site-header { background: var(--ink); color: var(--paper); }
+.site-header-inner {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px;
+  min-height: 56px; padding-block: 10px; font-size: var(--t-s); font-weight: 500;
+}
+.site-header img { display: block; width: auto; height: 30px; filter: brightness(0) invert(1); }
+@media (min-width: 560px) {
+  .site-header-inner { min-height: 68px; }
+  .site-header img { height: 36px; }
+}
 
 /* Main flow: DOM order is the phone order. From 1024 px the disc and the
    breakdown stack in the right column. Rows 1 and 4 are min-content so the
@@ -93,7 +103,7 @@ a:hover { text-decoration-thickness: 2px; }
 .disc-ring { fill: none; stroke: var(--safe); stroke-width: 2.5; }
 .disc-fill { fill: var(--voice); transform-origin: 50px 50px; transition: transform 320ms cubic-bezier(.2, .7, .2, 1); }
 .disc-label { font-size: var(--t-s); color: var(--muted); }
-.disc-amount { font-size: var(--t-xxl); font-weight: 600; line-height: 1.02; letter-spacing: -0.02em; white-space: nowrap; }
+.disc-amount { font-size: var(--t-xxl); font-weight: 600; line-height: 1.02; letter-spacing: -0.02em; overflow-wrap: anywhere; }
 .disc-range { font-size: var(--t-s); margin-top: 6px; }
 .disc-notes { grid-column: 1 / -1; margin-top: 8px; }
 @media (max-width: 380px) {
@@ -210,7 +220,7 @@ section[id], [id] { scroll-margin-top: 20px; }
 
 /* Conference note and footer */
 .conference { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; margin-top: 48px; padding: 18px 22px; background: var(--sand); border-radius: 24px; }
-.site-footer { margin-top: 56px; padding: 32px 0 calc(48px + env(safe-area-inset-bottom)); border-top: 1px solid var(--hairline); font-size: var(--t-s); }
+.site-footer { margin-top: 56px; padding: 24px 20px calc(32px + env(safe-area-inset-bottom)); background: var(--safe-surface); border-radius: 24px 24px 0 0; font-size: var(--t-s); }
 .footer-grid { display: grid; gap: 20px; }
 @media (min-width: 720px) { .footer-grid { grid-template-columns: 1.4fr 1fr 1fr; gap: 40px; } }
 .footer-grid h2 { font-size: var(--t-s); }
@@ -250,7 +260,7 @@ html { scroll-padding-top: 72px; }
 @media print {
   @page { size: A4; margin: 14mm; }
   html, body { background: #fff !important; }
-  .page > :not(.invitation-print-only), .live-bar { display: none !important; }
+  .site-header, .page > :not(.invitation-print-only), .live-bar { display: none !important; }
   .invitation-print-only { display: block !important; color: #000; font-size: 10.5pt; line-height: 1.45; }
   .invitation-print-only h2 { font-size: 16pt; margin: 6pt 0; }
   .invitation-print-only h3 { font-size: 11pt; margin: 10pt 0 3pt; }

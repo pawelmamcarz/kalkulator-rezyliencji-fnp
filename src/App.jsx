@@ -29,27 +29,29 @@ export default function App() {
   useOpenDetailsOnHash();
 
   return (
-    <div className="page">
+    <>
       <a className="skip-link" href="#klimat">Przejdź do pytania o klimat</a>
       <LiveBar total={analysis?.valuation?.total} worst={analysis?.worst} />
       <Header />
-      <main>
-        <div className="flow">
-          <Hero survey={params.safetySource === "survey"} />
-          <div className="b-disc">
-            <h2 className="sr-only">Wynik</h2>
-            <Headline safety={modelParams.safety} valuation={analysis?.valuation} worst={analysis?.worst} label={dataLabel(params)} surveyPending={params.safetySource === "survey" && Object.keys(errors).some((key) => key.startsWith("survey"))} />
+      <div className="page">
+        <main>
+          <div className="flow">
+            <Hero survey={params.safetySource === "survey"} />
+            <div className="b-disc">
+              <h2 className="sr-only">Wynik</h2>
+              <Headline safety={modelParams.safety} valuation={analysis?.valuation} worst={analysis?.worst} label={dataLabel(params)} surveyPending={params.safetySource === "survey" && Object.keys(errors).some((key) => key.startsWith("survey"))} />
+            </div>
+            <Climate safety={params.safety} params={params} errors={errors} up={up} sensitivity={analysis?.sensitivity} />
+            <Diagnosis params={params} up={up} errors={errors} reset={reset} />
+            <Result valuation={analysis?.valuation} params={modelParams} />
+            <NextSteps ready={!!analysis} params={params} up={up} />
           </div>
-          <Climate safety={params.safety} params={params} errors={errors} up={up} sensitivity={analysis?.sensitivity} />
-          <Diagnosis params={params} up={up} errors={errors} reset={reset} />
-          <Result valuation={analysis?.valuation} params={modelParams} />
-          <NextSteps ready={!!analysis} params={params} up={up} />
-        </div>
-        {!conference && <ConferenceBanner />}
-        <HowWeCalculate valuation={analysis?.valuation} params={modelParams} />
-      </main>
-      <Footer />
-      <Invitation params={params} valuation={analysis?.valuation} sensitivity={analysis?.sensitivity} />
-    </div>
+          {!conference && <ConferenceBanner />}
+          <HowWeCalculate valuation={analysis?.valuation} params={modelParams} />
+        </main>
+        <Footer />
+        <Invitation params={params} valuation={analysis?.valuation} sensitivity={analysis?.sensitivity} />
+      </div>
+    </>
   );
 }
