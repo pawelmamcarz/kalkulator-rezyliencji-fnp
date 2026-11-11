@@ -14,6 +14,7 @@ Instrumentem jest zdanie. Gość wybiera zdanie, które brzmi jak jego firma, i 
 | `--paper` | #ffffff | tło strony | |
 | `--voice` | #ff511f | wyłącznie koszt: wypełnienie koła | nie jest tłem tekstu ani tekstem (na bieli 3,26:1) |
 | `--safe` | #87daf4 | obrys koła przy klimacie 0, znaczniki Safe Space | 1,57:1, element dekoracyjny z tekstowym odpowiednikiem |
+| `--safe-surface` | #eaf8fc | jasne tło stopki | czarny tekst 19,33:1, tekst drugiego planu 4,96:1 |
 | `--sand` | #f6d087 | ciche tło (zapowiedź konferencji) | czarny tekst 14,29:1 |
 | `--muted` | #5d6c7b | tekst drugiego planu | 5,39:1 na bieli |
 | `--hairline` | #d9d9d9 | obramowania pól, separatory list | nie dla tekstu |
@@ -37,6 +38,8 @@ Pięć zdań to typograficzna drabina, nie zestaw przycisków radiowych: pełna 
 Nad kwotą i na początku wiersza firmy: „Przykładowa firma” (nic nie zmieniono), „Przykładowa firma, Twój szacunek klimatu” (zmieniono tylko klimat), „Twoja firma” (zmieniono którekolwiek pole firmy). Logika w `src/firm.js` (`dataLabel`).
 
 ## Układ
+
+Czarny nagłówek z białym znakiem Fundacji i nazwą kalkulatora nawiązuje do witryny Nowe Przestrzenie. Na wąskiej szerokości nazwa może przejść do kolejnego wiersza.
 
 Kolejność w DOM jest kolejnością na telefonie (bez sztuczek z `order`). Telefon (najpierw): nagłówek, h1 i jedno zdanie, koło z kwotą i jednym krótkim podpisem („Koło to N% kwoty przy najniższej ocenie klimatu.”), pytanie z pięcioma zdaniami i suwakiem, pod suwakiem wrażliwość („10 punktów niżej: … 10 wyżej: …”), firma w jednym wierszu z przyciskiem „Zmień dane”, „Co składa się na kwotę”, „Co dalej”, zwinięte „Jak to liczymy”, stopka. Pierwszy ekran 390×844 pokazuje h1, koło z kwotą, pytanie i co najmniej dwa zdania. Gdy pełne koło zniknie z ekranu przy pytaniu lub danych, u góry pojawia się wąski pasek z małym kołem i kwotą. Treść do 680 px szerokości.
 

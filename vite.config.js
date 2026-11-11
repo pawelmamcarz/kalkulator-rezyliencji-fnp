@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { readFileSync, existsSync } from "node:fs";
 import { execSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 const appVersion = (() => {
   try {
@@ -27,6 +28,14 @@ const buildDate = new Date().toISOString().slice(0, 10);
 
 export default defineConfig({
   plugins: [react()],
+  build: {
+    rollupOptions: {
+      input: {
+        calculator: fileURLToPath(new URL("./index.html", import.meta.url)),
+        embed: fileURLToPath(new URL("./embed/index.html", import.meta.url)),
+      },
+    },
+  },
   define: {
     __APP_VERSION__: JSON.stringify(appVersion),
     __BUILD_DATE__: JSON.stringify(buildDate),
