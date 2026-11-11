@@ -55,6 +55,14 @@ form.login .hint { font-size: 14px; color: var(--muted); font-weight: 400; }
 .toast { position: fixed; left: 16px; right: 16px; bottom: 16px; max-width: 600px; margin: 0 auto; background: var(--ink); color: var(--white); font-weight: 600; font-size: 15px; line-height: 1.4; padding: 14px 16px; border-radius: 8px; opacity: 0; transform: translateY(8px); transition: opacity .2s, transform .2s; pointer-events: none; z-index: 10; }
 .toast.show { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+details.before { margin-top: 48px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); padding: 0 16px; }
+details.before summary { font-weight: 600; font-size: 16px; padding: 16px 0; cursor: pointer; }
+details.before .body { display: grid; gap: 12px; padding: 0 0 16px; font-size: 15px; }
+details.before label { font-weight: 600; display: grid; gap: 6px; }
+details.before input { width: 100%; font-size: 16px; line-height: 1.4; border: 1px solid var(--edge); border-radius: 8px; background: var(--white); padding: 12px; }
+details.before .n { font-weight: 600; font-variant-numeric: tabular-nums; }
+details.before .out { font-weight: 600; min-height: 20px; }
+details.before .out.err { color: var(--orange-dark); }
 footer { margin-top: 40px; font-size: 14px; color: var(--muted); }
 footer a { color: var(--ink); }
 </style>
@@ -71,8 +79,7 @@ footer a { color: var(--ink); }
   </div>
 
   <form class="login" id="login" hidden autocomplete="off">
-    <label>Kod stoiska (kod)<input id="in-kod" inputmode="text" autocapitalize="off" spellcheck="false"></label>
-    <label>Kod moderatora (mod)<input id="in-mod" type="password" autocapitalize="off" spellcheck="false"><span class="hint">Oba kody są w linku dla moderatora. Zapamiętamy je na tym telefonie.</span></label>
+    <label>Hasło moderatora<input id="in-mod" type="password" autocapitalize="off" spellcheck="false"><span class="hint">Hasło jest w linku dla moderatora. Zapamiętamy je na tym urządzeniu.</span></label>
     <button class="primary" type="submit">Zacznij moderować</button>
   </form>
 
@@ -88,6 +95,17 @@ footer a { color: var(--ink); }
     <div class="list" id="approved"></div>
   </section>
 
+  <details class="before" id="before" hidden>
+    <summary>Przed wydarzeniem</summary>
+    <form class="body" id="reset" autocomplete="off">
+      <p>W bazie: <span class="n" id="entries">–</span>. Ten przycisk usuwa wszystkie wpisy, oceny i cytaty, także te na ekranie. Służy do wyczyszczenia wpisów testowych przed konferencją. Nie da się tego cofnąć.</p>
+      <label for="in-confirm">Aby potwierdzić, wpisz: USUN WPISY</label>
+      <input id="in-confirm" autocapitalize="characters" spellcheck="false" aria-describedby="reset-out">
+      <button class="no" type="submit" id="reset-btn" disabled>Usuń wszystkie wpisy testowe</button>
+      <p class="out" id="reset-out" role="status" aria-live="polite"></p>
+    </form>
+  </details>
+
   <footer>
     Ekran: <a href="../ekran/">/rotunda/ekran/</a> · Telefon: <a href="../">/rotunda/</a><br>
     Fundacja Nowe Przestrzenie × Paweł Mamcarz · silnik: Jev (TypeSafe) · prototyp
@@ -100,8 +118,9 @@ const ROLES = { zarzad: "Zarząd", menedzer: "Menedżer / menedżerka", specjali
 const FLAG_LIMIT = 0.3;
 const POLL_MS = 5000;
 const API = "../api/moderacja";
-const KEY_KOD = "fnp-demo-code";
+const OLD_KEY_KOD = "fnp-demo-code"; // second code of older links, no longer used
 const KEY_MOD = "fnp-demo-mod";
+const RESET_CONFIRM = "USUN WPISY";
 
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -110,19 +129,21 @@ const store = {
   del(k) { try { localStorage.removeItem(k); } catch { /* ignore */ } },
 };
 
-// Bootstrap once from the link, preferably the fragment (#kod=…&mod=…), which the
-// browser never sends to the server; ?kod=…&mod=… still works for old links.
-// The codes are then kept in localStorage and stripped from the address bar.
+// Bootstrap once from the link, preferably the fragment (#mod=…), which the browser
+// never sends to the server; ?mod=… still works for old links. An old link's kod=… part
+// is ignored. The password is then kept in localStorage and stripped from the address bar.
 const params = new URLSearchParams(location.hash.slice(1) || location.search);
 const fromLink = params.has("kod") || params.has("mod");
-let kod = (params.get("kod") || store.get(KEY_KOD) || "").trim();
 let mod = (params.get("mod") || store.get(KEY_MOD) || "").trim();
-// Codes go to the API only in these headers, never in a URL.
-const authHeaders = () => ({ "X-Rotunda-Code": kod, "X-Rotunda-Mod": mod });
+store.del(OLD_KEY_KOD);
+// The password goes to the API only in this header, never in a URL.
+const authHeaders = () => ({ "X-Rotunda-Mod": mod });
 
 let pending = [];
 let approved = [];            // quotes approved for the screen, newest first
 let maxQuotes = null;         // how many of them the screen rotates (from the API)
+let entries = null;           // all entries in the database; null until the server answers
+let resetting = false;
 let hidden = new Set();       // ids removed optimistically, waiting for the server
 let timer = null;
 let polling = false;
@@ -288,8 +309,55 @@ async function decide(id, decision, onScreen = false) {
   }
 }
 
+// The reset control: the count comes from the server, never assumed to be zero.
+function renderReset() {
+  const known = Number.isInteger(entries);
+  $("entries").textContent = known ? `${entries} ${plural(entries, "wpis", "wpisy", "wpisów")}` : "liczba wpisów nieznana";
+  $("reset-btn").textContent = `Usuń wszystkie wpisy testowe${known ? ` (${entries})` : ""}`;
+  $("reset-btn").disabled = resetting || $("in-confirm").value !== RESET_CONFIRM;
+}
+function resetOut(msg, err = false) {
+  const o = $("reset-out");
+  o.textContent = msg;
+  o.className = err ? "out err" : "out";
+}
+
+$("in-confirm").oninput = renderReset;
+$("reset").onsubmit = async (e) => {
+  e.preventDefault();
+  if (resetting || $("in-confirm").value !== RESET_CONFIRM) return;
+  resetting = true;
+  renderReset();
+  resetOut("Usuwanie…");
+  try {
+    const res = await fetch(API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify({ action: "reset", confirm: $("in-confirm").value }),
+    });
+    let data = {};
+    try { data = await res.json(); } catch { /* handled below */ }
+    if (!res.ok || !data.deleted) throw new Error(data.error || `Błąd ${res.status}.`);
+    const d = data.deleted;
+    $("in-confirm").value = "";
+    pending = [];
+    approved = [];
+    entries = 0;
+    render();
+    renderApproved();
+    resetOut(`Usunięto: ${d.wpisy} ${plural(d.wpisy, "wpis", "wpisy", "wpisów")}, rezerwacje limitu wpisów: ${d.wpis_requests}, rezerwacje analiz: ${d.mapa_requests}.`);
+  } catch (error) {
+    // The typed confirmation stays, so the moderator can try again.
+    resetOut(`Nie udało się usunąć wpisów: ${error.message} Spróbuj ponownie.`, true);
+  } finally {
+    resetting = false;
+    renderReset();
+    poll();
+  }
+};
+
 async function poll() {
-  if (polling || !kod || !mod) return;
+  if (polling || !mod) return;
   polling = true;
   try {
     const res = await fetch(API, { cache: "no-store", headers: authHeaders() });
@@ -298,15 +366,21 @@ async function poll() {
     if (res.status === 403) {
       stop();
       store.del(KEY_MOD);
-      showLogin("Kod odrzucony. Sprawdź kod stoiska i kod moderatora.");
+      showLogin("Hasło odrzucone. Sprawdź hasło moderatora.");
       return;
     }
-    if (!res.ok) throw new Error(data.error || `Błąd ${res.status}`);
+    if (!res.ok) {
+      // The server answered (for example: moderation not configured), so say what it said.
+      status(`${data.error || `Błąd ${res.status}.`} Ponawiamy co 5 s.`, true);
+      return;
+    }
     const list = Array.isArray(data.pending) ? data.pending : [];
     list.sort((a, b) => Date.parse(a.createdAt || 0) - Date.parse(b.createdAt || 0));
     pending = list;
     approved = Array.isArray(data.approved) ? data.approved : [];
     maxQuotes = Number(data.maxQuotes) || null;
+    entries = Number.isInteger(data.counts?.entries) ? data.counts.entries : null;
+    renderReset();
     // Drop optimistic markers for ids the server no longer returns.
     for (const id of [...hidden]) if (![...pending, ...approved].some((q) => q.id === id)) hidden.delete(id);
     render();
@@ -320,12 +394,13 @@ async function poll() {
 }
 
 function start() {
-  store.set(KEY_KOD, kod);
   store.set(KEY_MOD, mod);
   $("login").hidden = true;
   $("bar").hidden = false;
   $("list").hidden = false;
   $("onscreen").hidden = false;
+  $("before").hidden = false;
+  renderReset();
   status("Łączenie…");
   poll();
   clearInterval(timer);
@@ -337,19 +412,17 @@ function showLogin(msg) {
   $("bar").hidden = true;
   $("list").hidden = true;
   $("onscreen").hidden = true;
-  const f = $("login");
-  f.hidden = false;
-  $("in-kod").value = kod;
+  $("before").hidden = true;
+  $("login").hidden = false;
   $("in-mod").value = "";
   if (msg) toast(msg);
-  ($("in-kod").value ? $("in-mod") : $("in-kod")).focus();
+  $("in-mod").focus();
 }
 
 $("login").onsubmit = (e) => {
   e.preventDefault();
-  kod = $("in-kod").value.trim();
   mod = $("in-mod").value.trim();
-  if (!kod || !mod) { toast("Wpisz oba kody."); return; }
+  if (!mod) { toast("Wpisz hasło moderatora."); return; }
   start();
 };
 
@@ -365,16 +438,16 @@ setInterval(() => {
 }, 30000);
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) stop();
-  else if (kod && mod) start();
+  else if (mod) start();
 });
 
-// Keep codes out of the address bar once remembered.
+// Keep the password out of the address bar once remembered.
 if (fromLink) {
-  if (kod && mod) { store.set(KEY_KOD, kod); store.set(KEY_MOD, mod); }
+  if (mod) store.set(KEY_MOD, mod);
   try { history.replaceState(null, "", location.pathname); } catch { /* ignore */ }
 }
 
-if (kod && mod) start(); else showLogin();
+if (mod) start(); else showLogin();
 </script>
 </body>
 </html>
