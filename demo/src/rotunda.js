@@ -56,8 +56,12 @@ export const ROTUNDA = {
 
 export const minN = () => ({ share: ROTUNDA.minShareN, role: ROTUNDA.minRoleSize });
 
-// Moderation secrets travel only in these request headers, never in a URL.
-export const MOD_HEADERS = { code: "X-Rotunda-Code", mod: "X-Rotunda-Mod" };
+// The moderator password travels only in this request header, never in a URL.
+export const MOD_HEADERS = { mod: "X-Rotunda-Mod" };
+// A shorter MOD_CODE is treated as not configured: a weak secret never authenticates.
+export const MOD_CODE_MIN = 12;
+// Typed by the moderator (and sent by the admin panel) to clear all entries.
+export const RESET_CONFIRM = "USUN WPISY";
 
 const BOOTH = "`odpowiedz` to dokończenie zdania wpisane przez uczestnika konferencji na stoisku. Za zgodą autora może pojawić się jako cytat na wspólnym ekranie.";
 
@@ -347,21 +351,24 @@ export async function handleStan(_request, env, now = () => new Date()) {
 }
 
 // Secrets in a URL can end up in request logs, so the query-string form is refused
-// outright (before any check) and only the two headers are read.
+// outright (before any check) and only the X-Rotunda-Mod header is read.
 const SECRET_PARAMS = ["code", "mod", "kod"];
 
+const RESET_TABLES = ["wpisy", "wpis_requests", "mapa_requests"];
+
+// One secret: MOD_CODE. DEMO_CODE is only the hashing salt and is not checked here;
+// an X-Rotunda-Code header from an old link is ignored.
 export async function handleModeracja(request, env, now = () => new Date()) {
   const isPost = request.method === "POST";
   const params = new URL(request.url).searchParams;
   if (SECRET_PARAMS.some((p) => params.has(p))) {
-    return json({ error: "Kody moderatora przekazuj w nagłówkach, nie w adresie." }, 400);
+    return json({ error: "Hasło moderatora przekazuj w nagłówku, nie w adresie." }, 400);
   }
-  const code = request.headers.get(MOD_HEADERS.code) ?? undefined;
+  if (typeof env.MOD_CODE !== "string" || env.MOD_CODE.length < MOD_CODE_MIN) {
+    return json({ error: `Moderacja nie jest skonfigurowana: brak hasła moderatora (MOD_CODE) albo jest krótsze niż ${MOD_CODE_MIN} znaków.` }, 503);
+  }
   const mod = request.headers.get(MOD_HEADERS.mod) ?? undefined;
-  // Evaluate both so timing does not reveal which code was wrong.
-  const okCode = sameCode(code, env.DEMO_CODE);
-  const okMod = sameCode(mod, env.MOD_CODE);
-  if (!okCode || !okMod) return json({ error: "Niepoprawny kod moderatora." }, 403);
+  if (!sameCode(mod, env.MOD_CODE)) return json({ error: "Niepoprawne hasło moderatora." }, 403);
   if (!env.DB) return json({ error: "Demo nie jest w pełni skonfigurowane." }, 503);
   let body;
   if (isPost) {
@@ -380,13 +387,24 @@ export async function handleModeracja(request, env, now = () => new Date()) {
         WHERE quote_status = 'approved' AND text IS NOT NULL
         ORDER BY moderated_at DESC, created_at DESC`,
     ).all();
+    const total = await env.DB.prepare("SELECT COUNT(*) AS n FROM wpisy").first();
     return json({
       pending: results.map((r) => ({
         id: r.id, text: r.text, rola: r.rola, createdAt: r.created_at, dane_osobowe: r.dane_osobowe, obrazliwe: r.obrazliwe,
       })),
       approved: approved.map((r) => ({ id: r.id, text: r.text, rola: r.rola, moderatedAt: r.moderated_at })),
       maxQuotes: ROTUNDA.maxQuotes,
+      // entries = every row in wpisy, with or without stored text.
+      counts: { entries: total?.n ?? 0, pending: results.length, approved: approved.length },
     });
+  }
+
+  if (Object.hasOwn(body, "action")) {
+    if (body.action !== "reset") return json({ error: "Nieznana akcja." }, 400);
+    if (body.confirm !== RESET_CONFIRM) return json({ error: `Aby usunąć wszystkie wpisy, wyślij confirm: "${RESET_CONFIRM}".` }, 400);
+    // One batch (one transaction): either all three tables are cleared or none.
+    const done = await env.DB.batch(RESET_TABLES.map((t) => env.DB.prepare(`DELETE FROM ${t}`)));
+    return json({ ok: true, deleted: Object.fromEntries(RESET_TABLES.map((t, i) => [t, done?.[i]?.meta?.changes ?? 0])) });
   }
 
   if (typeof body.id !== "string" || !body.id) return json({ error: "Brak identyfikatora wpisu." }, 400);

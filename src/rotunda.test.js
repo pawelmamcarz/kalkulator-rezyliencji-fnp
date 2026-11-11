@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
 import worker from "../demo/src/worker.js";
 import {
-  CAUSE_LABELS, MOD_HEADERS, ROLES, ROTUNDA, STARTERS, fullSentence, handleModeracja, handleStan, handleWpis, suppressRoles, toJudgment, validateWpis,
+  CAUSE_LABELS, MOD_CODE_MIN, MOD_HEADERS, RESET_CONFIRM, ROLES, ROTUNDA, STARTERS, fullSentence, handleModeracja, handleStan, handleWpis, suppressRoles, toJudgment, validateWpis,
 } from "../demo/src/rotunda.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -23,7 +23,20 @@ function fakeD1() {
     all: async () => ({ results: db.prepare(sql).all(...args) }),
     run: async () => ({ meta: { changes: Number(db.prepare(sql).run(...args).changes) } }),
   });
-  return { prepare: (sql) => stmt(sql), raw: db };
+  // D1 runs a batch as one transaction.
+  const batch = async (stmts) => {
+    db.exec("BEGIN");
+    try {
+      const out = [];
+      for (const st of stmts) out.push(await st.run());
+      db.exec("COMMIT");
+      return out;
+    } catch (error) {
+      db.exec("ROLLBACK");
+      throw error;
+    }
+  };
+  return { prepare: (sql) => stmt(sql), batch, raw: db };
 }
 
 // Jev stand-in: the completion text steers the judgment.
@@ -54,9 +67,10 @@ const fakeFetch = async (_url, init) => {
 
 let env;
 const DEFAULTS = { ...ROTUNDA };
+const MOD = "haslo-moderatora";
 beforeEach(() => {
   calls.length = 0;
-  env = { DEMO_CODE: "stoisko", MOD_CODE: "moderator", TYPESAFE_API_KEY: "test", DB: fakeD1() };
+  env = { DEMO_CODE: "stoisko", MOD_CODE: MOD, TYPESAFE_API_KEY: "test", DB: fakeD1() };
 });
 // Some tests shrink a limit or a timeout to keep the run short.
 afterEach(() => Object.assign(ROTUNDA, DEFAULTS));
@@ -69,7 +83,9 @@ const wpis = (body, ip = `10.0.0.${++ipCounter}`) => new Request("https://fnp.te
 });
 const send = async (body, ip) => handleWpis(wpis(body, ip), env, fakeFetch);
 const stan = async () => (await handleStan(new Request("https://fnp.test/rotunda/api/stan?code=stoisko"), env)).json();
-const auth = (code = "stoisko", mod = "moderator") => ({ [MOD_HEADERS.code]: code, [MOD_HEADERS.mod]: mod });
+// One secret. `code` adds the header older links still send; the Worker ignores it.
+const OLD_CODE_HEADER = "X-Rotunda-Code";
+const auth = (mod = MOD, code) => ({ ...(code === undefined ? {} : { [OLD_CODE_HEADER]: code }), [MOD_HEADERS.mod]: mod });
 const modGet = (headers = auth(), q = "") => handleModeracja(new Request(`https://fnp.test/rotunda/api/moderacja${q}`, { headers }), env);
 const modPost = (body, headers = auth(), now) => handleModeracja(new Request("https://fnp.test/rotunda/api/moderacja", {
   method: "POST", headers, body: JSON.stringify(body),
@@ -465,26 +481,142 @@ describe("suppressRoles", () => {
 });
 
 describe("/rotunda/api/moderacja", () => {
-  it("returns 403 without both codes in the headers", async () => {
-    expect((await modGet({ [MOD_HEADERS.code]: "stoisko" })).status).toBe(403);
-    expect((await modGet(auth("stoisko", "zly"))).status).toBe(403);
-    expect((await modGet(auth("zly", "moderator"))).status).toBe(403);
-    expect((await modPost({ id: "x", decision: "approve" }, auth("stoisko", "zly"))).status).toBe(403);
-    expect((await handleModeracja(new Request("https://fnp.test/", { headers: auth("stoisko", "") }), { ...env, MOD_CODE: "" })).status).toBe(403);
+  it("authenticates with the moderator password alone", async () => {
+    expect(MOD_HEADERS).toEqual({ mod: "X-Rotunda-Mod" });
+    expect((await modGet()).status).toBe(200);
+    expect((await modPost({ id: "x", decision: "approve" })).status).toBe(404);
+    // DEMO_CODE is only the hashing salt: moderation works without it.
+    expect((await handleModeracja(new Request("https://fnp.test/", { headers: auth() }), { ...env, DEMO_CODE: undefined })).status).toBe(200);
   });
 
-  it("ignores codes in a POST body and rejects codes in the query string", async () => {
-    expect((await modPost({ code: "stoisko", mod: "moderator", id: "x", decision: "approve" }, {})).status).toBe(403);
-    for (const q of ["?code=stoisko&mod=moderator", "?mod=moderator", "?kod=stoisko"]) {
+  it("returns 403 for a wrong or missing moderator password", async () => {
+    expect((await modGet({})).status).toBe(403);
+    expect((await modGet(auth("zly"))).status).toBe(403);
+    expect((await modGet(auth(""))).status).toBe(403);
+    expect((await modGet(auth(`${MOD}x`))).status).toBe(403);
+    expect((await modGet(auth(MOD.slice(0, -1)))).status).toBe(403);
+    // The salt is not a moderation credential, in either header.
+    expect((await modGet({ [OLD_CODE_HEADER]: "stoisko" })).status).toBe(403);
+    expect((await modGet(auth("stoisko"))).status).toBe(403);
+    expect((await modGet({ [OLD_CODE_HEADER]: MOD })).status).toBe(403);
+    expect((await modPost({ id: "x", decision: "approve" }, auth("zly"))).status).toBe(403);
+  });
+
+  it("ignores the old X-Rotunda-Code header, whatever it carries", async () => {
+    expect((await modGet(auth(MOD, "stoisko"))).status).toBe(200);
+    expect((await modGet(auth(MOD, "cokolwiek"))).status).toBe(200);
+    expect((await modGet(auth("zly", "stoisko"))).status).toBe(403);
+  });
+
+  it("returns 503 when MOD_CODE is missing or weak, so it can never authenticate", async () => {
+    const weak = "a".repeat(MOD_CODE_MIN - 1);
+    for (const [secret, sent] of [[undefined, ""], ["", ""], [undefined, "undefined"], [weak, weak], [12345678901234, "12345678901234"]]) {
+      const e = { ...env, MOD_CODE: secret };
+      const get = await handleModeracja(new Request("https://fnp.test/", { headers: auth(sent) }), e);
+      expect(get.status).toBe(503);
+      expect((await get.json()).error).toMatch(/MOD_CODE/);
+      const post = await handleModeracja(new Request("https://fnp.test/", {
+        method: "POST", headers: auth(sent), body: JSON.stringify({ action: "reset", confirm: RESET_CONFIRM }),
+      }), e);
+      expect(post.status).toBe(503);
+      expect((await handleModeracja(new Request("https://fnp.test/"), e)).status).toBe(503);
+    }
+    const ok = "a".repeat(MOD_CODE_MIN);
+    expect((await handleModeracja(new Request("https://fnp.test/", { headers: auth(ok) }), { ...env, MOD_CODE: ok })).status).toBe(200);
+  });
+
+  it("ignores the password in a POST body and rejects secrets in the query string", async () => {
+    expect((await modPost({ code: "stoisko", mod: MOD, id: "x", decision: "approve" }, {})).status).toBe(403);
+    for (const q of [`?code=stoisko&mod=${MOD}`, `?mod=${MOD}`, "?kod=stoisko"]) {
       const get = await modGet(auth(), q);
       expect(get.status).toBe(400);
-      expect((await get.json()).error).toMatch(/nagłówkach/);
+      expect((await get.json()).error).toMatch(/nagłówku/);
       const post = await handleModeracja(new Request(`https://fnp.test/rotunda/api/moderacja${q}`, {
         method: "POST", headers: auth(), body: JSON.stringify({ id: "x", decision: "approve" }),
       }), env);
       expect(post.status).toBe(400);
     }
     expect((await modGet()).status).toBe(200);
+  });
+
+  it("answers without CORS headers", async () => {
+    const res = await modGet({ ...auth(), Origin: "https://example.test" });
+    expect([...res.headers.keys()].filter((k) => k.startsWith("access-control"))).toEqual([]);
+  });
+
+  it("returns counts of all entries, pending and approved quotes", async () => {
+    expect((await (await modGet()).json()).counts).toEqual({ entries: 0, pending: 0, approved: 0 });
+    const a = await (await send({ consent: true, text: "boję się pierwszy" })).json();
+    await send({ consent: true, text: "boję się drugi" });
+    await send({ consent: false, text: "boję się bez zgody" });
+    await send({ consent: false, text: "wszystko gra" });
+    expect((await (await modGet()).json()).counts).toEqual({ entries: 4, pending: 2, approved: 0 });
+    await modPost({ id: a.id, decision: "approve" });
+    expect((await (await modGet()).json()).counts).toEqual({ entries: 4, pending: 1, approved: 1 });
+    await modPost({ id: a.id, decision: "reject" });
+    // A rejected quote loses its text, the entry itself stays counted.
+    expect((await (await modGet()).json()).counts).toEqual({ entries: 4, pending: 1, approved: 0 });
+  });
+
+  describe("reset", () => {
+    const mapaSlots = () => env.DB.raw.prepare("SELECT * FROM mapa_requests").all();
+    const seed = async () => {
+      const a = await (await send({ consent: true, text: "boję się pierwszy" })).json();
+      await send({ consent: false, text: "boję się bez zgody" });
+      await send({ consent: false, text: "wszystko gra" });
+      await modPost({ id: a.id, decision: "approve" });
+      env.DB.raw.prepare("INSERT INTO mapa_requests (id, ip_hash, created_at) VALUES ('m1', 'h', '2026-11-01T00:00:00Z')").run();
+    };
+
+    it("deletes every row from the three tables and reports the numbers", async () => {
+      await seed();
+      const res = await modPost({ action: "reset", confirm: RESET_CONFIRM });
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ ok: true, deleted: { wpisy: 3, wpis_requests: 3, mapa_requests: 1 } });
+      expect(rows()).toEqual([]);
+      expect(slots()).toEqual([]);
+      expect(mapaSlots()).toEqual([]);
+      const after = await (await modGet()).json();
+      expect(after).toMatchObject({ pending: [], approved: [], counts: { entries: 0, pending: 0, approved: 0 } });
+      expect((await stan()).total).toBe(0);
+      // Repeating it is harmless.
+      expect(await (await modPost({ action: "reset", confirm: RESET_CONFIRM })).json())
+        .toEqual({ ok: true, deleted: { wpisy: 0, wpis_requests: 0, mapa_requests: 0 } });
+    });
+
+    it("needs the exact confirmation, otherwise 400 and nothing is deleted", async () => {
+      await seed();
+      for (const confirm of [undefined, "", "usun wpisy", "USUŃ WPISY", " USUN WPISY", "USUN WPISY ", "USUN  WPISY", true, ["USUN WPISY"]]) {
+        expect((await modPost({ action: "reset", confirm })).status).toBe(400);
+      }
+      expect((await modPost({ action: "wyczysc", confirm: RESET_CONFIRM })).status).toBe(400);
+      // An action never falls through to approve or reject.
+      expect((await modPost({ action: "reset", id: rows()[0].id, decision: "reject" })).status).toBe(400);
+      expect(rows()).toHaveLength(3);
+      expect(rows().filter((r) => r.text !== null)).toHaveLength(1);
+      expect(slots()).toHaveLength(3);
+      expect(mapaSlots()).toHaveLength(1);
+    });
+
+    it("returns 403 without the moderator password and deletes nothing", async () => {
+      await seed();
+      const body = { action: "reset", confirm: RESET_CONFIRM };
+      expect((await modPost(body, {})).status).toBe(403);
+      expect((await modPost(body, auth("zly"))).status).toBe(403);
+      expect((await modPost({ ...body, mod: MOD }, { [OLD_CODE_HEADER]: "stoisko" })).status).toBe(403);
+      expect(rows()).toHaveLength(3);
+      expect(slots()).toHaveLength(3);
+      expect(mapaSlots()).toHaveLength(1);
+    });
+
+    it("is reachable through the Worker route", async () => {
+      await seed();
+      const res = await worker.fetch(new Request("https://fnp.test/rotunda/api/moderacja", {
+        method: "POST", headers: auth(), body: JSON.stringify({ action: "reset", confirm: RESET_CONFIRM }),
+      }), env, null, async () => new Response("calculator"));
+      expect((await res.json()).deleted.wpisy).toBe(3);
+      expect(rows()).toEqual([]);
+    });
   });
 
   it("lists pending quotes oldest first, approve puts them on the screen", async () => {
@@ -523,7 +655,7 @@ describe("/rotunda/api/moderacja", () => {
     for (let i = 0; i < 3; i++) ids.push((await (await handleWpis(wpis({ consent: true, text: `boję się ${i}` }), env, fakeFetch, now)).json()).id);
     for (const id of ids) await modPost({ id, decision: "approve" }, auth(), now);
     expect((await (await modGet()).json()).approved.map((q) => q.id)).toEqual([...ids].reverse());
-    const denied = await modGet(auth("stoisko", "zly"));
+    const denied = await modGet(auth("zly"));
     expect(denied.status).toBe(403);
     expect(await denied.text()).not.toContain("boję");
   });
@@ -710,11 +842,20 @@ describe("rotunda pages: public wording contract", () => {
     expect(html).toContain("data.approved");
   });
 
-  it("moderator page sends codes only in headers", () => {
+  it("moderator page sends one password, only in a header", () => {
     const html = page("moderacja/index.html");
-    expect(html).toContain(MOD_HEADERS.code);
     expect(html).toContain(MOD_HEADERS.mod);
+    expect(html).not.toContain(OLD_CODE_HEADER);
+    expect(html).toContain("Hasło moderatora");
+    expect(html).not.toMatch(/kod stoiska/i);
+    expect(readFileSync(path.join(root, "demo/SPEC.md"), "utf8")).not.toMatch(/kod stoiska/i);
     expect(html).not.toMatch(/\?code=|code: kod/);
     expect(html).toContain("history.replaceState");
+  });
+
+  it("moderator page asks for the typed confirmation the Worker requires before a reset", () => {
+    const html = page("moderacja/index.html");
+    expect(html).toContain(`const RESET_CONFIRM = "${RESET_CONFIRM}";`);
+    expect(html).toContain("Usuń wszystkie wpisy testowe");
   });
 });

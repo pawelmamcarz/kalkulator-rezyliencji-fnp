@@ -18,7 +18,7 @@ Booth game for the FNP conference, 19 listopada 2026. Worker `fnp-mapa-milczenia
 1. Phone (`/rotunda/`): visitor draws a card with a sentence starter, finishes the sentence (max 200 chars), picks a role, optionally ticks consent for a quote on the screen (shown without name, after moderation), sends. No access code.
 2. Jev judges the entry. Phone shows: whether the sentence describes withholding, Jev's confidence, the main cause indicated in the sentence, and, from `minN.share` silent entries on, the share of entries describing withholding that indicate the same main cause (with n = number of such entries). Then the Toyota analogy, the quote status, and a teaser for the calculator that says it does not use this result.
 3. Big screen (`/rotunda/ekran/`): entry counter; from `minN.share` entries on, the share of entries that describe withholding, causes indicated by role, areas; rotating approved quotes; two labelled QR codes (Gra: `/rotunda/`, Kalkulator: `/?konferencja`). Below `minN.share` entries: count and a waiting panel only. Polls every 5 s. Until the first successful answer the counters stay blank („–”) and the panel says „Łączenie…”, then „Brak połączenia z serwerem”: no data is never shown as zero entries. Area bars and cause bars share one scale (share of entries describing withholding).
-4. Moderator (`/rotunda/moderacja/#kod=...&mod=...`): approves or rejects quotes before they reach the screen, and sees the quotes approved so far („Na ekranie”), each with „Zdejmij z ekranu” (asks for confirmation, deletes the text). No keyboard shortcuts: a stray key must never approve or delete.
+4. Moderator (`/rotunda/moderacja/#mod=...`): one field, „Hasło moderatora”. Approves or rejects quotes before they reach the screen, and sees the quotes approved so far („Na ekranie”), each with „Zdejmij z ekranu” (asks for confirmation, deletes the text). At the very bottom, a collapsed „Przed wydarzeniem” section clears all entries (see „Clearing entries”). No keyboard shortcuts: a stray key must never approve or delete.
 5. Heatmap (`/rotunda/analiza/`): a demonstration on made-up answers, not a measurement of a team. Up to 25 pasted answers without an access code, team threshold 5, server-side limit of 30 analyses per IP in 10 minutes (the presenter shares the venue address with the audience). The results carry „Dane wymyślone, demonstracja” in the table caption and the per-answer heading; a failed run clears the previous results.
 
 ## Constants (shared, in `demo/src/rotunda.js`)
@@ -49,7 +49,7 @@ Areas: the five FNP areas from `AREAS` plus `brak`.
 
 ## API (all JSON, all under `/rotunda/api/`)
 
-Single entries, the aggregate screen and the heatmap (`api/mapa`) are public. Moderation requires `DEMO_CODE` and `MOD_CODE` in request headers. `DEMO_CODE` is also the salt for the IP and browser-id hashes.
+Single entries, the aggregate screen and the heatmap (`api/mapa`) are public. Moderation requires one secret, the moderator password `MOD_CODE`, in the `X-Rotunda-Mod` request header. `DEMO_CODE` is not a credential: it is only the salt for the IP, browser-id and entry-id hashes. No CORS headers are sent: the API is called same-origin by the pages and server-to-server by the Foundation's admin panel.
 
 `POST /rotunda/api/wpis`
 Body: `{ rola, starter, text, consent, client, entry }`, `client` optional: a random per-browser id (8–64 chars `[A-Za-z0-9-]`); `entry` optional, same format: a random id per submission attempt, reused by the phone when it sends the same card, text, role and consent again; `text` is the completion only (1–200 chars), `consent` boolean.
@@ -75,9 +75,16 @@ Errors: 400 invalid input, 409 the same `entry` is still being judged, 429 rate 
 ```
 `causes` and `areas` count only entries describing withholding (a sentence can indicate several causes or none, so cause bars do not sum to 100%); the screen divides both by `silent`. `silentShare` = `overall.silent / total`, or `null` below `minN.share`. `quotes`: up to 12 most recently approved. Thresholds and suppression as above.
 
-`GET /rotunda/api/moderacja` with headers `X-Rotunda-Code: <DEMO_CODE>` and `X-Rotunda-Mod: <MOD_CODE>` → `{ "pending": [ { id, text, rola, createdAt, dane_osobowe, obrazliwe } ], "approved": [ { id, text, rola, moderatedAt } ], "maxQuotes": 12 }` (`pending` oldest first; `approved` most recently approved first, the order of the screen, which rotates the first `maxQuotes`).
-`POST /rotunda/api/moderacja` with the same headers, body `{ id, decision: "approve" | "reject" }` → `{ ok: true }`. Rejecting deletes the stored text; it also works on an approved quote, which is how the moderator takes one off the screen.
-Any moderation request with `code`, `mod` or `kod` in the query string → 400 (before the codes are checked), because URLs can end up in logs. Codes in a POST body are ignored. Wrong or missing header codes → 403.
+Moderation auth (both methods of `/rotunda/api/moderacja`), checked in this order:
+1. `code`, `mod` or `kod` in the query string → 400, because URLs can end up in logs.
+2. `MOD_CODE` not set, or shorter than 12 characters → 503 with a message naming `MOD_CODE`. An empty or weak secret never authenticates.
+3. `X-Rotunda-Mod` header different from `MOD_CODE` (constant-time compare), or missing → 403 `{ "error": "Niepoprawne hasło moderatora." }`.
+
+An `X-Rotunda-Code` header (sent by pages loaded from older links) is ignored. A password in a POST body is ignored.
+
+`GET /rotunda/api/moderacja` with header `X-Rotunda-Mod: <MOD_CODE>` → `{ "pending": [ { id, text, rola, createdAt, dane_osobowe, obrazliwe } ], "approved": [ { id, text, rola, moderatedAt } ], "maxQuotes": 12, "counts": { "entries": 57, "pending": 3, "approved": 9 } }` (`pending` oldest first; `approved` most recently approved first, the order of the screen, which rotates the first `maxQuotes`; `counts.entries` = all rows in `wpisy`, with or without stored text; `counts.pending` and `counts.approved` = lengths of the two lists).
+`POST /rotunda/api/moderacja` with the same header, body `{ id, decision: "approve" | "reject" }` → `{ ok: true }`. Rejecting deletes the stored text; it also works on an approved quote, which is how the moderator takes one off the screen. 400 for a missing `id` or another `decision`, 404 when there is no such quote with stored text.
+`POST /rotunda/api/moderacja` with the same header, body `{ "action": "reset", "confirm": "USUN WPISY" }` → `{ "ok": true, "deleted": { "wpisy": 57, "wpis_requests": 61, "mapa_requests": 4 } }`. Deletes every row of the three tables in one D1 batch (one transaction). `confirm` must be exactly that string (no diacritics, upper case, one space), otherwise 400 and nothing is deleted; any other `action` → 400. A body with `action` is never treated as approve or reject. For clearing test entries before the event; repeating it is harmless.
 
 `POST /rotunda/api/mapa` body `{ answers: [ { team, text } ] }` (1–25 answers, text ≤ 500, team 1–40 chars) → `{ teams, answers, minTeamSize: 5, maxAnswers: 25 }`. At most 30 analyses per IP in 10 minutes (atomic reservation in `mapa_requests`). Jev-call ceiling per IP: 25 × 30 = 750 per 10 minutes. Each Jev call is given up after 25 s. Nothing is stored except the reservation row (IP hash, time).
 
@@ -99,13 +106,14 @@ All commands below are run by the owner by hand; agents do not run remote D1 com
 Before 19.11 (after the last rehearsal):
 1. Apply new migrations remotely: `npx wrangler d1 migrations apply fnp-rotunda --remote -c demo/wrangler.jsonc` (0005 is required before deploying this version: without it every `/api/wpis` request fails).
 2. Deploy: `npm run demo:deploy`.
-3. Clear test entries: `npx wrangler d1 execute fnp-rotunda --remote -c demo/wrangler.jsonc --command "DELETE FROM wpisy; DELETE FROM wpis_requests; DELETE FROM mapa_requests;"`
-4. Check: `npx wrangler d1 execute fnp-rotunda --remote -c demo/wrangler.jsonc --command "SELECT COUNT(*) FROM wpisy"` returns 0; open `/rotunda/ekran/` and see the empty state.
-5. Give moderators the link with the codes in the fragment: `https://fnp.silence-tax.com/rotunda/moderacja/#kod=<DEMO_CODE>&mod=<MOD_CODE>` (the fragment is not sent to the server; `?kod=` still works but puts the codes in the page request URL).
+3. Check the moderator password: `MOD_CODE` must be at least 12 characters, otherwise moderation answers 503. If it is shorter, set a new one: `npx wrangler secret put MOD_CODE -c demo/wrangler.jsonc`. Leave `DEMO_CODE` as it is: it is the hashing salt, and changing it during the event would reset the rate limits.
+4. Clear test entries from the moderation page: open „Przed wydarzeniem” at the bottom, read the entry count, type `USUN WPISY`, press „Usuń wszystkie wpisy testowe”. The page reports how many rows were deleted. (Same effect by hand: `npx wrangler d1 execute fnp-rotunda --remote -c demo/wrangler.jsonc --command "DELETE FROM wpisy; DELETE FROM wpis_requests; DELETE FROM mapa_requests;"`.)
+5. Check: the section shows „W bazie: 0 wpisów”; open `/rotunda/ekran/` and see the empty state.
+6. Give moderators the link with the password in the fragment: `https://fnp.silence-tax.com/rotunda/moderacja/#mod=<MOD_CODE>` (the fragment is not sent to the server; `?mod=` still works but puts the password in the page request URL). Older links of the form `#kod=…&mod=…` keep working; the `kod` part is ignored. The same password is the one the Foundation's admin panel sends in `X-Rotunda-Mod`.
 
 After the event:
 1. Export what you want to keep (judgments only; no text unless approved): `npx wrangler d1 export fnp-rotunda --remote -c demo/wrangler.jsonc --output rotunda-<date>.sql`. Store it outside the repository.
-2. Delete: `npx wrangler d1 execute fnp-rotunda --remote -c demo/wrangler.jsonc --command "DELETE FROM wpisy; DELETE FROM wpis_requests; DELETE FROM mapa_requests;"`
+2. Delete: „Przed wydarzeniem” on the moderation page as above, or `npx wrangler d1 execute fnp-rotunda --remote -c demo/wrangler.jsonc --command "DELETE FROM wpisy; DELETE FROM wpis_requests; DELETE FROM mapa_requests;"`
 3. If the owner commits to deleting after the conference as a rule, record it here and change the phone sentence to „Wpisy usuniemy po konferencji.”
 
 ## Pages
@@ -116,4 +124,6 @@ Circle language, one element per page: the screen shows the share of entries des
 
 Motion: the Motion library (`motion` 12.23.22, UMD build vendored as `vendor/motion.js`, MIT licence next to it, global `Motion`). Screen: counters count to a new value, the disc and bars spring to it (transform only), quotes leave upwards and arrive from below, the ring pulses once when a poll brings new entries; an unchanged `/api/stan` answer touches nothing. Phone: the card is drawn, the judgment opens once. Heatmap: cells take their colour once after „Pokaż mapę”. With `prefers-reduced-motion`, or if the file fails to load, every change is instant. No looping decoration. The screen is a fixed 1920×1080 canvas: text a viewer must read is at least 22 px, quotes never shrink under 24 px.
 
-Vanilla JS, no frameworks, no build step. Mobile first for phone and moderator pages; screen page scales its 1920×1080 layout to the desktop viewport. Public pages call the API with relative paths (`../api/...` from subfolders, `api/...` from `/rotunda/`). The moderator page reads `kod` and `mod` once from the fragment (or, for old links, the query string), keeps them in localStorage, strips the address bar, and sends them only in the `X-Rotunda-*` headers.
+Vanilla JS, no frameworks, no build step. Mobile first for phone and moderator pages; screen page scales its 1920×1080 layout to the desktop viewport. Public pages call the API with relative paths (`../api/...` from subfolders, `api/...` from `/rotunda/`). The moderator page reads `mod` once from the fragment (or, for old links, the query string), keeps it in localStorage (`fnp-demo-mod`), strips the address bar, and sends it only in the `X-Rotunda-Mod` header. A `kod` in an old link is ignored and a stored `fnp-demo-code` is removed.
+
+Clearing entries („Przed wydarzeniem”, a collapsed `<details>` under everything else on the moderator page): shows the current number of entries from `counts.entries` („liczba wpisów nieznana” until the server has answered, never zero by default), a field in which the moderator types `USUN WPISY`, and the button „Usuń wszystkie wpisy testowe (n)”, disabled until the field holds exactly that string. Then it calls the reset and prints the three deleted counts. There is no single-click path; a failed call keeps the typed text for another try.
