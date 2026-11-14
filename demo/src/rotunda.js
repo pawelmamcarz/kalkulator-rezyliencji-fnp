@@ -22,6 +22,7 @@ export const STARTERS = {
   zarzad: "Do zarządu nie dociera, że…",
   odejscie: "Odchodząc z firmy, powiem, że…",
   wolne: "Nie mówię o tym głośno, bo…",
+  zgloszenie: "Kiedy widzę błąd w pracy, najtrudniej mi powiedzieć…",
 };
 
 export const CAUSE_LABELS = {
