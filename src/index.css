@@ -97,6 +97,9 @@ a:hover { text-decoration-thickness: 2px; }
   h1 { font-size: 44px; }
 }
 
+.report-context { border-top: 1px solid var(--hairline); margin-top: 20px; padding-top: 14px; }
+.report-context p { margin-top: 6px; }
+
 /* The disc: area of the orange shape ∝ amount ÷ amount at climate 0. */
 .disc-block { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 4px 18px; padding-top: 22px; }
 .disc { width: 128px; height: 128px; display: block; overflow: visible; }

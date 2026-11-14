@@ -105,7 +105,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); }
     <div class="step"><span>1. Karta</span></div>
     <div class="deck">
       <div class="card" id="card" aria-live="polite">
-        <div class="stamp">Karta <span id="card-no">1</span> z 8</div>
+        <div class="stamp">Karta <span id="card-no">1</span> z <span id="card-total"></span></div>
         <div class="starter" id="starter"></div>
       </div>
     </div>
@@ -172,6 +172,7 @@ const STARTERS = [
   { id: "zarzad", text: "Do zarządu nie dociera, że" },
   { id: "odejscie", text: "Odchodząc z firmy, powiem, że" },
   { id: "wolne", text: "Nie mówię o tym głośno, bo" },
+  { id: "zgloszenie", text: "Kiedy widzę błąd w pracy, najtrudniej mi powiedzieć" },
 ];
 const CAUSES = { lek: "Lęk przed konsekwencjami", bezsens: "Nic się nie zmieni", brak_kanalu: "Brak kanału lub czasu", lojalnosc: "Ochrona innych" };
 const ERRORS = {
@@ -182,6 +183,7 @@ const ERRORS = {
 };
 
 const $ = (id) => document.getElementById(id);
+$("card-total").textContent = String(STARTERS.length);
 const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 // Motion (window.Motion, vendored) moves two things: the card when it is drawn and the
 // judgment when it arrives. With reduced motion, or without the file, both are instant.

@@ -159,7 +159,7 @@ footer b { color: var(--ink); font-weight: 600; }
       <div class="big">Jeszcze nie ma wpisów.<br>Dokończ pierwsze zdanie.</div>
       <div class="invite">
         <p id="welcome-p">Wylosuj kartę na telefonie, dopisz jedno zdanie o tym, czego nie powiedziałeś / powiedziałaś w tym miesiącu, wybierz rolę. Gdy wpisów będzie dość, zobaczysz tutaj, jakie przyczyny wskazują zdania uczestników.</p>
-        <div class="cta">Zeskanuj i dokończ zdanie</div>
+        <div class="cta">Zeskanuj i dodaj swój głos</div>
         <div class="url">fnp.silence-tax.com/rotunda</div>
       </div>
       <div class="qrbig">
@@ -179,7 +179,7 @@ footer b { color: var(--ink); font-weight: 600; }
           <div id="qr"></div>
           <div>
             <div class="qtag">Gra</div>
-            <div class="cta">Zeskanuj i dokończ zdanie</div>
+            <div class="cta">Zeskanuj i dodaj swój głos</div>
           </div>
           <div class="url">fnp.silence-tax.com/rotunda</div>
         </div>
@@ -224,7 +224,7 @@ footer b { color: var(--ink); font-weight: 600; }
 const ROLES = { zarzad: "Zarząd", menedzer: "Menedżer / menedżerka", specjalista: "Specjalista / specjalistka" };
 const CAUSES = { lek: "Lęk przed konsekwencjami", bezsens: "Nic się nie zmieni", brak_kanalu: "Brak kanału lub czasu", lojalnosc: "Ochrona innych" };
 const AREAS = { rotacja: "Rotacja i utrata wiedzy", bledy: "Błędy i compliance", wypalenie: "Wypalenie i pasywność", innowacje: "Innowacje i uczenie się", koordynacja: "Koordynacja i hierarchia", brak: "Poza obszarami" };
-const STARTERS = ["Szef nie wie, że…", "Wiem o błędzie, ale…", "Mój pomysł przepadł, bo…", "Na spotkaniu wszyscy kiwali głową, a ja…", "Klient nie wie, że…", "Do zarządu nie dociera, że…", "Odchodząc z firmy, powiem, że…", "Nie mówię o tym głośno, bo…"];
+const STARTERS = ["Szef nie wie, że…", "Wiem o błędzie, ale…", "Mój pomysł przepadł, bo…", "Na spotkaniu wszyscy kiwali głową, a ja…", "Klient nie wie, że…", "Do zarządu nie dociera, że…", "Odchodząc z firmy, powiem, że…", "Nie mówię o tym głośno, bo…", "Kiedy widzę błąd w pracy, najtrudniej mi powiedzieć…"];
 const POLL_MS = 5000, QUOTE_MS = 8000, MIN_QUOTE_PX = 24;
 // Thresholds come from the server (`minN` in /api/stan); nothing is hardcoded here.
 let minN = { share: null, role: null };

@@ -39,6 +39,13 @@ export default function Result({ valuation, params }) {
           To scenariusz przy założeniach autora, a nie wycena księgowa, prognoza, dowód przyczyny ani obietnica oszczędności. <a href="#jak-liczymy">Jak to liczymy</a>
         </p>
       </> : <p style={{ marginTop: 10 }}>Uzupełnij lub popraw oznaczone pola w formularzu. Wtedy pokażemy wynik.</p>}
+      {total && (
+        <aside className="report-context small" aria-label="Badania Fundacji Nowe Przestrzenie">
+          <h3>Co utrudnia zgłaszanie błędów?</h3>
+          <p>Raport „Wychowani do milczenia” przygląda się temu, jak doświadczenia z domu i szkoły wiążą się z zabieraniem głosu w pracy.</p>
+          <p><a href="https://www.noweprzestrzenie.pl/safe-space-summit-2026#agenda">O raporcie Fundacji w programie Summit</a></p>
+        </aside>
+      )}
     </section>
   );
 }
