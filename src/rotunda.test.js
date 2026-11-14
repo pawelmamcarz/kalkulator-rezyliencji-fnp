@@ -97,7 +97,7 @@ const slots = () => env.DB.raw.prepare("SELECT * FROM wpis_requests").all();
 describe("rotunda constants", () => {
   it("match the SPEC texts", () => {
     expect(ROLES).toEqual({ zarzad: "Zarząd", menedzer: "Menedżer / menedżerka", specjalista: "Specjalista / specjalistka" });
-    expect(Object.keys(STARTERS)).toEqual(["szef", "blad", "pomysl", "spotkanie", "klient", "zarzad", "odejscie", "wolne"]);
+    expect(Object.keys(STARTERS)).toEqual(["szef", "blad", "pomysl", "spotkanie", "klient", "zarzad", "odejscie", "wolne", "zgloszenie"]);
     expect(STARTERS.spotkanie).toBe("Na spotkaniu wszyscy kiwali głową, a ja…");
     expect(CAUSE_LABELS).toEqual({ lek: "Lęk przed konsekwencjami", bezsens: "Nic się nie zmieni", brak_kanalu: "Brak kanału lub czasu", lojalnosc: "Ochrona innych" });
     const source = readFileSync(path.join(root, "demo/src/rotunda.js"), "utf8");
