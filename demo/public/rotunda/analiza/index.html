@@ -67,8 +67,8 @@ footer a { color: var(--ink); }
   <p class="lead">Demonstracja na wymyślonych odpowiedziach. Jev ocenia każde zdanie, a kod składa wyniki w tabelę według zespołów: ile zdań opisuje przemilczenie, jakich obszarów dotyczą i jakie przyczyny wskazują.</p>
 
   <div class="warn">
-    <strong>Prototyp, niezwalidowany</strong><br>
-    To demonstracja, a wynik nie jest pomiarem zespołu ani bezpieczeństwa psychologicznego, nie jest też wyceną kosztów. Trafność nie została sprawdzona na prawdziwych odpowiedziach. Nie wklejaj prawdziwych odpowiedzi pracowników z imionami, nazwiskami ani szczegółami, po których da się kogoś rozpoznać. Tekst trafia do oceny przez usługę TypeSafe, ta strona go nie zapisuje. Zespoły z mniej niż 5 odpowiedziami są ukryte (próg anonimowości).
+    <strong>Klasyfikacja wpisów w trakcie walidacji</strong><br>
+    To demonstracja, a wynik nie jest pomiarem zespołu ani bezpieczeństwa psychologicznego, nie jest też wyceną kosztów. Nie wklejaj prawdziwych odpowiedzi pracowników z imionami, nazwiskami ani szczegółami, po których da się kogoś rozpoznać. Tekst trafia do oceny przez usługę TypeSafe, ta strona go nie zapisuje. Zespoły z mniej niż 5 odpowiedziami są ukryte (próg publikacji).
   </div>
 
   <label for="answers">Odpowiedzi: jedna w wierszu, <code>Zespół | treść</code></label>
@@ -170,7 +170,7 @@ function renderTeams(teams, min) {
     return `<tr><td>${esc(t.team)}</td><td class="num">${t.n}</td><td class="num"><span class="share"><span class="mini" aria-hidden="true"><i style="--s: ${Math.sqrt(Math.max(0, Math.min(1, t.silenceShare))).toFixed(3)}"></i></span>${pct(t.silenceShare)}</span></td><td class="num heat" ${heat(t.severity / 3)}>${t.severity.toFixed(1).replace(".", ",")}</td><td>${area}</td>${causes}</tr>`;
   }).join("");
   $("teams").innerHTML = `<caption>Dane wymyślone, demonstracja</caption><thead>${head}</thead><tbody>${rows}</tbody>`;
-  $("teams-note").textContent = `Przyczyny: liczba odpowiedzi opisujących przemilczenie, w których Jev wskazał daną przyczynę (prawdopodobieństwo co najmniej 0,5). Jedna odpowiedź może mieć kilka przyczyn. Ocena powagi to średnia z porządkowej oceny Jev 0–3: tylko orientacyjnie, to nie jest skala pomiarowa. Zespoły poniżej ${min} odpowiedzi są ukryte razem z ich odpowiedziami pojedynczo (próg anonimowości).`;
+  $("teams-note").textContent = `Przyczyny: liczba odpowiedzi opisujących przemilczenie, w których Jev wskazał daną przyczynę (prawdopodobieństwo co najmniej 0,5). Jedna odpowiedź może mieć kilka przyczyn. Ocena powagi to średnia z porządkowej oceny Jev 0–3: tylko orientacyjnie, to nie jest skala pomiarowa. Zespoły poniżej ${min} odpowiedzi są ukryte razem z ich odpowiedziami pojedynczo (próg publikacji).`;
 }
 
 function renderCards(rows, answers) {
