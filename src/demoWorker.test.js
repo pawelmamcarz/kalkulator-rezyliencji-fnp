@@ -136,7 +136,7 @@ describe("conference demo worker", () => {
     expect(html).toContain("<caption>Dane wymyślone, demonstracja</caption>");
     expect(html).toContain('Odpowiedzi pojedynczo <span class="demo-tag">Dane wymyślone, demonstracja</span>');
     expect(html).not.toContain("<th>Nasilenie");
-    expect(html).toContain('<a href="https://fnp.silence-tax.com/?konferencja">Kalkulator Kosztów Braku Bezpieczeństwa Psychologicznego</a>');
+    expect(html).toContain('<a href="https://fnp.silence-tax.com/?konferencja">Sprawdź scenariusz</a>');
     expect(html).toContain('name="robots" content="noindex"');
     expect(html).not.toMatch(/—|\bROI\b/);
   });

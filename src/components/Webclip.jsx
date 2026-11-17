@@ -22,7 +22,7 @@ export default function Webclip() {
         <output htmlFor="climate"><strong>{money(valuation.total.base)}</strong> rocznie</output>
         <span>Przykładowa firma · scenariusz</span>
       </div>
-      <a href="https://fnp.silence-tax.com/" target="_blank" rel="noopener">Policz dla swojej firmy</a>
+      <a href="https://fnp.silence-tax.com/" target="_blank" rel="noopener">Sprawdź scenariusz</a>
     </main>
   );
 }

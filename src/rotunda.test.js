@@ -780,7 +780,7 @@ describe("rotunda pages: public wording contract", () => {
     expect(html).toContain("Analogia, nie miara");
     expect(html).toContain("BBC News, „The triumph of lean production”, luty 2007");
     expect(html).toContain("Kalkulator nie korzysta z wyniku tej gry.");
-    expect(html).toContain("Otwórz Kalkulator Kosztów Braku Bezpieczeństwa Psychologicznego");
+    expect(html).toContain('href="https://fnp.silence-tax.com/?konferencja">Sprawdź scenariusz</a>');
     expect(html).toContain("także bez zgody na cytat");
     expect(html).toContain("skrót adresu IP i identyfikatora przeglądarki");
     expect(html).toContain("dopóki organizator ich nie usunie");
@@ -799,7 +799,7 @@ describe("rotunda pages: public wording contract", () => {
     expect(html).toContain("overall.silent");
     expect(html).toContain("Kalkulator Kosztów Braku Bezpieczeństwa Psychologicznego");
     expect(html).toContain(">Gra<");
-    expect(html).toContain(">Kalkulator<");
+    expect(html).toContain(">Sprawdź scenariusz<");
   });
 
   it("counts entries with Polish plural forms on the screen", () => {
