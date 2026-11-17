@@ -16,24 +16,24 @@ body { background: var(--pale); overflow: hidden; font-size: 24px; line-height: 
   width: 1920px; height: 1080px; position: absolute; transform-origin: top left;
   display: grid; grid-template-rows: 1fr auto; gap: 22px; padding: 40px 56px 26px;
 }
-main { display: grid; grid-template-columns: 650px 1fr; grid-template-rows: 500px 1fr; gap: 28px 56px; min-height: 0; }
+main { display: grid; grid-template-columns: 650px 1fr; grid-template-rows: 510px 1fr; gap: 28px 56px; min-height: 0; }
 
 /* Hero: title, and the share of entries as a disc inside a ring */
 .hero { grid-area: 1 / 1; display: flex; flex-direction: column; min-width: 0; }
 .logos { display: flex; align-items: center; gap: 22px; padding: 14px 22px; background: var(--ink); color: var(--white); border-radius: 22px; }
-.logos img { height: 46px; width: auto; display: block; filter: brightness(0) invert(1); }
-.logos .summit { height: 42px; padding-left: 22px; border-left: 1px solid var(--line); box-sizing: content-box; }
-h1 { font-size: 59px; letter-spacing: -.06em; margin-top: 20px; white-space: nowrap; }
-.sub { font-size: 23px; line-height: 1.3; color: var(--muted); margin-top: 10px; max-width: 640px; }
-.gauge { display: grid; grid-template-columns: 276px 1fr; gap: 36px; align-items: center; margin-top: auto; }
+.logos img { height: 42px; width: auto; display: block; filter: brightness(0) invert(1); }
+.logos .summit { height: 38px; padding-left: 22px; border-left: 1px solid var(--line); box-sizing: content-box; }
+h1 { font-size: 59px; letter-spacing: -.06em; margin-top: 12px; white-space: nowrap; }
+.sub { font-size: 23px; line-height: 1.3; color: var(--muted); margin-top: 6px; max-width: 640px; }
+.gauge { display: grid; grid-template-columns: 222px 1fr; gap: 32px; align-items: center; margin-top: auto; padding-top: 8px; }
 /* The ring is every entry; the disc's area is the share that describes withholding. */
-.ring { position: relative; width: 276px; height: 276px; border-radius: 50%; border: 5px solid var(--blue); background: var(--white); }
+.ring { position: relative; width: 222px; height: 222px; border-radius: 50%; border: 5px solid var(--blue); background: var(--white); }
 .disc, .pulse { position: absolute; border-radius: 50%; }
 .disc { inset: 0; background: var(--orange); transform: scale(0); }
 .pulse { inset: -5px; border: 5px solid var(--orange); opacity: 0; pointer-events: none; }
 .stats { display: grid; gap: 14px; min-width: 0; }
-.stat .num { font-weight: 600; font-size: 100px; line-height: .92; letter-spacing: -.06em; font-variant-numeric: tabular-nums; }
-.stat .num small { font-size: 54px; font-weight: 600; margin-left: 4px; letter-spacing: -.04em; }
+.stat .num { font-weight: 600; font-size: 84px; line-height: 1; letter-spacing: -.06em; font-variant-numeric: tabular-nums; }
+.stat .num small { font-size: 46px; font-weight: 600; margin-left: 4px; letter-spacing: -.04em; }
 .stat .lbl { display: flex; gap: 12px; align-items: flex-start; font-size: 24px; line-height: 1.2; margin-top: 8px; }
 .stat.wait .num { color: var(--muted); }
 .key { flex: none; width: 20px; height: 20px; border-radius: 50%; margin-top: 4px; }
@@ -61,10 +61,10 @@ h1 { font-size: 59px; letter-spacing: -.06em; margin-top: 20px; white-space: now
 .quote .dots { position: absolute; right: 30px; top: 38px; display: flex; gap: 7px; }
 .quote .dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
 .quote .dots i.on { background: var(--ink); }
-.codes { display: grid; grid-template-rows: auto auto; gap: 16px; align-content: space-between; min-height: 0; }
+.codes { display: grid; grid-template-rows: auto auto; gap: 12px; align-content: space-between; min-height: 0; }
 .qr, .calc { display: grid; column-gap: 20px; align-items: center; padding: 14px 20px 14px 14px; }
-.qr { grid-template-columns: 158px 1fr; }
-.calc { grid-template-columns: 132px 1fr; }
+.qr { grid-template-columns: 132px 1fr; }
+.calc { grid-template-columns: 116px 1fr; }
 .qr svg, .calc svg { display: block; }
 .qr .cta, .calc .name { font-weight: 600; font-size: 26px; line-height: 1.12; letter-spacing: -.03em; }
 .qr .url { grid-column: 1 / -1; margin-top: 6px; }
@@ -273,9 +273,9 @@ function drawQr(el, size, url = GAME_URL) {
     el.innerHTML = `<div style="width:${size}px;height:${size}px;border:1px dashed var(--edge)"></div>`;
   }
 }
-drawQr($("qr"), 158);
+drawQr($("qr"), 132);
 drawQr($("qr-big"), 336);
-drawQr($("qr-calc"), 132, CALC_URL);
+drawQr($("qr-calc"), 116, CALC_URL);
 
 /* counters: count to the new value when it changes */
 const shown = { total: 0, silent: 0 };
