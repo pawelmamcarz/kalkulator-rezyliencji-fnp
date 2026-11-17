@@ -122,9 +122,9 @@ describe("conference demo worker", () => {
     expect((await worker.fetch(new Request("https://fnp.test/rotunda/api/mapa"), e, null, pass)).status).toBe(405);
   });
 
-  it("analiza page warns it is an unvalidated demonstration and sends text to TypeSafe", () => {
+  it("analiza page explains classification is undergoing validation and sends text to TypeSafe", () => {
     const html = readFileSync(path.join(root, "demo/public/rotunda/analiza/index.html"), "utf8");
-    expect(html).toContain("Prototyp, niezwalidowany");
+    expect(html).toContain("Klasyfikacja wpisów w trakcie walidacji");
     expect(html).toContain("nie jest pomiarem zespołu");
     expect(html).toContain("Nie wklejaj prawdziwych odpowiedzi");
     expect(html).toContain("TypeSafe");

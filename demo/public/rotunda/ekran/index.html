@@ -42,6 +42,8 @@ h1 { font-size: 59px; letter-spacing: -.06em; margin-top: 12px; white-space: now
 
 /* Panels */
 .panel { background: var(--white); border: 1px solid var(--line); border-radius: 22px; }
+.calc.panel { color: inherit; text-decoration: none; }
+.calc.panel:focus-visible { outline: 3px solid currentColor; outline-offset: 2px; }
 .qtag { display: inline-block; font-size: 20px; font-weight: 600; line-height: 1; color: var(--white); background: var(--ink); padding: 6px 12px 7px; border-radius: 30px; margin-bottom: 8px; }
 .url { font-size: 23px; font-weight: 500; overflow-wrap: anywhere; }
 
@@ -184,7 +186,7 @@ footer b { color: var(--ink); font-weight: 600; }
           </div>
           <div class="url">fnp.silence-tax.com/rotunda</div>
         </div>
-        <aside class="calc panel" aria-label="Kalkulator Kosztów Braku Bezpieczeństwa Psychologicznego">
+        <a class="calc panel" id="calc-link" href="https://fnp.silence-tax.com/?konferencja">
           <div id="qr-calc"></div>
           <div>
             <div class="qtag">Sprawdź scenariusz</div>
@@ -192,7 +194,7 @@ footer b { color: var(--ink); font-weight: 600; }
             <div class="url">fnp.silence-tax.com</div>
           </div>
           <div class="what">Roczny scenariusz skali kosztów dla Twojej firmy, z jej danych. Nie korzysta z wyników tej gry.</div>
-        </aside>
+        </a>
       </div>
     </div>
 
@@ -260,7 +262,7 @@ fitScreen();
 addEventListener("resize", fitScreen);
 
 const GAME_URL = "https://fnp.silence-tax.com/rotunda/";
-const CALC_URL = "https://fnp.silence-tax.com/?konferencja";
+const CALC_URL = document.getElementById("calc-link").href;
 function drawQr(el, size, url = GAME_URL) {
   try {
     const q = qrcode(0, "M");
