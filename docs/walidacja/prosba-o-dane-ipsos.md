@@ -1,8 +1,8 @@
-**Temat:** Prośba o dane i dokumentację badania „Ile kosztuje milczenie?” (Ipsos × FNP 2026) do audytu Kalkulatora Rezyliencji
+**Temat:** Prośba o dane i dokumentację badania „Ile kosztuje milczenie?” (Ipsos × FNP 2026) do audytu Kalkulatora Kosztów Braku Bezpieczeństwa Psychologicznego
 
 Szanowni Państwo,
 
-dziękuję za gotowość udostępnienia materiałów badania. Kalkulator Rezyliencji FNP opiera część założeń na raporcie „Ile kosztuje milczenie?”, ale do dziś nie porównałem ich z tabelami ani danymi. Chcę to zrobić, zanim kalkulator trafi do pierwszego klienta. Analizę wykona psychometra lub analityk wskazany przez Fundację według planu zapisanego przed otwarciem danych (w załączniku). Ja dostanę tylko gotowe tabele zbiorcze.
+dziękuję za gotowość udostępnienia materiałów badania. Kalkulator Kosztów Braku Bezpieczeństwa Psychologicznego opiera część założeń na raporcie „Ile kosztuje milczenie?”, ale do dziś nie porównałem ich z tabelami ani danymi. Chcę to zrobić, zanim kalkulator trafi do pierwszego klienta. Analizę wykona psychometra lub analityk wskazany przez Fundację według planu zapisanego przed otwarciem danych (w załączniku). Ja dostanę tylko gotowe tabele zbiorcze.
 
 Uprzejmie proszę o:
 

@@ -3,7 +3,7 @@ export default function Footer() {
     <footer className="site-footer">
       <div className="footer-grid">
         <div>
-          <h2>Kalkulator Rezyliencji FNP</h2>
+          <h2>Kalkulator Kosztów Braku Bezpieczeństwa Psychologicznego</h2>
           <p style={{ marginTop: 8 }}>
             Współpraca Fundacji Nowe Przestrzenie i Pawła Mamcarza, eksperta Fundacji i współtwórcy kalkulatora.
             Silnik obliczeniowy: Silence Tax (MIT).

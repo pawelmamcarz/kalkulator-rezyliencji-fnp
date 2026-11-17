@@ -1,4 +1,4 @@
-# Kalkulator Rezyliencji FNP
+# Kalkulator Kosztów Braku Bezpieczeństwa Psychologicznego
 
 Bezpłatny kalkulator Fundacji Nowe Przestrzenie i Pawła Mamcarza, z silnikiem Silence Tax. Publiczna strona: https://fnp.silence-tax.com.
 

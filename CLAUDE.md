@@ -29,7 +29,7 @@ Guidance for coding agents working in this repository.
 
 ## What this repository is
 
-Public FNP calculator: **Kalkulator Rezyliencji FNP**. Dual-brand with Silence Tax as the named engine. Collaboration between Fundacja Nowe Przestrzenie and Paweł Mamcarz.
+Public FNP calculator: **Kalkulator Kosztów Braku Bezpieczeństwa Psychologicznego**. Dual-brand with Silence Tax as the named engine. Collaboration between Fundacja Nowe Przestrzenie and Paweł Mamcarz.
 
 This is the public, cautious-mode product. Live at **https://fnp.silence-tax.com** (Cloudflare Worker `kalkulator-rezyliencji-fnp`, custom domain). The full academic/optimizer surface stays at [silence-tax.com](https://silence-tax.com) / [pawelmamcarz/podatekodmilczenia](https://github.com/pawelmamcarz/podatekodmilczenia) (`~/claude/silence-tax` and `~/claude/podatekodmilczenia`). Do not copy doctoral papers, HiGHS UI, or the 13-module ledger into this app.
 
