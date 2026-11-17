@@ -11,7 +11,8 @@ export default function Webclip() {
 
   return (
     <main className="webclip">
-      <h1>Ile może kosztować milczenie?</h1>
+      <h1>Kalkulator Kosztów Braku Bezpieczeństwa Psychologicznego</h1>
+      <p>Projekt badawczy Fundacji Nowe Przestrzenie. Zapraszamy do udziału.</p>
       <label htmlFor="climate">Jak mówi się o problemach w zespole?</label>
       <select id="climate" value={safety} onChange={(event) => setSafety(Number(event.target.value))}>
         <option value={DEFAULT_PARAMS.safety}>Wybierz opis zespołu</option>

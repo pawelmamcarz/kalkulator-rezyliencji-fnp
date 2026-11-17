@@ -5,7 +5,7 @@ export default function Header() {
     <header className="site-header">
       <div className="page site-header-inner">
         <img src={foundationLogo} width="1200" height="331" alt="Fundacja Nowe Przestrzenie" />
-        <span>Kalkulator Rezyliencji FNP</span>
+        <span>Kalkulator Kosztów Braku Bezpieczeństwa Psychologicznego</span>
       </div>
     </header>
   );

@@ -11,7 +11,7 @@ export default function Invitation({ params, valuation, sensitivity }) {
   return (
     <div className="invitation-print-only">
       <p>Fundacja Nowe Przestrzenie × Paweł Mamcarz</p>
-      <h2>Kalkulator Rezyliencji FNP</h2>
+      <h2>Kalkulator Kosztów Braku Bezpieczeństwa Psychologicznego</h2>
       <p style={{ overflowWrap: "anywhere" }}>{name} · {dataLabel(params)}</p>
       <p>{survey ? `Scenariusz roczny · wynik badania wpisany ręcznie · dotyczy ${scope}` : "Scenariusz roczny · założenia autora · szacunek własny, nie pomiar"}</p>
       {total ? <>
