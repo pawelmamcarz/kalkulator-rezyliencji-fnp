@@ -193,6 +193,8 @@ table.times td:last-child,table.times th:last-child{text-align:right;padding-rig
   .script section.item h2,.script .meta,.thumb{break-after:avoid}
 }
 #b-notes,#b-script,.notes-panel,.script{display:none!important}
+body.presenter-notes.notes-on .notes-panel:has(#notes-body h4){display:block!important}
+body.presenter-notes #b-notes{display:inline-block!important}
 .s-report .cols{margin-top:68px;gap:120px}
 .s-report .cols h3{margin:0 0 28px;font-size:var(--t-l)}
 .s-report .cols p+p{margin-top:28px}
@@ -477,7 +479,21 @@ table.times td:last-child,table.times th:last-child{text-align:right;padding-rig
     <p class="lead">fnp.silence-tax.com</p>
     <p>Diagnoza: zapraszamy@noweprzestrzenie.pl<br>Metodologia: pawel@mamcarz.com</p>
   </div>
-  <aside class="notes"></aside>
+  <aside class="notes">
+    <h4>Skąd te 630 tys. zł?</h4>
+    <p>Ta sama firma, 500 etatów. Zmieniliśmy tylko ocenę klimatu z 41 na 51. Roczny koszt w modelu spadł z 3,15 do 2,52 mln zł. Różnica to około 630 tys. zł, czyli 20% kwoty początkowej. Żeby mówić o rzeczywistych oszczędnościach, potrzebujemy danych firmy sprzed zmiany i po niej.</p>
+    <h4>Czy każde 10 punktów daje 630 tys. zł?</h4>
+    <p>Ta kwota dotyczy przejścia z 41 do 51 w pokazanej firmie. Przy innym punkcie startu lub innych danych firmy różnica może być inna.</p>
+    <h4>Co przeliczacie na złote?</h4>
+    <p>Rotację i utratę wiedzy, błędy oraz wypalenie i pasywność. Dane firmy nadają im skalę finansową. Zależność kosztów od oceny klimatu jest w trakcie walidacji. Zapraszamy firmy do porównania założeń z własnymi danymi.</p>
+    <h4>Czy 65% oznacza, że milczy 65% sali?</h4>
+    <p>W naszej próbie Jev rozpoznał opis przemilczenia w 13 z 20 dobrowolnych wpisów. Stąd 65%. Liczymy wpisy. Nie wiemy, ile osób na sali miało podobne doświadczenie.</p>
+    <p><em>Na scenie podaj aktualne liczby z mapy.</em></p>
+    <h4>Czy Jev mógł źle odczytać moje zdanie?</h4>
+    <p>Tak. Jev klasyfikuje treść wpisu, a autor zna też kontekst. Trafność klasyfikacji jest w trakcie walidacji. Jeśli odczytujesz swój wpis inaczej, chętnie usłyszymy dlaczego.</p>
+    <h4>Czy wpis z telefonu zmienił kwotę?</h4>
+    <p>Podczas próby wpis zwiększył licznik mapy z 19 do 20. Kwota zmieniła się później, kiedy przesunęliśmy ocenę klimatu w kalkulatorze. To były dwie osobne czynności.</p>
+  </aside>
 </section>
 
 </div></div>
@@ -681,7 +697,7 @@ table.times td:last-child,table.times th:last-child{text-align:right;padding-rig
   window.addEventListener('hashchange', fromHash);
   window.addEventListener('resize', fit);
   doc.addEventListener('fullscreenchange', fit);
-  if (window.innerWidth < 700) body.classList.add('notes-on');
+  if (new URLSearchParams(location.search).has('notatki')) body.classList.add('presenter-notes', 'notes-on');
   fromHash();
   fit();
 })();
