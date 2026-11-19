@@ -28,9 +28,7 @@ jobs:
       - run: npm ci
       - run: npm test
       - name: Deploy Rotunda Worker
-        run: |
-          npx --no-install wrangler d1 execute fnp-rotunda --remote -c demo/wrangler.jsonc --file demo/migrations/0006_questions.sql
-          npx --no-install wrangler deploy -c demo/wrangler.jsonc
+        run: npx --no-install wrangler deploy -c demo/wrangler.jsonc
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
