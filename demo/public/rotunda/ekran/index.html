@@ -42,8 +42,6 @@ h1 { font-size: 59px; letter-spacing: -.06em; margin-top: 12px; white-space: now
 
 /* Panels */
 .panel { background: var(--white); border: 1px solid var(--line); border-radius: 22px; }
-.calc.panel { color: inherit; text-decoration: none; }
-.calc.panel:focus-visible { outline: 3px solid currentColor; outline-offset: 2px; }
 .qtag { display: inline-block; font-size: 20px; font-weight: 600; line-height: 1; color: var(--white); background: var(--ink); padding: 6px 12px 7px; border-radius: 30px; margin-bottom: 8px; }
 .url { font-size: 23px; font-weight: 500; overflow-wrap: anywhere; }
 
@@ -63,15 +61,12 @@ h1 { font-size: 59px; letter-spacing: -.06em; margin-top: 12px; white-space: now
 .quote .dots { position: absolute; right: 30px; top: 38px; display: flex; gap: 7px; }
 .quote .dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
 .quote .dots i.on { background: var(--ink); }
-.codes { display: grid; grid-template-rows: auto auto; gap: 12px; align-content: space-between; min-height: 0; }
-.qr, .calc { display: grid; column-gap: 20px; align-items: center; padding: 14px 20px 14px 14px; }
-.qr { grid-template-columns: 132px 1fr; }
-.calc { grid-template-columns: 116px 1fr; }
-.qr svg, .calc svg { display: block; }
-.qr .cta, .calc .name { font-weight: 600; font-size: 26px; line-height: 1.12; letter-spacing: -.03em; }
+.codes { display: grid; align-content: center; min-height: 0; }
+.qr { display: grid; column-gap: 20px; align-items: center; padding: 14px 20px 14px 14px; }
+.qr { grid-template-columns: 224px 1fr; }
+.qr svg { display: block; }
+.qr .cta { font-weight: 600; font-size: 26px; line-height: 1.12; letter-spacing: -.03em; }
 .qr .url { grid-column: 1 / -1; margin-top: 6px; }
-.calc .what { grid-column: 1 / -1; font-size: 21px; line-height: 1.25; margin-top: 8px; }
-.calc .url { margin-top: 6px; }
 
 /* Causes by role and areas (bottom) */
 .left { grid-area: 2 / 1 / 3 / -1; display: grid; grid-template-columns: 1fr 650px; gap: 56px; align-content: start; min-height: 0; min-width: 0; }
@@ -126,7 +121,6 @@ footer b { color: var(--ink); font-weight: 600; }
 .conn::before { content: ""; width: 14px; height: 14px; border-radius: 50%; background: #2c7a3d; }
 .conn.off { font-weight: 600; }
 .conn.off::before { background: var(--white); border: 4px solid var(--orange-dark); }
-.calc .name{font-size:23px;line-height:1.1}
 </style>
 </head>
 <body>
@@ -186,15 +180,6 @@ footer b { color: var(--ink); font-weight: 600; }
           </div>
           <div class="url">fnp.silence-tax.com/rotunda</div>
         </div>
-        <a class="calc panel" id="calc-link" href="https://fnp.silence-tax.com/?konferencja">
-          <div id="qr-calc"></div>
-          <div>
-            <div class="qtag">Sprawdź scenariusz</div>
-            <div class="name">Kalkulator Kosztów Braku Bezpieczeństwa Psychologicznego</div>
-            <div class="url">fnp.silence-tax.com</div>
-          </div>
-          <div class="what">Roczny scenariusz skali kosztów dla Twojej firmy, z jej danych. Nie korzysta z wyników tej gry.</div>
-        </a>
       </div>
     </div>
 
@@ -262,11 +247,10 @@ fitScreen();
 addEventListener("resize", fitScreen);
 
 const GAME_URL = "https://fnp.silence-tax.com/rotunda/";
-const CALC_URL = document.getElementById("calc-link").href;
-function drawQr(el, size, url = GAME_URL) {
+function drawQr(el, size) {
   try {
     const q = qrcode(0, "M");
-    q.addData(url);
+    q.addData(GAME_URL);
     q.make();
     el.innerHTML = q.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
     const svg = el.querySelector("svg");
@@ -275,9 +259,8 @@ function drawQr(el, size, url = GAME_URL) {
     el.innerHTML = `<div style="width:${size}px;height:${size}px;border:1px dashed var(--edge)"></div>`;
   }
 }
-drawQr($("qr"), 132);
+drawQr($("qr"), 224);
 drawQr($("qr-big"), 336);
-drawQr($("qr-calc"), 116, CALC_URL);
 
 /* counters: count to the new value when it changes */
 const shown = { total: 0, silent: 0 };

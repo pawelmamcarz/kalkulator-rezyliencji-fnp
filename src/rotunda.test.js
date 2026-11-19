@@ -797,9 +797,9 @@ describe("rotunda pages: public wording contract", () => {
     }
     expect(html).toContain("słupki nie sumują się do 100%");
     expect(html).toContain("overall.silent");
-    expect(html).toContain("Kalkulator Kosztów Braku Bezpieczeństwa Psychologicznego");
     expect(html).toContain(">Gra<");
-    expect(html).toContain(">Sprawdź scenariusz<");
+    expect(html).not.toMatch(/qr-calc|Sprawdź scenariusz|\?konferencja/);
+    expect(page("prezentacja/index.html")).toContain('href="/?konferencja">Sprawdź scenariusz');
   });
 
   it("counts entries with Polish plural forms on the screen", () => {
