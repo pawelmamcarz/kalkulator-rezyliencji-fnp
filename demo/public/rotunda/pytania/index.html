@@ -1,0 +1,32 @@
+<!doctype html><html lang="pl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pytania do prelegentów | Rotunda</title><link rel="stylesheet" href="../brand.css"><style>
+body{font:1.2rem Outfit,system-ui,sans-serif;color:#101010;background:#edf8fb;margin:0;padding:5vw}main{max-width:50em;margin:auto}h1{font-size:clamp(2rem,5vw,4rem)}textarea,input,button{font:inherit;padding:.65em}textarea{width:100%;box-sizing:border-box;margin:.6em 0}button{cursor:pointer}li{margin:1em 0}a{color:inherit}
+</style><main><h1>Pytania do prelegentów</h1>
+<form id="send" hidden><label for="q">O co chcesz zapytać na scenie?</label><textarea id="q" required maxlength="300" rows="4"></textarea><p>Po akceptacji moderatora pytanie pojawi się na ekranie. Pomiń nazwiska i nazwy firm.</p><button>Wyślij pytanie</button></form>
+<form id="login" hidden><label>Hasło moderatora <input id="password" type="password" required></label> <button>Otwórz kolejkę</button></form><p id="message" role="status"></p><h2 id="label"></h2><ol id="items"></ol></main>
+<script type="module">
+const el=id=>document.getElementById(id);
+const params=new URLSearchParams(location.search), mod=params.has("moderacja"), board=params.has("ekran");
+const url="/rotunda/api/"+(mod?"pytania-mod":"pytania");
+const starter=["Jak odróżnić koszt scenariuszowy od rzeczywistych oszczędności firmy?","Jakie dane firmy najbardziej pomogą doprecyzować model?","Co zrobić w zespole, gdy ludzie widzą problem, ale przestają go zgłaszać?"];
+let secret="";
+async function api(body){
+ const headers=mod?{"X-Rotunda-Mod":secret}:{};
+ const res=await fetch(url,{method:body?"POST":"GET",headers:{...headers,...(body?{"Content-Type":"application/json"}:{})},body:body?JSON.stringify(body):undefined,cache:"no-store"});
+ const data=await res.json();if(!res.ok)throw Error(data.error||"Błąd połączenia.");return data;
+}
+function error(e){el("message").textContent=e.message}
+async function refresh(){
+ const {questions}=await api();const fallback=!mod&&!questions.length;
+ el("label").textContent=mod?"Kolejka moderatora":fallback?"Pytania od organizatorów":"Pytania z sali";
+ const rows=fallback?starter.map(question=>({question})):questions;
+ el("items").replaceChildren(...rows.map(row=>{
+ const li=document.createElement("li");li.textContent=row.question;
+ if(mod)for(const [action,title] of [...(row.approved?[]:[["approve","Pokaż na ekranie"]]),["remove","Usuń"]]){
+ const b=document.createElement("button");b.textContent=title;b.onclick=async()=>{try{await api({id:row.id,action});await refresh()}catch(e){error(e)}};li.append(" ",b)}
+ return li}));
+}
+el("send").hidden=board||mod;el("login").hidden=!mod;
+el("send").onsubmit=async e=>{e.preventDefault();const b=el("send").querySelector("button");b.disabled=true;try{await api({question:el("q").value});el("q").value="";el("message").textContent="Dziękujemy. Pytanie czeka na moderację."}catch(e){error(e)}finally{b.disabled=false}};
+el("login").onsubmit=async e=>{e.preventDefault();secret=el("password").value;try{await refresh();el("login").hidden=true;el("password").value="";el("message").textContent=""}catch(e){error(e)}};
+if(!mod)refresh().catch(error);setInterval(()=>{if(!document.hidden&&(!mod||el("login").hidden))refresh().catch(error)},5000);
+</script></html>

@@ -233,6 +233,8 @@ body.presenter-notes #b-notes{display:inline-block!important}
       <p class="small muted" style="margin-top:28px">19 listopada 2026, PKO Rotunda w Warszawie i online</p>
     </div>
   </div>
+  <button type="button" id="qa-toggle" style="position:absolute;bottom:12px;left:20px;z-index:12;font:24px Outfit,sans-serif;padding:8px 18px">Pytania do prelegentów</button>
+  <iframe hidden id="qa-board" title="Pytania do prelegentów" style="position:absolute;inset:0;width:100%;height:100%;z-index:11;border:0"></iframe>
   <aside class="notes"></aside>
 </section>
 
@@ -412,7 +414,7 @@ body.presenter-notes #b-notes{display:inline-block!important}
       <div class="left">
         <h2>Jak mogłaby wyglądać analiza zespołów</h2>
         <p class="lead">Demonstracja na wymyślonych odpowiedziach.</p>
-        <p><span class="url">fnp.silence-tax.com/rotunda/analiza</span></p>
+        <p><a class="url" href="/rotunda/analiza/">Otwórz heatmapę demonstracyjną</a></p>
         <p class="muted">Jev klasyfikuje przykładowe wpisy. Trafność tej klasyfikacji jest w trakcie walidacji.</p>
       </div>
       <figure class="shot">
@@ -517,6 +519,12 @@ body.presenter-notes #b-notes{display:inline-block!important}
   var panel = doc.getElementById('notes-body'), head = doc.getElementById('notes-head');
   var counter = doc.getElementById('count');
   var cur = 0;
+  doc.getElementById('qa-toggle').onclick = function () {
+    var board = doc.getElementById('qa-board');
+    if (!board.hasAttribute('src')) board.src = '/rotunda/pytania/?ekran';
+    board.hidden = !board.hidden;
+    this.textContent = board.hidden ? 'Pytania do prelegentów' : 'Wróć do mapy';
+  };
 
   function fmt(sec) { return Math.floor(sec / 60) + ':' + ('0' + (sec % 60)).slice(-2); }
   function secs(el) { return parseInt(el.getAttribute('data-sec') || '0', 10); }

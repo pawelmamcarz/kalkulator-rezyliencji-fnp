@@ -65,7 +65,11 @@ export async function handleMapa(request, env, fetchImpl, now = () => new Date()
 // Mounted on fnp.silence-tax.com/rotunda* in front of the calculator Worker.
 export const BASE = "/rotunda";
 
+import { questions, moderateQuestions } from "./questions.js";
+
 const API = {
+  "/api/pytania": { GET: questions, POST: questions },
+  "/api/pytania-mod": { GET: moderateQuestions, POST: moderateQuestions },
   "/api/mapa": { POST: (req, env) => handleMapa(req, env) },
   // waitUntil: an entry whose phone lost the connection is still judged and stored,
   // so the phone's retry with the same entry id gets that result back.
