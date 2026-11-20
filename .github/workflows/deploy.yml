@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, bielik]
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -24,7 +24,7 @@ jobs:
   deploy:
     needs: build
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, bielik]
     concurrency:
       group: deploy-production
       cancel-in-progress: false
