@@ -18,7 +18,7 @@ concurrency:
 jobs:
   deploy:
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, bielik]
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
